@@ -2,13 +2,12 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
-// use crate::error::MarketError;
 use crate::state::*;
+use crate::state::market::PythOracle;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
-    // pub oracle: Pubkey,
-    // pub irm: Pubkey,
+    pub oracle: String,
     pub lltv: u128,
 } 
 
@@ -94,36 +93,24 @@ impl<'info> CreateMarket<'info> {
             system_program: _,
         } = ctx.accounts;
 
-        // let current_slot = Clock::get()?.slot;
-
-        let CreateMarketArgs {
-            // oracle,
-            // irm,
-            lltv,
-        } = args;
+        const MAXIMUM_AGE: u64 = 30;
+        let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
 
         market.set_inner(Market {
             bump: ctx.bumps.market,
 
             lp_mint: lp_mint.key(),
-            collateral_mint: collateral_mint.key(),
-            quote_mint: quote_mint.key(),
-
-            collateral_mint_decimals: collateral_mint.decimals,
-            quote_mint_decimals: quote_mint.decimals,
 
             collateral_amount: 0,
+            collateral_mint: collateral_mint.key(),
+            collateral_mint_decimals: collateral_mint.decimals,
+
             quote_amount: 0,
+            quote_mint: quote_mint.key(),
+            quote_mint_decimals: quote_mint.decimals,
 
-            // irm: irm.key(),
-            lltv,
-            // oracle: oracle.key(),
-
-            // oracle: Oracle::new(
-            //     current_slot,
-            //     twap_initial_observation,
-            //     twap_max_observation_change_per_update,
-            // ),
+            lltv: args.lltv,
+            oracle: oracle,
         });
 
         Ok(())
