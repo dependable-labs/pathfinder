@@ -1,4 +1,23 @@
 use anchor_lang::prelude::*;
+use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
+pub struct PythOracle {
+    pub feed_id: [u8; 32],
+    pub max_age: u64,
+}
+
+impl PythOracle {
+    pub fn new(oracle_address: &str, max_age: u64) -> Result<Self> {
+        let feed_id = get_feed_id_from_hex(oracle_address)?;
+        Ok(Self { feed_id, max_age })
+    }
+
+    pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<i64> {
+        let price = pyth_price.get_price_no_older_than(clock, self.max_age, &self.feed_id)?;
+        Ok(price.price)
+    }
+}
 
 #[account]
 #[derive(Default)]
@@ -17,7 +36,7 @@ pub struct Market {
     pub collateral_amount: u64,
 
     pub lltv: u128,
-    // pub oracle: Pubkey,
+    pub oracle: PythOracle,
     // pub irm: Pubkey,
 }
 
@@ -48,8 +67,6 @@ impl Market {
     // pub fn get_quote_withdrawable(&self, lp_tokens: u64, lp_total_supply: u64) -> u64 {
     //     ((lp_tokens as u128 * self.quote_amount as u128) / lp_total_supply as u128) as u64
     // }
-
-
 }
 
 #[macro_export]
