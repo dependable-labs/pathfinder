@@ -17,4 +17,8 @@ pub mod markets {
     pub fn create_market(ctx: Context<CreateMarket>, args: CreateMarketArgs) -> Result<()> {
         CreateMarket::handle(ctx, args)
     }
+
+    pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<()> {
+        Deposit::handle(ctx, args)
+    }
 }

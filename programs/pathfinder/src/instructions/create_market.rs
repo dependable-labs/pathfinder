@@ -29,38 +29,35 @@ pub struct CreateMarket<'info> {
         ],
         bump
     )]
-    pub market: Account<'info, Market>,
-    #[account(
-        seeds = [MARKET_AUTHORITY_SEED_PREFIX, market.key().as_ref()], bump
-    )]
-    market_authority: SystemAccount<'info>,
+    pub market: Box<Account<'info, Market>>,
     #[account(
         init,
         payer = owner,
-        seeds = [MARKET_LP_MINT_SEED_PREFIX, market_authority.key().as_ref()],
+        seeds = [MARKET_LP_MINT_SEED_PREFIX, market.key().as_ref()],
         bump,
-        mint::authority = market_authority,
-        mint::freeze_authority = market_authority,
+        mint::authority = market,
         mint::decimals = 9,
     )]
     pub lp_mint: Box<Account<'info, Mint>>,
 
     // collateral
+    #[account(constraint = collateral_mint.is_initialized == true)]
     pub collateral_mint: Box<Account<'info, Mint>>,
     #[account(
         init_if_needed,
         payer = owner,
-        associated_token::authority = market_authority,
+        associated_token::authority = market,
         associated_token::mint = collateral_mint
     )]
     pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
 
     // quote
+    #[account(constraint = collateral_mint.is_initialized == true)]
     pub quote_mint: Box<Account<'info, Mint>>,
     #[account(
         init_if_needed,
         payer = owner,
-        associated_token::authority = market_authority,
+        associated_token::authority = market,
         associated_token::mint = quote_mint
     )]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
@@ -69,7 +66,6 @@ pub struct CreateMarket<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-
 }
 
 impl<'info> CreateMarket<'info> {
@@ -82,7 +78,6 @@ impl<'info> CreateMarket<'info> {
          let CreateMarket {
             owner: _,
             market,
-            market_authority: _,
             lp_mint,
             collateral_mint,
             vault_ata_collateral: _,

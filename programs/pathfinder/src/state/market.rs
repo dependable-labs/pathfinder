@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
+use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
 pub struct PythOracle {
@@ -9,8 +10,14 @@ pub struct PythOracle {
 
 impl PythOracle {
     pub fn new(oracle_address: &str, max_age: u64) -> Result<Self> {
-        let feed_id = get_feed_id_from_hex(oracle_address)?;
-        Ok(Self { feed_id, max_age })
+        // Check if the oracle string is a valid hex string with correct length
+        if oracle_address.len() == 64 || (oracle_address.len() == 66 && oracle_address.starts_with("0x")) {
+            let feed_id = get_feed_id_from_hex(oracle_address)?;
+            Ok(Self { feed_id, max_age })
+        } else {
+            // Invalid oracle ID
+            Err(error!(MarketError::InvalidOracleId))
+        }
     }
 
     pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<i64> {
@@ -20,24 +27,17 @@ impl PythOracle {
 }
 
 #[account]
-#[derive(Default)]
 pub struct Market {
     pub bump: u8,
-
     pub lp_mint: Pubkey,
-
-    pub quote_mint: Pubkey,
-    pub collateral_mint: Pubkey,
-
-    pub quote_mint_decimals: u8,
-    pub collateral_mint_decimals: u8,
-
-    pub quote_amount: u64,
     pub collateral_amount: u64,
-
+    pub collateral_mint: Pubkey,
+    pub collateral_mint_decimals: u8,
+    pub quote_amount: u64,
+    pub quote_mint: Pubkey,
+    pub quote_mint_decimals: u8,
     pub lltv: u128,
     pub oracle: PythOracle,
-    // pub irm: Pubkey,
 }
 
 impl Market {
