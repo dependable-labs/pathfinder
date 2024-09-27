@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum MarketError {
-    #[msg("You can't create an AMM pool where the token mints are the same")]
+    #[msg("You can't create an market with two of the same token mints")]
     SameTokenMints,
     #[msg("The user had insufficient balance to do this")]
     InsufficientBalance,
@@ -14,4 +14,10 @@ pub enum MarketError {
     InsufficientQuoteAmount,
     #[msg("Users must deposita non-zero amount")]
     ZeroDepositAmount,
+    #[msg("Invalid deposit amount")]
+    InvalidDepositAmount,
+    #[msg("Invalid oracle ID")]
+    InvalidOracleId,
+    #[msg("Math overflow")]
+    MathOverflow,
 }

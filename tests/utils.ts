@@ -104,43 +104,41 @@ export const createMint = async (
   return mint;
 };
 
-export const getPDAs = async (params: {
-  programId: anchor.web3.PublicKey;
-  quote: anchor.web3.PublicKey;
-  collateral: anchor.web3.PublicKey;
-}): Promise<PDAAccounts> => {
-    const [marketPda] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("market__"), params.quote.toBuffer(), params.collateral.toBuffer()],
-      params.programId
-    );
+export async function getPDAs({
+  programId,
+  collateral,
+  quote,
+}: {
+  programId: PublicKey;
+  collateral: PublicKey;
+  quote: PublicKey;
+}) {
+  const [market] = PublicKey.findProgramAddressSync(
+    [Buffer.from("market"), quote.toBuffer(), collateral.toBuffer()],
+    programId
+  );
 
-    const [marketAuthorityPda] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("market_authority"), marketPda.toBuffer()],
-      params.programId
-    );
+  const [lpMint] = PublicKey.findProgramAddressSync(
+    [Buffer.from("market_lp_mint"), market.toBuffer()],
+    programId
+  );
 
-    const [lpMintPda] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("market_lp_mint"), marketAuthorityPda.toBuffer()],
-      params.programId
-    );
+  // Remove market_authority derivation
 
-    const collateralAta = await getAssociatedTokenAddress(
-      params.collateral,
-      marketAuthorityPda,
-      true // allowOwnerOffCurve = true for PDA
-    );
+  const [collateralAta] = PublicKey.findProgramAddressSync(
+    [market.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), collateral.toBuffer()],
+    anchor.utils.token.ASSOCIATED_PROGRAM_ID
+  );
 
-    const quoteAta = await getAssociatedTokenAddress(
-      params.quote,
-      marketAuthorityPda,
-      true // allowOwnerOffCurve = true for PDA
-    );
+  const [quoteAta] = PublicKey.findProgramAddressSync(
+    [market.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), quote.toBuffer()],
+    anchor.utils.token.ASSOCIATED_PROGRAM_ID
+  );
 
-    return {
-      market: marketPda,
-      marketAuthority: marketAuthorityPda,
-      lpMint: lpMintPda,
-      collateralAta,
-      quoteAta,
-    };
-};
+  return {
+    market,
+    lpMint,
+    collateralAta,
+    quoteAta,
+  };
+}
