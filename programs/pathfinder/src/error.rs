@@ -20,4 +20,6 @@ pub enum MarketError {
     InvalidOracleId,
     #[msg("Math overflow")]
     MathOverflow,
+    #[msg("Arithmetic error occurred")]
+    ArithmeticError,
 }
