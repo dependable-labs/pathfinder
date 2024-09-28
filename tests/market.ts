@@ -181,18 +181,13 @@ describe("#create_market", async () => {
       "Owner's quote balance should have decreased by the deposit amount"
     );
 
-    // // Fetch the LP token balance of the owner
-    // const ownerLpBalance = await provider.connection.getTokenAccountBalance(ownerAtaLp);
-
-    // // Assert that LP tokens were minted to the owner
-    // assert.notEqual(
-    //   ownerLpBalance.value.amount,
-    //   "0",
-    //   "Owner should have received LP tokens"
-    // );
-
-    // console.log("Deposit of 100 quote tokens successful");
-    
+    // Assert that LP tokens were minted to the owner
+    const ownerLpBalance = await provider.connection.getTokenAccountBalance(ownerAtaLp);
+    assert.equal(
+      ownerLpBalance.value.amount,
+      depositAmount.toString(),
+      "Owner should have received LP tokens"
+    ); 
   });
 
 });

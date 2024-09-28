@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
+
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
@@ -41,42 +42,39 @@ pub struct Market {
 }
 
 impl Market {
-    // pub fn k(&self) -> u128 {
-    //     self.quote_amount as u128 * self.collateral_amount as u128
-    // }
 
-    // / Get the number of base and quote tokens withdrawable from a position
-    // pub fn get_base_and_quote_withdrawable(
-    //     &self,
-    //     lp_tokens: u64,
-    //     lp_total_supply: u64,
-    // ) -> (u64, u64) {
-    //     (
-    //         self.get_base_withdrawable(lp_tokens, lp_total_supply),
-    //         self.get_quote_withdrawable(lp_tokens, lp_total_supply),
-    //     )
-    // }
+    /// Convert an amount of assets to shares
+    pub fn convert_to_shares(&self, total_shares: u64, total_assets: u64, amount: u64) -> Result<u64> {
+        // If total_assets is 0, it means that the vault is empty and the amount is the same as the shares
+        if total_assets == 0 || total_shares == 0 {
+            return Ok(amount);
+        }
 
-    // /// Get the number of base tokens withdrawable from a position
-    // pub fn get_base_withdrawable(&self, lp_tokens: u64, lp_total_supply: u64) -> u64 {
-    //     // must fit back into u64 since `lp_tokens` <= `lp_total_supply`
-    //     ((lp_tokens as u128 * self.base_amount as u128) / lp_total_supply as u128) as u64
-    // }
+        amount
+            .checked_mul(total_shares)
+            .and_then(|result| result.checked_div(total_assets))
+            .ok_or(MarketError::ArithmeticError.into())
+    }
 
-    // /// Get the number of quote tokens withdrawable from a position
-    // pub fn get_quote_withdrawable(&self, lp_tokens: u64, lp_total_supply: u64) -> u64 {
-    //     ((lp_tokens as u128 * self.quote_amount as u128) / lp_total_supply as u128) as u64
-    // }
+    /// Preview the number of shares that would be minted for a given deposit amount
+    pub fn deposit_preview(&self, total_shares: u64, total_assets: u64, amount: u64) -> Result<u64> {
+        self.convert_to_shares(total_shares, total_assets, amount)
+    }
+
+    /// Preview the number of shares that would be burned for a given withdrawal amount
+    pub fn withdraw_preview(&self, total_shares: u64, total_assets: u64, amount: u64) -> Result<u64> {
+        self.convert_to_shares(total_shares, total_assets, amount)
+    }
 }
 
 #[macro_export]
-macro_rules! generate_amm_seeds {
-    ($amm:expr) => {{
+macro_rules! generate_market_seeds {
+    ($market:expr) => {{
         &[
             MARKET_SEED_PREFIX,
-            $amm.base_mint.as_ref(),
-            $amm.quote_mint.as_ref(),
-            &[$amm.bump],
+            $market.quote_mint.as_ref(),
+            $market.collateral_mint.as_ref(),
+            &[$market.bump],
         ]
     }};
 }

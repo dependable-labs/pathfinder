@@ -2,13 +2,14 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
-use crate::state::*;
+use crate::{generate_market_seeds, state::*};
 use crate::error::MarketError;
+
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct DepositArgs {
     pub amount: u64,
-} 
+}
 
 #[derive(Accounts)]
 #[instruction(args: DepositArgs)]
@@ -107,11 +108,28 @@ impl<'info> Deposit<'info> {
             args.amount,
         )?;
 
+        // Preview the number of shares to be minted
+        let total_shares = lp_mint.supply;
+        let total_assets = vault_ata_quote.amount;
+        let shares = market.deposit_preview(total_shares, total_assets, args.amount)?;
 
-        // let shares = deposit_preview(&ctx, deposit_amount)?;
-        msg!("Minting shares");
+        msg!("Minting {} shares", shares);
 
-        // mint_shares(&ctx, shares)?;
+        let seeds = generate_market_seeds!(market);
+        let signer = &[&seeds[..]];
+
+        mint_to(
+            CpiContext::new_with_signer(
+                token_program.to_account_info(),
+                MintTo {
+                    mint: lp_mint.to_account_info(),
+                    to: owner_ata_lp.to_account_info(),
+                    authority: market.to_account_info(),
+                },
+                signer,
+            ),
+            shares,
+        )?;
 
         // update market quote amount
         market.quote_amount = market.quote_amount
