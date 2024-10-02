@@ -30,15 +30,22 @@ impl PythOracle {
 #[account]
 pub struct Market {
     pub bump: u8,
-    pub lp_mint: Pubkey,
-    pub collateral_amount: u64,
+    pub total_collateral: u64,
     pub collateral_mint: Pubkey,
     pub collateral_mint_decimals: u8,
-    pub quote_amount: u64,
+    pub total_quote: u64,
     pub quote_mint: Pubkey,
     pub quote_mint_decimals: u8,
     pub lltv: u128,
     pub oracle: PythOracle,
+    pub total_shares: u64,
+}
+
+#[account]
+pub struct UserShares {
+    pub market: Pubkey,
+    pub user: Pubkey,
+    pub shares: u64,
 }
 
 impl Market {

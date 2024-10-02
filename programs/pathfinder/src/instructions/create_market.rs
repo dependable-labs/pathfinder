@@ -30,15 +30,6 @@ pub struct CreateMarket<'info> {
         bump
     )]
     pub market: Box<Account<'info, Market>>,
-    #[account(
-        init,
-        payer = owner,
-        seeds = [MARKET_LP_MINT_SEED_PREFIX, market.key().as_ref()],
-        bump,
-        mint::authority = market,
-        mint::decimals = 9,
-    )]
-    pub lp_mint: Box<Account<'info, Mint>>,
 
     // collateral
     #[account(constraint = collateral_mint.is_initialized == true)]
@@ -78,7 +69,6 @@ impl<'info> CreateMarket<'info> {
          let CreateMarket {
             owner: _,
             market,
-            lp_mint,
             collateral_mint,
             vault_ata_collateral: _,
             quote_mint,
@@ -94,13 +84,13 @@ impl<'info> CreateMarket<'info> {
         market.set_inner(Market {
             bump: ctx.bumps.market,
 
-            lp_mint: lp_mint.key(),
+            total_shares:0,
 
-            collateral_amount: 0,
+            total_collateral: 0,
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,
 
-            quote_amount: 0,
+            total_quote: 0,
             quote_mint: quote_mint.key(),
             quote_mint_decimals: quote_mint.decimals,
 

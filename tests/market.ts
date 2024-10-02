@@ -32,10 +32,11 @@ describe("#create_market", async () => {
     const PYTH_SOL_USD_ID = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
     // const pythPriceAccount = new PublicKey("7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE");
 
-    const { market, lpMint, collateralAta, quoteAta } = await getPDAs({
+    const { market, collateralAta, quoteAta } = await getPDAs({
       programId: program.programId,
       collateral: collateralMint,
       quote: quoteMint,
+      owner,
     });
 
     // Execute the transaction to create the market
@@ -47,7 +48,6 @@ describe("#create_market", async () => {
       .accounts({
         owner,
         market,
-        lpMint,
         collateralMint,
         vaultAtaCollateral: collateralAta,
         quoteMint,
@@ -62,18 +62,16 @@ describe("#create_market", async () => {
     const marketAccount = await program.account.market.fetch(market);
 
     // Assert that the market account was created with the correct values
-    assert.equal(marketAccount.lpMint.toBase58(), lpMint.toBase58());
     assert.equal(marketAccount.collateralMint.toBase58(), collateralMint.toBase58());
     assert.equal(marketAccount.collateralMintDecimals, 9, "Collateral mint decimals should be 9");
     assert.equal(marketAccount.quoteMint.toBase58(), quoteMint.toBase58());
     assert.equal(marketAccount.quoteMintDecimals, 9, "Quote mint decimals should be 9");
-    assert.equal(marketAccount.collateralAmount.toNumber(), 0);
-    assert.equal(marketAccount.quoteAmount.toNumber(), 0);
+    assert.equal(marketAccount.totalCollateral.toNumber(), 0);
+    assert.equal(marketAccount.totalQuote.toNumber(), 0);
 
     // Check that the lltv value is set correctly
     assert.equal(marketAccount.lltv.toString(), '100', "LLTV should be set to 100");
 
-    // console.log("Market created successfully with correct LLTV and mint decimals");
   });
 
   it("deposits", async () => {
@@ -101,12 +99,13 @@ describe("#create_market", async () => {
     );
 
     const PYTH_SOL_USD_ID = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
-    // const pythPriceAccount = new PublicKey("7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE");
+  //   // const pythPriceAccount = new PublicKey("7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE");
 
-    const { market, lpMint, collateralAta, quoteAta } = await getPDAs({
+    const { market, collateralAta, quoteAta, userShares } = await getPDAs({
       programId: program.programId,
       collateral: collateralMint,
       quote: quoteMint,
+      owner,
     });
 
     // Execute the transaction to create the market
@@ -118,7 +117,6 @@ describe("#create_market", async () => {
       .accounts({
         owner,
         market,
-        lpMint,
         collateralMint,
         vaultAtaCollateral: collateralAta,
         quoteMint,
@@ -132,20 +130,15 @@ describe("#create_market", async () => {
     // Deposit 100 quote tokens
     const depositAmount = new anchor.BN(100 * LAMPORTS_PER_SOL); // 100 tokens with 9 decimals
 
-    const ownerAtaLp = await anchor.utils.token.associatedAddress({
-      mint: lpMint,
-      owner: owner,
-    });
-
     await program.methods
       .deposit({
         amount: depositAmount,
+        shares: new anchor.BN(0),
       })
       .accounts({
         depositor: owner,
         market,
-        lpMint,
-        ownerAtaLp,
+        userShares,
         quoteMint,
         vaultAtaQuote: quoteAta,
         depositorAtaQuote: quoteOwnerTokenAccount,
@@ -159,7 +152,7 @@ describe("#create_market", async () => {
     // Assert accounting
     const updatedMarketAccount = await program.account.market.fetch(market);
     assert.equal(
-      updatedMarketAccount.quoteAmount.toString(),
+      updatedMarketAccount.totalQuote.toString(),
       depositAmount.toString(),
       "Market quote amount should be equal to the deposited amount"
     );
@@ -181,13 +174,25 @@ describe("#create_market", async () => {
       "Owner's quote balance should have decreased by the deposit amount"
     );
 
-    // Assert that LP tokens were minted to the owner
-    const ownerLpBalance = await provider.connection.getTokenAccountBalance(ownerAtaLp);
-    assert.equal(
-      ownerLpBalance.value.amount,
-      depositAmount.toString(),
-      "Owner should have received LP tokens"
-    ); 
-  });
+    // Fetch the UserShares account for the owner
+    const userSharesAccount = await program.account.userShares.fetch(userShares);
 
+    // Assert that the user's shares balance has increased and matches the total shares
+    assert.ok(
+      userSharesAccount.shares.gt(new anchor.BN(0)),
+      "User's shares balance should have increased after deposit"
+    );
+    assert.equal(
+      userSharesAccount.shares.toString(),
+      updatedMarketAccount.totalShares.toString(),
+      "User's shares should match the total shares in the market"
+    );
+
+    // This assumes that for the initial deposit, shares == amount (as per the contract logic)
+    assert.ok(
+      userSharesAccount.shares.eq(depositAmount),
+      "User's shares should equal the deposit amount for the initial deposit"
+    );
+
+});
 });

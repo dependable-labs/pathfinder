@@ -9,6 +9,7 @@ use crate::error::MarketError;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct DepositArgs {
     pub amount: u64,
+    pub shares: u64,
 }
 
 #[derive(Accounts)]
@@ -27,19 +28,19 @@ pub struct Deposit<'info> {
     )]
     pub market: Account<'info, Market>,
 
-    // Lp mint
-    #[account(
-        mut,
-        mint::authority = market,
-    )]
-    pub lp_mint: Box<Account<'info, Mint>>,
+    // user shares
     #[account(
         init_if_needed,
         payer = depositor,
-        associated_token::mint = lp_mint,
-        associated_token::authority = depositor,
+        space = 8 + std::mem::size_of::<UserShares>(),
+        seeds = [
+            MARKET_SHARES_SEED_PREFIX,
+            market.key().as_ref(),
+            depositor.key().as_ref()
+        ],
+        bump
     )]
-    pub owner_ata_lp: Box<Account<'info, TokenAccount>>,
+    pub user_shares: Box<Account<'info, UserShares>>,
 
     // quote
     #[account(constraint = quote_mint.is_initialized == true)]
@@ -75,8 +76,7 @@ impl<'info> Deposit<'info> {
          let Deposit {
             depositor,
             market,
-            lp_mint,
-            owner_ata_lp,
+            user_shares,
             quote_mint,
             depositor_ata_quote,
             collateral_mint,
@@ -109,30 +109,23 @@ impl<'info> Deposit<'info> {
         )?;
 
         // Preview the number of shares to be minted
-        let total_shares = lp_mint.supply;
-        let total_assets = vault_ata_quote.amount;
+        let total_shares = market.total_shares;
+        let total_assets = market.total_quote;
         let shares = market.deposit_preview(total_shares, total_assets, args.amount)?;
 
-        msg!("Minting {} shares", shares);
+        // Update user shares
+        user_shares.shares = user_shares.shares
+                .checked_add(shares)
+                .ok_or(MarketError::MathOverflow)?;
 
-        let seeds = generate_market_seeds!(market);
-        let signer = &[&seeds[..]];
+        // Update market shares
+        market.total_shares = market.total_shares
+                .checked_add(shares)
+                .ok_or(MarketError::MathOverflow)?;
 
-        mint_to(
-            CpiContext::new_with_signer(
-                token_program.to_account_info(),
-                MintTo {
-                    mint: lp_mint.to_account_info(),
-                    to: owner_ata_lp.to_account_info(),
-                    authority: market.to_account_info(),
-                },
-                signer,
-            ),
-            shares,
-        )?;
 
-        // update market quote amount
-        market.quote_amount = market.quote_amount
+        // Update market quote amount
+        market.total_quote = market.total_quote
                 .checked_add(args.amount)
                 .ok_or(MarketError::MathOverflow)?;
 
