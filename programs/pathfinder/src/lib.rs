@@ -5,6 +5,7 @@ declare_id!("7ALFC87zvuPvpp9h5Stq9SSP3kTCUJfhtirEZVJmZYy4");
 pub mod instructions;
 pub mod state;
 pub mod error;
+pub mod math;
 
 use crate::state::*;
 use crate::instructions::*;

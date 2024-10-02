@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
+use crate::math::*;
 use crate::{generate_market_seeds, state::*};
 use crate::error::MarketError;
 
@@ -111,7 +112,9 @@ impl<'info> Deposit<'info> {
         // Preview the number of shares to be minted
         let total_shares = market.total_shares;
         let total_assets = market.total_quote;
-        let shares = market.deposit_preview(total_shares, total_assets, args.amount)?;
+
+        // let shares = market.deposit_preview(total_shares, total_assets, args.amount)?;
+        let shares = to_shares_down(&args.amount, &total_assets, &total_shares)?;
 
         // Update user shares
         user_shares.shares = user_shares.shares
