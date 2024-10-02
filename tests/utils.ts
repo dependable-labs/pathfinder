@@ -21,10 +21,9 @@ export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
 export interface PDAAccounts {
   market: PublicKey;
-  marketAuthority: PublicKey;
-  lpMint: PublicKey;
   collateralAta: PublicKey;
   quoteAta: PublicKey;
+  userShares: PublicKey;
 }
 
 export const createTokenAccount = async (
@@ -108,22 +107,17 @@ export async function getPDAs({
   programId,
   collateral,
   quote,
+  owner,
 }: {
   programId: PublicKey;
   collateral: PublicKey;
   quote: PublicKey;
+  owner: PublicKey;
 }) {
   const [market] = PublicKey.findProgramAddressSync(
     [Buffer.from("market"), quote.toBuffer(), collateral.toBuffer()],
     programId
   );
-
-  const [lpMint] = PublicKey.findProgramAddressSync(
-    [Buffer.from("market_lp_mint"), market.toBuffer()],
-    programId
-  );
-
-  // Remove market_authority derivation
 
   const [collateralAta] = PublicKey.findProgramAddressSync(
     [market.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), collateral.toBuffer()],
@@ -135,10 +129,15 @@ export async function getPDAs({
     anchor.utils.token.ASSOCIATED_PROGRAM_ID
   );
 
+  const [userShares] = PublicKey.findProgramAddressSync(
+    [Buffer.from("market_shares"), market.toBuffer(), owner.toBuffer()],
+    programId
+  );
+
   return {
     market,
-    lpMint,
     collateralAta,
     quoteAta,
+    userShares,
   };
 }
