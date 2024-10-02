@@ -11,7 +11,7 @@ pub fn calculate_total_assets(total_assets: &u64) -> Result<u128> {
         .ok_or(error!(MarketError::MathOverflow))
 }
 
-fn calculate_total_shares(total_shares: &u64) -> Result<u128> {
+pub fn calculate_total_shares(total_shares: &u64) -> Result<u128> {
     (*total_shares as u128)
         .checked_add(VIRTUAL_SHARES)
         .ok_or(error!(MarketError::MathOverflow))
