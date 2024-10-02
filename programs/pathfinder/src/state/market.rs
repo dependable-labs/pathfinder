@@ -50,28 +50,86 @@ pub struct UserShares {
 
 impl Market {
 
-    /// Convert an amount of assets to shares
-    pub fn convert_to_shares(&self, total_shares: u64, total_assets: u64, amount: u64) -> Result<u64> {
-        // If total_assets is 0, it means that the vault is empty and the amount is the same as the shares
-        if total_assets == 0 || total_shares == 0 {
-            return Ok(amount);
-        }
+    // Constants
+    const VIRTUAL_SHARES: u128 = 1_000_000; // 1e6
+    const VIRTUAL_ASSETS: u128 = 1;
 
-        amount
-            .checked_mul(total_shares)
-            .and_then(|result| result.checked_div(total_assets))
-            .ok_or(MarketError::ArithmeticError.into())
+    fn calculate_total_assets(&self, total_assets: &u64) -> Result<u128> {
+        (*total_assets as u128)
+            .checked_add(Self::VIRTUAL_ASSETS)
+            .ok_or(error!(MarketError::MathOverflow))
     }
 
-    /// Preview the number of shares that would be minted for a given deposit amount
-    pub fn deposit_preview(&self, total_shares: u64, total_assets: u64, amount: u64) -> Result<u64> {
-        self.convert_to_shares(total_shares, total_assets, amount)
+    fn calculate_total_shares(&self, total_shares: &u64) -> Result<u128> {
+        (*total_shares as u128)
+            .checked_add(Self::VIRTUAL_SHARES)
+            .ok_or(error!(MarketError::MathOverflow))
     }
 
-    /// Preview the number of shares that would be burned for a given withdrawal amount
-    pub fn withdraw_preview(&self, total_shares: u64, total_assets: u64, amount: u64) -> Result<u64> {
-        self.convert_to_shares(total_shares, total_assets, amount)
+    // Calculates the value of `assets` quoted in shares, rounding down.
+    pub fn to_shares_down(&self, assets: &u64, total_assets: &u64, total_shares: &u64) -> Result<u64> {
+        let total_assets = self.calculate_total_assets(total_assets)?;
+        let total_shares = self.calculate_total_shares(total_shares)?;
+        let assets_u128 = *assets as u128;
+
+        self.mul_div_down(assets_u128, total_shares, total_assets)
     }
+
+    // Calculates the value of `shares` quoted in assets, rounding down.
+    pub fn to_assets_down(&self, shares: &u64, total_assets: &u64, total_shares: &u64) -> Result<u64> {
+        let total_assets = self.calculate_total_assets(total_assets)?;
+        let total_shares = self.calculate_total_shares(total_shares)?;
+        let shares_u128 = *shares as u128;
+
+        self.mul_div_down(shares_u128, total_assets, total_shares)
+    }
+
+    // Calculates the value of `assets` quoted in shares, rounding up.
+    pub fn to_shares_up(&self, assets: &u64, total_assets: &u64, total_shares: &u64) -> Result<u64> {
+        let total_assets = self.calculate_total_assets(total_assets)?;
+        let total_shares = self.calculate_total_shares(total_shares)?;
+        let assets_u128 = *assets as u128;
+
+        self.mul_div_up(assets_u128, total_shares, total_assets)
+    }
+
+    // Calculates the value of `shares` quoted in assets, rounding down.
+    pub fn to_assets_up(&self, shares: &u64, total_assets: &u64, total_shares: &u64) -> Result<u64> {
+        let total_assets = self.calculate_total_assets(total_assets)?;
+        let total_shares = self.calculate_total_shares(total_shares)?;
+        let shares_u128 = *shares as u128;
+
+        self.mul_div_up(shares_u128, total_assets, total_shares)
+    }
+
+    /// Performs multiplication followed by division, rounding down.
+    fn mul_div_down(&self, a: u128, b: u128, c: u128) -> Result<u64> {
+
+        // a * b / c
+        let result = a.checked_mul(b)
+            .ok_or(error!(MarketError::MathOverflow))?
+            .checked_div(c)
+            .ok_or(error!(MarketError::MathOverflow))?;
+    
+        self.u128_to_u64(result)
+    }
+
+    /// Performs multiplication followed by division, rounding up.
+    fn mul_div_up(&self, a: u128, b: u128, c: u128) -> Result<u64> {
+
+        // (a * b + (c - 1)) / c
+        let product = a.checked_mul(b).ok_or(error!(MarketError::MathOverflow))?;
+        let c_minus_one = c.checked_sub(1).ok_or(error!(MarketError::MathOverflow))?;
+        let numerator = product.checked_add(c_minus_one).ok_or(error!(MarketError::MathOverflow))?;
+        let result = numerator.checked_div(c).ok_or(error!(MarketError::MathOverflow))?;
+
+        self.u128_to_u64(result)
+    }
+    
+    pub fn u128_to_u64(&self, value: u128) -> Result<u64> {
+        Ok((value & u64::MAX as u128) as u64)
+    }
+
 }
 
 #[macro_export]

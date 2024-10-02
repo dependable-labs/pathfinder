@@ -187,12 +187,5 @@ describe("#create_market", async () => {
       updatedMarketAccount.totalShares.toString(),
       "User's shares should match the total shares in the market"
     );
-
-    // This assumes that for the initial deposit, shares == amount (as per the contract logic)
-    assert.ok(
-      userSharesAccount.shares.eq(depositAmount),
-      "User's shares should equal the deposit amount for the initial deposit"
-    );
-
 });
 });
