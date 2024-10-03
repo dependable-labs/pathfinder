@@ -14,12 +14,17 @@ pub enum MarketError {
     InsufficientQuoteAmount,
     #[msg("Users must deposita non-zero amount")]
     ZeroDepositAmount,
-    #[msg("Invalid deposit amount")]
-    InvalidDepositAmount,
+    #[msg("Invalid withdraw input")]
+    InvalidWithdrawInput,
+    #[msg("Invalid deposit input")]
+    InvalidDepositInput,
     #[msg("Invalid oracle ID")]
     InvalidOracleId,
     #[msg("Math overflow")]
     MathOverflow,
     #[msg("Arithmetic error occurred")]
     ArithmeticError,
+    #[msg("Math Underflow")]
+    MathUnderflow
+
 }

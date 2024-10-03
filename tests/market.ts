@@ -72,19 +72,40 @@ describe("Market Operations", () => {
       .rpc();
   }
 
-  async function deposit(accounts: any, amount: anchor.BN) {
+  async function deposit(accounts: any, amount: anchor.BN, shares: anchor.BN) {
     await program.methods
       .deposit({
         amount,
-        shares: new anchor.BN(0),
+        shares,
       })
       .accounts({
-        depositor: accounts.owner,
+        user: accounts.owner,
         market: accounts.market,
         userShares: accounts.userShares,
         quoteMint: accounts.quoteMint,
         vaultAtaQuote: accounts.quoteAta,
-        depositorAtaQuote: accounts.quoteOwnerTokenAccount,
+        userAtaQuote: accounts.quoteOwnerTokenAccount,
+        collateralMint: accounts.collateralMint,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  async function withdraw(accounts: any, amount: anchor.BN, shares: anchor.BN) {
+    await program.methods
+      .withdraw({
+        amount,
+        shares,
+      })
+      .accounts({
+        user: accounts.owner,
+        market: accounts.market,
+        userShares: accounts.userShares,
+        quoteMint: accounts.quoteMint,
+        vaultAtaQuote: accounts.quoteAta,
+        userAtaQuote: accounts.quoteOwnerTokenAccount,
         collateralMint: accounts.collateralMint,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
@@ -113,7 +134,8 @@ describe("Market Operations", () => {
     await createMarket(accounts);
 
     const depositAmount = new anchor.BN(100 * LAMPORTS_PER_SOL);
-    await deposit(accounts, depositAmount);
+    const shares = new anchor.BN(0);
+    await deposit(accounts, depositAmount, shares);
 
     // Verify that the total quote in the market matches the deposited amount
     const updatedMarketAccount = await program.account.market.fetch(accounts.market);
@@ -133,5 +155,38 @@ describe("Market Operations", () => {
     assert.ok(userSharesAccount.shares.gt(new anchor.BN(0)), "User's shares balance should have increased after deposit");
     // Verify that the user's shares match the total shares in the market
     assert.equal(userSharesAccount.shares.toString(), updatedMarketAccount.totalShares.toString(), "User's shares should match the total shares in the market");
+  });
+
+  it("withdraws", async () => {
+    const accounts = await setupMarket();
+    await createMarket(accounts);
+
+    const depositAmount = new anchor.BN(100 * LAMPORTS_PER_SOL);
+    const shares = new anchor.BN(0);
+    await deposit(accounts, depositAmount, shares);
+    const userSharesPreWithdraw = await program.account.userShares.fetch(accounts.userShares);
+
+    const withdrawAmount = new anchor.BN(50 * LAMPORTS_PER_SOL);
+    await withdraw(accounts, withdrawAmount, shares);
+
+    // Verify that the total quote in the market has decreased by the withdrawn amount
+    const updatedMarketAccount = await program.account.market.fetch(accounts.market);
+    const expectedTotalQuote = depositAmount.sub(withdrawAmount);
+    assert.equal(updatedMarketAccount.totalQuote.toString(), expectedTotalQuote.toString(), "Market quote amount should be equal to the deposited amount minus withdrawn amount");
+
+    // Verify that the vault's balance has decreased by the withdrawn amount
+    const updatedVaultQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteAta);
+    assert.equal(updatedVaultQuoteBalance.value.amount, expectedTotalQuote.toString(), "Vault quote balance should have decreased by the withdrawn amount");
+
+    // Verify that the owner's balance has increased by the withdrawn amount
+    const updatedOwnerQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteOwnerTokenAccount);
+    const expectedOwnerBalance = new anchor.BN(INITIAL_TOKEN_AMOUNT).sub(depositAmount).add(withdrawAmount);
+    assert.equal(updatedOwnerQuoteBalance.value.amount, expectedOwnerBalance.toString(), "Owner's quote balance should have increased by the withdrawn amount");
+
+    const userSharesPostWithdraw = await program.account.userShares.fetch(accounts.userShares);
+    // Verify that the user's shares have decreased after withdrawal
+    assert.ok(userSharesPostWithdraw.shares.lt(userSharesPreWithdraw.shares), "User's shares balance should have decreased after withdrawal");
+    // Verify that the user's shares match the total shares in the market
+    assert.equal(userSharesPostWithdraw.shares.toString(), updatedMarketAccount.totalShares.toString(), "User's shares should match the total shares in the market");
   });
 });

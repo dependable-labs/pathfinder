@@ -2,13 +2,13 @@
 
 ## Description
 
-Pathfinder is a decentralized finance (DeFi) application built on the Solana blockchain. It implements a market system where users can deposit quote tokens, receive shares representing their deposit, and potentially use these shares for further DeFi operations. This project demonstrates the implementation of a sophisticated market system using Solana's programming model and the Anchor framework.
+Pathfinder is a decentralized finance (DeFi) application built on the Solana blockchain. It implements a market system where users can withdraw quote tokens, burn shares representing their withdrawal, and potentially use these shares for further DeFi operations. This project demonstrates the implementation of a sophisticated market system using Solana's programming model and the Anchor framework.
 
 ## Features
 
 - Initialize a new market
-- Deposit quote tokens into the market
-- Receive shares proportional to the deposit
+- Withdraw quote tokens from the market
+- Burn shares proportional to the withdrawal
 - Handle collateral and quote tokens
 - Implement advanced math operations for share calculations
 - Protect against potential front-running attacks
@@ -52,7 +52,7 @@ This command will execute all the tests defined in the `tests` directory, verify
 ## Project Structure
 
 - `programs/pathfinder/src/`: Contains the Rust source code for the Solana program
-  - `instructions/`: Defines the program's instructions (e.g., deposit)
+  - `instructions/`: Defines the program's instructions (e.g., withdraw)
   - `state/`: Defines the program's state accounts
   - `math/`: Contains mathematical operations for share calculations
 - `tests/`: Contains TypeScript tests for the program
