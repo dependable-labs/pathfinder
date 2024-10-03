@@ -25,6 +25,7 @@ pub enum MarketError {
     #[msg("Arithmetic error occurred")]
     ArithmeticError,
     #[msg("Math Underflow")]
-    MathUnderflow
-
+    MathUnderflow,
+    #[msg("Invalid deposit collateral input")]
+    InvalidDepositCollateralInput,
 }
