@@ -8,14 +8,14 @@ use crate::error::MarketError;
 
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct DepositArgs {
+pub struct WithdrawArgs {
     pub amount: u64,
     pub shares: u64,
 }
 
 #[derive(Accounts)]
-#[instruction(args: DepositArgs)]
-pub struct Deposit<'info> {
+#[instruction(args: WithdrawArgs)]
+pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
@@ -68,13 +68,13 @@ pub struct Deposit<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> Deposit<'info> {
+impl<'info> Withdraw<'info> {
     pub fn validate(&self) -> Result<()> {
         Ok(())
     }
 
-    pub fn handle(ctx: Context<Self>, args: DepositArgs) -> Result<()> {
-         let Deposit {
+    pub fn handle(ctx: Context<Self>, args: WithdrawArgs) -> Result<()> {
+         let Withdraw {
             user,
             market,
             user_shares,
@@ -92,49 +92,53 @@ impl<'info> Deposit<'info> {
 
         // Validate that either shares or amount is zero, but not both
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-            return err!(MarketError::InvalidDepositInput);
+            return err!(MarketError::InvalidWithdrawInput);
         }
         
         if assets > 0 {
-            shares = to_shares_down(&assets, &market.total_quote, &market.total_shares)?;
+            shares = to_shares_up(&assets, &market.total_quote, &market.total_shares)?;
         } else {
-            assets = to_assets_up(&shares, &market.total_quote, &market.total_shares)?;
+            assets = to_assets_down(&shares, &market.total_quote, &market.total_shares)?;
         }
-        
-        msg!("Depositing {} to vault", assets);
 
-        // Update market shares
+        // Validate that the user isn't requesting more shares than they possess
+        if shares > user_shares.shares {
+            return err!(MarketError::InsufficientBalance);
+        }
+
+        // Update accumulators
         market.total_shares = market.total_shares
-                .checked_add(shares)
-                .ok_or(MarketError::MathOverflow)?;
+                .checked_sub(shares)
+                .ok_or(error!(MarketError::MathUnderflow))?;
 
-        // Update market quote amount
         market.total_quote = market.total_quote
-                .checked_add(args.amount)
-                .ok_or(MarketError::MathOverflow)?;
+                .checked_sub(assets)
+                .ok_or(error!(MarketError::MathUnderflow))?;
 
         // Update user shares
         user_shares.shares = user_shares.shares
-                .checked_add(shares)
-                .ok_or(MarketError::MathOverflow)?;
+                .checked_sub(shares)
+                .ok_or(MarketError::MathUnderflow)?;
 
+        msg!("Withdrawing {} from the vault", assets);
 
-        // Create CpiContext for the transfer
-        let cpi_context = CpiContext::new(
-            token_program.to_account_info(),
-            Transfer {
-                from: user_ata_quote.to_account_info(),
-                to: vault_ata_quote.to_account_info(),
-                authority: user.to_account_info(),
-            }
-        );
-        
-        // transfer tokens to vault
+        // transfer tokens to depositor
+        let seeds = generate_market_seeds!(market);
+        let signer = &[&seeds[..]];
+
         transfer(
-            cpi_context,
+            CpiContext::new_with_signer(
+                token_program.to_account_info(),
+                Transfer {
+                    from: vault_ata_quote.to_account_info(),
+                    to: user_ata_quote.to_account_info(),
+                    authority: market.to_account_info(),
+                },
+                signer,
+            ),
             assets,
         )?;
-
+        
         Ok(())
 
     }

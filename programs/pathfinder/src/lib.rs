@@ -22,4 +22,8 @@ pub mod markets {
     pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<()> {
         Deposit::handle(ctx, args)
     }
+
+    pub fn withdraw(ctx: Context<Withdraw>, args: WithdrawArgs) -> Result<()> {
+        Withdraw::handle(ctx, args)
+    }
 }
