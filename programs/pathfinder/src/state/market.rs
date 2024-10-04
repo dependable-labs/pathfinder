@@ -47,6 +47,7 @@ pub struct UserShares {
     pub market: Pubkey,
     pub user: Pubkey,
     pub shares: u64,
+    pub collateral: u64,
 }
 
 impl Market {

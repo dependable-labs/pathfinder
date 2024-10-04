@@ -114,6 +114,25 @@ describe("Market Operations", () => {
       .rpc();
   }
 
+  async function depositCollateral(accounts: any, amount: anchor.BN) {
+    await program.methods
+      .depositCollateral({
+        amount,
+      })
+      .accounts({
+        user: accounts.owner,
+        market: accounts.market,
+        userShares: accounts.userShares,
+        collateralMint: accounts.collateralMint,
+        vaultAtaCollateral: accounts.collateralAta,
+        userAtaCollateral: accounts.collateralOwnerTokenAccount,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+  }
+
   it("creates a market", async () => {
     const accounts = await setupMarket();
     await createMarket(accounts);
@@ -188,5 +207,32 @@ describe("Market Operations", () => {
     assert.ok(userSharesPostWithdraw.shares.lt(userSharesPreWithdraw.shares), "User's shares balance should have decreased after withdrawal");
     // Verify that the user's shares match the total shares in the market
     assert.equal(userSharesPostWithdraw.shares.toString(), updatedMarketAccount.totalShares.toString(), "User's shares should match the total shares in the market");
+  });
+
+  it("deposits collateral", async () => {
+    const accounts = await setupMarket();
+    await createMarket(accounts);
+
+    const collateralDepositAmount = new anchor.BN(50 * LAMPORTS_PER_SOL);
+    await depositCollateral(accounts, collateralDepositAmount);
+
+    // Verify that the total collateral in the market has increased by the deposited amount
+    const updatedMarketAccount = await program.account.market.fetch(accounts.market);
+    assert.equal(updatedMarketAccount.totalCollateral.toString(), collateralDepositAmount.toString(), "Market collateral amount should be equal to the deposited amount");
+
+    // Verify that the vault's collateral balance has increased by the deposited amount
+    const updatedVaultCollateralBalance = await provider.connection.getTokenAccountBalance(accounts.collateralAta);
+    assert.equal(updatedVaultCollateralBalance.value.amount, collateralDepositAmount.toString(), "Vault collateral balance should have increased by the deposited amount");
+
+    // Verify that the owner's collateral balance has decreased by the deposited amount
+    const updatedOwnerCollateralBalance = await provider.connection.getTokenAccountBalance(accounts.collateralOwnerTokenAccount);
+    const expectedOwnerBalance = new anchor.BN(INITIAL_TOKEN_AMOUNT).sub(collateralDepositAmount);
+    assert.equal(updatedOwnerCollateralBalance.value.amount, expectedOwnerBalance.toString(), "Owner's collateral balance should have decreased by the deposited amount");
+
+    const userSharesAccount = await program.account.userShares.fetch(accounts.userShares);
+    // Verify that the user's collateral has increased after deposit
+    assert.equal(userSharesAccount.collateral.toString(), collateralDepositAmount.toString(), "User's collateral balance should have increased after deposit");
+    // Verify that the user's shares remain unchanged
+    assert.equal(userSharesAccount.shares.toString(), updatedMarketAccount.totalShares.toString(), "User's shares should remain unchanged after collateral deposit");
   });
 });

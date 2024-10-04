@@ -26,4 +26,8 @@ pub mod markets {
     pub fn withdraw(ctx: Context<Withdraw>, args: WithdrawArgs) -> Result<()> {
         Withdraw::handle(ctx, args)
     }
+
+    pub fn deposit_collateral(ctx: Context<DepositCollateral>, args: DepositCollateralArgs) -> Result<()> {
+        DepositCollateral::handle(ctx, args)
+    }
 }
