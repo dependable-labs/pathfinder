@@ -23,7 +23,6 @@ pub struct Withdraw<'info> {
         seeds = [
             MARKET_SEED_PREFIX,
             market.quote_mint.as_ref(),
-            market.collateral_mint.as_ref()
         ],
         bump = market.bump
     )]

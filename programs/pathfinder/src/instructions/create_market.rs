@@ -25,26 +25,15 @@ pub struct CreateMarket<'info> {
         seeds = [
             MARKET_SEED_PREFIX,
             quote_mint.key().as_ref(),
-            collateral_mint.key().as_ref()
         ],
         bump
     )]
     pub market: Box<Account<'info, Market>>,
 
-    // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
-    pub collateral_mint: Box<Account<'info, Mint>>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::authority = market,
-        associated_token::mint = collateral_mint
-    )]
-    pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
-
     // quote
-    #[account(constraint = collateral_mint.is_initialized == true)]
+    #[account(constraint = quote_mint.is_initialized == true)]
     pub quote_mint: Box<Account<'info, Mint>>,
+
     #[account(
         init_if_needed,
         payer = owner,
@@ -69,8 +58,6 @@ impl<'info> CreateMarket<'info> {
          let CreateMarket {
             owner: _,
             market,
-            collateral_mint,
-            vault_ata_collateral: _,
             quote_mint,
             vault_ata_quote: _,
             associated_token_program: _,
@@ -86,16 +73,10 @@ impl<'info> CreateMarket<'info> {
 
             total_shares:0,
 
-            total_collateral: 0,
-            collateral_mint: collateral_mint.key(),
-            collateral_mint_decimals: collateral_mint.decimals,
-
             total_quote: 0,
             quote_mint: quote_mint.key(),
             quote_mint_decimals: quote_mint.decimals,
 
-            lltv: args.lltv,
-            oracle: oracle,
         });
 
         Ok(())

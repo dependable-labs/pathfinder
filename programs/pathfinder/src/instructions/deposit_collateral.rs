@@ -21,7 +21,6 @@ pub struct DepositCollateral<'info> {
         seeds = [
             MARKET_SEED_PREFIX,
             market.quote_mint.as_ref(),
-            market.collateral_mint.as_ref()
         ],
         bump = market.bump
     )]
@@ -42,17 +41,29 @@ pub struct DepositCollateral<'info> {
     pub user_shares: Box<Account<'info, UserShares>>,
 
     // collateral
+    #[account(
+        mut,
+        seeds = [
+            MARKET_COLLATERAL_SEED_PREFIX,
+            market.key().as_ref(),
+            collateral_mint.key().as_ref()
+        ],
+        bump = collateral.bump
+    )]
+    pub collateral: Box<Account<'info, Collateral>>,
+
     #[account(constraint = collateral_mint.is_initialized == true)]
     pub collateral_mint: Box<Account<'info, Mint>>,
     #[account(
-        mut,
-        associated_token::mint = market.collateral_mint,
+        init_if_needed,
+        payer = user,
+        associated_token::mint = collateral_mint,
         associated_token::authority = market,
     )]
     pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
-        associated_token::mint = market.collateral_mint,
+        associated_token::mint = collateral_mint,
         associated_token::authority = user,
     )]
     pub user_ata_collateral: Box<Account<'info, TokenAccount>>,
@@ -68,6 +79,7 @@ impl<'info> DepositCollateral<'info> {
         if args.amount == 0 {
             return err!(MarketError::InvalidDepositCollateralInput);
         }
+
         Ok(())
     }
 
@@ -76,6 +88,7 @@ impl<'info> DepositCollateral<'info> {
             user,
             market,
             user_shares,
+            collateral,
             collateral_mint,
             user_ata_collateral,
             vault_ata_collateral,
@@ -87,15 +100,25 @@ impl<'info> DepositCollateral<'info> {
 
         let assets = args.amount;
 
+        // FIXME: Allow users once they removed all collateral to use another collateral mint
+        // Set the collateral_mint if it hasn't been set yet
+        if user_shares.collateral_mint.is_none() {
+            user_shares.collateral_mint = Some(collateral_mint.key());
+        }
+
         // Update market state
-        market.total_collateral = market.total_collateral
+        collateral.total_amount = collateral.total_amount
             .checked_add(assets)
             .ok_or(error!(MarketError::MathOverflow))?;
 
         // Update user collateral
-        user_shares.collateral = user_shares.collateral
+        user_shares.collateral_amount = user_shares.collateral_amount
             .checked_add(assets)
             .ok_or(MarketError::MathOverflow)?;
+
+        user_shares.collateral_mint = Some(collateral_mint.key());
+
+        
 
         msg!("Depositing {} collateral to the vault", assets);
 

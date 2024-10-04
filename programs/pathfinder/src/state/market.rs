@@ -31,15 +31,22 @@ impl PythOracle {
 #[account]
 pub struct Market {
     pub bump: u8,
-    pub total_collateral: u64,
-    pub collateral_mint: Pubkey,
-    pub collateral_mint_decimals: u8,
     pub total_quote: u64,
     pub quote_mint: Pubkey,
     pub quote_mint_decimals: u8,
-    pub lltv: u128,
-    pub oracle: PythOracle,
     pub total_shares: u64,
+}
+
+#[account]
+pub struct Collateral {
+    pub bump: u8,
+    pub total_amount: u64,
+    pub total_shares: u64,
+    pub mint: Pubkey,
+    pub decimals: u8,
+    pub oracle: PythOracle,
+    pub cap: u64,
+    pub rate_factor: u64,
 }
 
 #[account]
@@ -47,12 +54,8 @@ pub struct UserShares {
     pub market: Pubkey,
     pub user: Pubkey,
     pub shares: u64,
-    pub collateral: u64,
-}
-
-impl Market {
-
-
+    pub collateral_mint: Option<Pubkey>,
+    pub collateral_amount: u64,
 }
 
 #[macro_export]
@@ -61,8 +64,19 @@ macro_rules! generate_market_seeds {
         &[
             MARKET_SEED_PREFIX,
             $market.quote_mint.as_ref(),
-            $market.collateral_mint.as_ref(),
             &[$market.bump],
+        ]
+    }};
+}
+
+#[macro_export]
+macro_rules! generate_collateral_seeds {
+    ($market:expr) => {{
+        &[
+            MARKET_COLLATERAL_SEED_PREFIX,
+            $market.quote_mint.as_ref(),
+            $collateral.mint.as_ref(),
+            &[$collateral.bump],
         ]
     }};
 }

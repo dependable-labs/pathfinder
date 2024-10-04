@@ -32,7 +32,7 @@ describe("Market Operations", () => {
       INITIAL_TOKEN_AMOUNT
     );
 
-    const { market, collateralAta, quoteAta, userShares } = await getPDAs({
+    const { market, collateralCustom, collateralAta, quoteAta, userShares } = await getPDAs({
       programId: program.programId,
       collateral: collateralMint,
       quote: quoteMint,
@@ -46,6 +46,7 @@ describe("Market Operations", () => {
       collateralOwnerTokenAccount,
       quoteOwnerTokenAccount,
       market,
+      collateralCustom,
       collateralAta,
       quoteAta,
       userShares,
@@ -61,10 +62,27 @@ describe("Market Operations", () => {
       .accounts({
         owner: accounts.owner,
         market: accounts.market,
-        collateralMint: accounts.collateralMint,
-        vaultAtaCollateral: accounts.collateralAta,
         quoteMint: accounts.quoteMint,
         vaultAtaQuote: accounts.quoteAta,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+  }
+
+  async function addCollateral(accounts: any, oracle: string, cap: anchor.BN, rateFactor: anchor.BN ) {
+    await program.methods
+      .addCollateral({
+        oracle,
+        cap,
+        rateFactor,
+      })
+      .accounts({
+        authority: accounts.owner,
+        market: accounts.market,
+        collateral: accounts.collateralCustom,
+        collateralMint: accounts.collateralMint,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -85,7 +103,6 @@ describe("Market Operations", () => {
         quoteMint: accounts.quoteMint,
         vaultAtaQuote: accounts.quoteAta,
         userAtaQuote: accounts.quoteOwnerTokenAccount,
-        collateralMint: accounts.collateralMint,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -122,6 +139,7 @@ describe("Market Operations", () => {
       .accounts({
         user: accounts.owner,
         market: accounts.market,
+        collateral: accounts.collateralCustom,
         userShares: accounts.userShares,
         collateralMint: accounts.collateralMint,
         vaultAtaCollateral: accounts.collateralAta,
@@ -139,13 +157,29 @@ describe("Market Operations", () => {
 
     const marketAccount = await program.account.market.fetch(accounts.market);
 
-    assert.equal(marketAccount.collateralMint.toBase58(), accounts.collateralMint.toBase58());
-    assert.equal(marketAccount.collateralMintDecimals, 9, "Collateral mint decimals should be 9");
     assert.equal(marketAccount.quoteMint.toBase58(), accounts.quoteMint.toBase58());
     assert.equal(marketAccount.quoteMintDecimals, 9, "Quote mint decimals should be 9");
-    assert.equal(marketAccount.totalCollateral.toNumber(), 0);
     assert.equal(marketAccount.totalQuote.toNumber(), 0);
-    assert.equal(marketAccount.lltv.toString(), '100', "LLTV should be set to 100");
+    assert.equal(marketAccount.totalShares.toNumber(), 0);
+
+  });
+
+  it("adds collateral", async () => {
+    const accounts = await setupMarket();
+    await createMarket(accounts);
+
+    // Add collateral to the market
+    const oracleAddress = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"; // Replace with actual oracle address
+    const cap = new anchor.BN(1000 * LAMPORTS_PER_SOL); // Set an appropriate cap
+    const rateFactor = new anchor.BN(10000); // Set an appropriate rate factor
+    await addCollateral(accounts, oracleAddress, cap, rateFactor);
+
+    // Verify that the collateral was added successfully
+    const updatedCollateralAccount = await program.account.collateral.fetch(accounts.collateralCustom);
+    assert.equal(updatedCollateralAccount.mint.toBase58(), accounts.collateralMint.toBase58(), "Collateral mint should match");
+    assert.equal(updatedCollateralAccount.cap.toString(), cap.toString(), "Collateral cap should match");
+    assert.equal(updatedCollateralAccount.rateFactor.toString(), rateFactor.toString(), "Rate factor should match");
+    assert.ok(updatedCollateralAccount.oracle.feedId.every((byte, index) => byte === parseInt(oracleAddress.substr(index * 2, 2), 16)), "Oracle feed ID should match");
   });
 
   it("deposits", async () => {
@@ -159,6 +193,7 @@ describe("Market Operations", () => {
     // Verify that the total quote in the market matches the deposited amount
     const updatedMarketAccount = await program.account.market.fetch(accounts.market);
     assert.equal(updatedMarketAccount.totalQuote.toString(), depositAmount.toString(), "Market quote amount should be equal to the deposited amount");
+
 
     // Verify that the vault's balance has increased by the deposit amount
     const updatedVaultQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteAta);
@@ -213,13 +248,23 @@ describe("Market Operations", () => {
     const accounts = await setupMarket();
     await createMarket(accounts);
 
+    // Add collateral to the market
+    const oracleAddress = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"; // Example oracle address
+    const collateralCap = new anchor.BN(1000 * LAMPORTS_PER_SOL);
+    const rateFactor = new anchor.BN(10000); // 1.0 in fixed-point notation with 4 decimal places
+
+    await addCollateral(accounts, oracleAddress, collateralCap, rateFactor);
+
+    // Verify that the collateral has been added successfully
+    const collateralAccount = await program.account.collateral.fetch(accounts.collateralCustom);
+    assert.ok(collateralAccount, "Collateral account should exist");
+    assert.equal(collateralAccount.mint.toBase58(), accounts.collateralMint.toBase58(), "Collateral mint should match the provided collateral mint");
+    assert.equal(collateralAccount.cap.toString(), collateralCap.toString(), "Collateral cap should match the provided cap");
+    assert.equal(collateralAccount.rateFactor.toString(), rateFactor.toString(), "Collateral rate factor should match the provided rate factor");
+
     const collateralDepositAmount = new anchor.BN(50 * LAMPORTS_PER_SOL);
     await depositCollateral(accounts, collateralDepositAmount);
-
-    // Verify that the total collateral in the market has increased by the deposited amount
-    const updatedMarketAccount = await program.account.market.fetch(accounts.market);
-    assert.equal(updatedMarketAccount.totalCollateral.toString(), collateralDepositAmount.toString(), "Market collateral amount should be equal to the deposited amount");
-
+ 
     // Verify that the vault's collateral balance has increased by the deposited amount
     const updatedVaultCollateralBalance = await provider.connection.getTokenAccountBalance(accounts.collateralAta);
     assert.equal(updatedVaultCollateralBalance.value.amount, collateralDepositAmount.toString(), "Vault collateral balance should have increased by the deposited amount");
@@ -231,8 +276,13 @@ describe("Market Operations", () => {
 
     const userSharesAccount = await program.account.userShares.fetch(accounts.userShares);
     // Verify that the user's collateral has increased after deposit
-    assert.equal(userSharesAccount.collateral.toString(), collateralDepositAmount.toString(), "User's collateral balance should have increased after deposit");
-    // Verify that the user's shares remain unchanged
-    assert.equal(userSharesAccount.shares.toString(), updatedMarketAccount.totalShares.toString(), "User's shares should remain unchanged after collateral deposit");
+    assert.equal(userSharesAccount.collateralAmount.toString(), collateralDepositAmount.toString(), "User's collateral balance should have increased after deposit");
+
+    // Verify that the collateral has been added successfully
+    const updatedCollateralAccount = await program.account.collateral.fetch(accounts.collateralCustom);
+    assert.equal(updatedCollateralAccount.mint.toBase58(), accounts.collateralMint.toBase58(), "Collateral mint should match the provided collateral mint");
+    assert.equal(updatedCollateralAccount.totalAmount.toString(), collateralDepositAmount.toString(), "Collateral total amount should match the deposited amount");
+
+
   });
 });
