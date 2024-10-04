@@ -21,6 +21,7 @@ export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
 export interface PDAAccounts {
   market: PublicKey;
+  collateralCustom: PublicKey;
   collateralAta: PublicKey;
   quoteAta: PublicKey;
   userShares: PublicKey;
@@ -115,7 +116,12 @@ export async function getPDAs({
   owner: PublicKey;
 }) {
   const [market] = PublicKey.findProgramAddressSync(
-    [Buffer.from("market"), quote.toBuffer(), collateral.toBuffer()],
+    [Buffer.from("market"), quote.toBuffer()],
+    programId
+  );
+
+  const [collateralCustom] = PublicKey.findProgramAddressSync(
+    [Buffer.from("market_collateral"), market.toBuffer(), collateral.toBuffer()],
     programId
   );
 
@@ -136,6 +142,7 @@ export async function getPDAs({
 
   return {
     market,
+    collateralCustom,
     collateralAta,
     quoteAta,
     userShares,

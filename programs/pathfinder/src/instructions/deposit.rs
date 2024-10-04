@@ -23,7 +23,6 @@ pub struct Deposit<'info> {
         seeds = [
             MARKET_SEED_PREFIX,
             market.quote_mint.as_ref(),
-            market.collateral_mint.as_ref()
         ],
         bump = market.bump
     )]
@@ -59,10 +58,6 @@ pub struct Deposit<'info> {
     )]
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
-    // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
-    pub collateral_mint: Box<Account<'info, Mint>>,
-
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -80,7 +75,6 @@ impl<'info> Deposit<'info> {
             user_shares,
             quote_mint,
             user_ata_quote,
-            collateral_mint,
             vault_ata_quote,
             associated_token_program,
             token_program,
