@@ -179,6 +179,9 @@ describe("Market Operations", () => {
     assert.equal(updatedCollateralAccount.mint.toBase58(), accounts.collateralMint.toBase58(), "Collateral mint should match");
     assert.equal(updatedCollateralAccount.cap.toString(), cap.toString(), "Collateral cap should match");
     assert.equal(updatedCollateralAccount.rateFactor.toString(), rateFactor.toString(), "Rate factor should match");
+    assert.equal(updatedCollateralAccount.totalCollateral.toString(), "0", "Total collateral should be zero initially");
+    assert.equal(updatedCollateralAccount.totalBorrowShares.toString(), "0", "Total borrow shares should be zero initially");
+    assert.equal(updatedCollateralAccount.totalBorrowAssets.toString(), "0", "Total borrow assets should be zero initially");
     assert.ok(updatedCollateralAccount.oracle.feedId.every((byte, index) => byte === parseInt(oracleAddress.substr(index * 2, 2), 16)), "Oracle feed ID should match");
   });
 
@@ -281,7 +284,9 @@ describe("Market Operations", () => {
     // Verify that the collateral has been added successfully
     const updatedCollateralAccount = await program.account.collateral.fetch(accounts.collateralCustom);
     assert.equal(updatedCollateralAccount.mint.toBase58(), accounts.collateralMint.toBase58(), "Collateral mint should match the provided collateral mint");
-    assert.equal(updatedCollateralAccount.totalAmount.toString(), collateralDepositAmount.toString(), "Collateral total amount should match the deposited amount");
+    assert.equal(updatedCollateralAccount.totalCollateral.toString(), collateralDepositAmount.toString(), "Collateral total amount should match the deposited amount");
+    assert.equal(updatedCollateralAccount.totalBorrowShares.toString(), "0", "Total borrow shares should be zero initially");
+    assert.equal(updatedCollateralAccount.totalBorrowAssets.toString(), "0", "Total borrow assets should be zero initially");
 
 
   });

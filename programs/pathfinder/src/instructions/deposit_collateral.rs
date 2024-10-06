@@ -107,7 +107,7 @@ impl<'info> DepositCollateral<'info> {
         }
 
         // Update market state
-        collateral.total_amount = collateral.total_amount
+        collateral.total_collateral = collateral.total_collateral
             .checked_add(assets)
             .ok_or(error!(MarketError::MathOverflow))?;
 

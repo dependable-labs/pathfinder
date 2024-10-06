@@ -67,8 +67,9 @@ impl<'info> AddCollateral<'info> {
         collateral.set_inner(Collateral {
             bump: ctx.bumps.collateral,
             mint: collateral_mint.key(),
-            total_amount: 0,
-            total_shares: 0,
+            total_collateral: 0,
+            total_borrow_shares: 0,
+            total_borrow_assets: 0,
             decimals: collateral_mint.decimals,
             cap: args.cap,
             rate_factor: args.rate_factor,
