@@ -35,4 +35,9 @@ pub mod markets {
     pub fn deposit_collateral(ctx: Context<DepositCollateral>, args: DepositCollateralArgs) -> Result<()> {
         DepositCollateral::handle(ctx, args)
     }
+
+    pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
+        Borrow::handle(ctx, args)
+    }
+
 }
