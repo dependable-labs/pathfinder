@@ -151,6 +151,28 @@ describe("Market Operations", () => {
       .rpc();
   }
 
+  async function borrow(accounts: any, amount: anchor.BN, shares: anchor.BN) {
+    await program.methods
+      .borrow({
+        amount,
+        shares,
+      })
+      .accounts({
+        user: accounts.owner,
+        market: accounts.market,
+        userShares: accounts.userShares,
+        quoteMint: accounts.quoteMint,
+        vaultAtaQuote: accounts.quoteAta,
+        userAtaQuote: accounts.quoteOwnerTokenAccount,
+        collateral: accounts.collateralCustom,
+        collateralMint: accounts.collateralMint,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+  }
+
   it("creates a market", async () => {
     const accounts = await setupMarket();
     await createMarket(accounts);
@@ -196,7 +218,6 @@ describe("Market Operations", () => {
     // Verify that the total quote in the market matches the deposited amount
     const updatedMarketAccount = await program.account.market.fetch(accounts.market);
     assert.equal(updatedMarketAccount.totalQuote.toString(), depositAmount.toString(), "Market quote amount should be equal to the deposited amount");
-
 
     // Verify that the vault's balance has increased by the deposit amount
     const updatedVaultQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteAta);
@@ -288,6 +309,56 @@ describe("Market Operations", () => {
     assert.equal(updatedCollateralAccount.totalBorrowShares.toString(), "0", "Total borrow shares should be zero initially");
     assert.equal(updatedCollateralAccount.totalBorrowAssets.toString(), "0", "Total borrow assets should be zero initially");
 
-
   });
+
+  it("borrows from the market", async () => {
+    const accounts = await setupMarket();
+    await createMarket(accounts);
+
+    // Deposit quote tokens to the market
+    const depositAmount = new anchor.BN(100 * LAMPORTS_PER_SOL);
+    await deposit(accounts, depositAmount, new anchor.BN(0));
+
+    // post deposit vault bal
+    const updatedVaultQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteAta);
+    const updatedOwnerQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteOwnerTokenAccount);
+
+    // Add collateral to the market
+    const oracleAddress = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"; // Example oracle address
+    const collateralCap = new anchor.BN(1000 * LAMPORTS_PER_SOL);
+    const rateFactor = new anchor.BN(10000); // 1.0 in fixed-point notation with 4 decimal places
+
+    await addCollateral(accounts, oracleAddress, collateralCap, rateFactor);
+
+    // Deposit collateral first
+    const collateralDepositAmount = new anchor.BN(50 * LAMPORTS_PER_SOL);
+    await depositCollateral(accounts, collateralDepositAmount);
+
+    // Borrow from the market
+    const borrowAmount = new anchor.BN(25 * LAMPORTS_PER_SOL);
+    const shares = new anchor.BN(0);
+    await borrow(accounts, borrowAmount, shares);
+
+    // Verify that the vault's quote balance has decreased by the borrowed amount
+    const postBorrowVaultQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteAta);
+    const expectedVaultBalance = new anchor.BN(updatedVaultQuoteBalance.value.amount).sub(borrowAmount);
+    assert.equal(postBorrowVaultQuoteBalance.value.amount, expectedVaultBalance.toString(), "Vault quote balance should have decreased by the borrowed amount");
+
+    // Verify that the user's quote balance has increased by the borrowed amount
+    const updatedUserQuoteBalance = await provider.connection.getTokenAccountBalance(accounts.quoteOwnerTokenAccount);
+    const expectedUserBalance = new anchor.BN(updatedOwnerQuoteBalance.value.amount).add(borrowAmount);
+    assert.equal(updatedUserQuoteBalance.value.amount, expectedUserBalance.toString(), "User's quote balance should have increased by the borrowed amount");
+
+    const postBorrowUserShares = await program.account.userShares.fetch(accounts.userShares);
+    // Verify that the user's borrow shares have increased after borrowing
+    assert.ok(postBorrowUserShares.borrowShares.gt(new anchor.BN(0)), "User's borrow shares should have increased after borrowing");
+
+    // Verify that the collateral account has been updated correctly
+    const updatedCollateralAccount = await program.account.collateral.fetch(accounts.collateralCustom);
+    assert.equal(updatedCollateralAccount.totalBorrowAssets.toString(), borrowAmount.toString(), "Total borrow assets should match the borrowed amount");
+    assert.ok(updatedCollateralAccount.totalBorrowShares.gt(new anchor.BN(0)), "Total borrow shares should be greater than zero after borrowing");
+  });
+
+
+
 });
