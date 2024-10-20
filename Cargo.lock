@@ -2299,6 +2299,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "anyhow",
  "pyth-sdk-solana",
  "pyth-solana-receiver-sdk",
  "solana-program",
