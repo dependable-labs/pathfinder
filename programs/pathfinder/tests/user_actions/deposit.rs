@@ -1,14 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::spl_token;
-use solana_sdk::signature::{Keypair, Signer};
 use test_case::test_case;
-use crate::utils::{setup::{MarketMint, TestFixture}, user::UserFixture};
+use crate::utils::setup::{MarketMint, TestFixture};
 
 use solana_program_test::*;
 
-use std::{rc::Rc};
-
-#[test_case(1000000, MarketMint::Usdc)]
+#[test_case(1010000, MarketMint::Usdc)]
 #[tokio::test]
 
 async fn deposit_success(
@@ -22,13 +18,16 @@ async fn deposit_success(
   market.try_create_market().await.unwrap();
 
   // initialize lender
-  // let lizz = test_f.new_user().await;
-  // market.mint.create_token_account_and_mint_to(&lizz, deposit_amount).await;
+  let lizz = test_f.new_user().await;
+  let token_account = market.mint.create_ata_and_mint_to(&lizz, deposit_amount).await;
 
+  assert_eq!(token_account.balance().await, deposit_amount, "Token account balance did not increase as expected");
+ 
   // deposit
-  // market.try_deposit(&lizz, deposit_amount, 0).await.unwrap();
+  market.try_deposit(&lizz, deposit_amount, 0).await.unwrap();
 
   // test
+  assert_eq!(token_account.balance().await, 0, "Token account balance did not decrease as expected");
+  assert_eq!(market.get_quote_ata_fixture().await.balance().await, deposit_amount, "User shares did not decrease as expected");
 
-  assert_eq!(1, 1, "This test is intentionally set to fail");
 }

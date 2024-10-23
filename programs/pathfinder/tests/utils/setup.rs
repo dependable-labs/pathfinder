@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
-// use test_case::test_case;
 
 use solana_program_test::*;
-use solana_sdk::{signature::Keypair, account::Account, signature::Signer};
+use solana_sdk::signature::Keypair;
 
 use crate::utils::{spl::MintFixture, market::MarketFixture, user::UserFixture};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -25,7 +24,6 @@ pub struct TestFixture {
     pub markets: HashMap<MarketMint, MarketFixture>,
     pub payer: Keypair,
     pub usdc_mint: MintFixture,
-    // pub sol_mint: MintFixture,
 }
 
 impl TestFixture {
@@ -74,16 +72,24 @@ impl TestFixture {
         self.markets.get(market_mint).unwrap()
     }
 
+    pub async fn load_and_deserialize<T: anchor_lang::AccountDeserialize>(
+        &self,
+        address: &Pubkey,
+    ) -> T {
+        let ai = self
+            .context
+            .borrow_mut()
+            .banks_client
+            .get_account(*address)
+            .await
+            .unwrap()
+            .unwrap();
+
+        T::try_deserialize(&mut ai.data.as_slice()).unwrap()
+    }
+    
+
     pub async fn new_user(&self) -> UserFixture {
-        //create a new user and fund with 1 SOL
-        // let user = Keypair::new();
-        // self.program.add_account(
-        //     user.pubkey(),
-        //     Account {
-        //         lamports: 1_000_000_000,
-        //         ..Account::default()
-        //     },
-        // );
         UserFixture::new(Rc::clone(&self.context)).await
     }
 }

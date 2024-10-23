@@ -7,7 +7,7 @@ use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
-    pub oracle: String,
+    pub oracle: Pubkey,
     pub lltv: u128,
 } 
 
@@ -66,7 +66,7 @@ impl<'info> CreateMarket<'info> {
         } = ctx.accounts;
 
         const MAXIMUM_AGE: u64 = 30;
-        let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
+        // let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
 
         market.set_inner(Market {
             bump: ctx.bumps.market,
