@@ -1,32 +1,32 @@
 use anchor_lang::prelude::*;
 
-use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
+// use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
-pub struct PythOracle {
-    pub feed_id: [u8; 32],
-    pub max_age: u64,
-}
+// #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
+// pub struct PythOracle {
+//     pub feed_id: [u8; 32],
+//     pub max_age: u64,
+// }
 
-impl PythOracle {
-    pub fn new(oracle_address: &str, max_age: u64) -> Result<Self> {
-        // Check if the oracle string is a valid hex string with correct length
-        if oracle_address.len() == 64 || (oracle_address.len() == 66 && oracle_address.starts_with("0x")) {
-            let feed_id = get_feed_id_from_hex(oracle_address)?;
-            Ok(Self { feed_id, max_age })
-        } else {
-            // Invalid oracle ID
-            Err(error!(MarketError::InvalidOracleId))
-        }
-    }
+// impl PythOracle {
+//     pub fn new(oracle_address: &str, max_age: u64) -> Result<Self> {
+//         // Check if the oracle string is a valid hex string with correct length
+//         if oracle_address.len() == 64 || (oracle_address.len() == 66 && oracle_address.starts_with("0x")) {
+//             let feed_id = get_feed_id_from_hex(oracle_address)?;
+//             Ok(Self { feed_id, max_age })
+//         } else {
+//             // Invalid oracle ID
+//             Err(error!(MarketError::InvalidOracleId))
+//         }
+//     }
 
-    pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<i64> {
-        let price = pyth_price.get_price_no_older_than(clock, self.max_age, &self.feed_id)?;
-        Ok(price.price)
-    }
-}
+//     pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<i64> {
+//         let price = pyth_price.get_price_no_older_than(clock, self.max_age, &self.feed_id)?;
+//         Ok(price.price)
+//     }
+// }
 
 #[account]
 pub struct Market {
@@ -43,7 +43,7 @@ pub struct Collateral {
     pub total_collateral: u64,
     pub mint: Pubkey,
     pub decimals: u8,
-    pub oracle: PythOracle,
+    // pub oracle: PythOracle,
     pub cap: u64,
     pub rate_factor: u64,
     pub total_borrow_shares: u64,
