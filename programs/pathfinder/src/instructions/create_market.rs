@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::state::*;
-use crate::state::market::PythOracle;
+// use crate::state::market::PythOracle;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
@@ -66,7 +66,7 @@ impl<'info> CreateMarket<'info> {
         } = ctx.accounts;
 
         const MAXIMUM_AGE: u64 = 30;
-        let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
+        // let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
 
         market.set_inner(Market {
             bump: ctx.bumps.market,
