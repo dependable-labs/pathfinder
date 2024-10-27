@@ -16,6 +16,8 @@ import {
   getMinimumBalanceForRentExemptMint,
   createMintToInstruction,
 } from "@solana/spl-token";
+import { Markets } from "../target/types/markets";
+import { Program } from "@coral-xyz/anchor";
 
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
@@ -146,5 +148,41 @@ export async function getPDAs({
     collateralAta,
     quoteAta,
     userShares,
+  };
+}
+
+export async function setupTest(program: Program<Markets>, provider: anchor.AnchorProvider) {
+  // const program = anchor.workspace.Markets as Program<Markets>;
+  // const provider = anchor.AnchorProvider.env();
+
+  anchor.setProvider(provider);
+
+  const INITIAL_TOKEN_AMOUNT = 100_000 * LAMPORTS_PER_SOL;
+
+  const owner = provider.wallet.publicKey;
+  const collateralMint = await createMint(provider);
+  const quoteMint = await createMint(provider);
+
+
+  const { market, collateralCustom, collateralAta, quoteAta, userShares } = await getPDAs({
+    programId: program.programId,
+    collateral: collateralMint,
+    quote: quoteMint,
+    owner,
+  });
+
+  return {
+    program,
+    provider,
+    accounts: {
+      owner,
+      collateralMint,
+      quoteMint,
+      market,
+      collateralCustom,
+      collateralAta,
+      quoteAta,
+      userShares,
+    },
   };
 }
