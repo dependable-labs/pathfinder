@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::state::*;
-use crate::state::market::PythOracle;
+// use crate::state::market::PythOracle;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct AddCollateralArgs {
@@ -62,7 +62,7 @@ impl<'info> AddCollateral<'info> {
         } = ctx.accounts;
 
         const MAXIMUM_AGE: u64 = 30;
-        let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
+        // let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
 
         collateral.set_inner(Collateral {
             bump: ctx.bumps.collateral,
@@ -73,7 +73,7 @@ impl<'info> AddCollateral<'info> {
             decimals: collateral_mint.decimals,
             cap: args.cap,
             rate_factor: args.rate_factor,
-            oracle,
+            // oracle,
         });
 
         Ok(())
