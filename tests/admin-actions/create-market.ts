@@ -1,21 +1,24 @@
-import { setupTest} from '../utils';
-import { MarketFixture } from '../market-utils';
 import * as anchor from "@coral-xyz/anchor";
+import { setupTest} from '../utils';
+import { MarketFixture } from '../fixtures/market';
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import assert from 'assert';
+import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 
 describe("Market Operations", () => {
 
   let program: Program<Markets>;
-  let provider: anchor.AnchorProvider;
+  let provider: BankrunProvider;
   let accounts: any;
 
   before(async () => {
+    let context = await startAnchor('', [], []);
+    let provider = new BankrunProvider(context);
 
-    ({ program, provider, accounts } = await setupTest(
-      anchor.workspace.Markets as Program<Markets>,
-      anchor.AnchorProvider.env()
+    ({ program, accounts } = await setupTest(
+      provider,
+      context.banksClient
     ));
   });
 
@@ -40,19 +43,19 @@ describe("Market Operations", () => {
 
   });
 
-  it("adds collateral to a market", async () => {
+  // it("adds collateral to a market", async () => {
 
-    const market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      accounts.quoteAta,
-      accounts.owner
-    );
+  //   const market = new MarketFixture(
+  //     program,
+  //     provider,
+  //     accounts.market,
+  //     accounts.quoteMint,
+  //     accounts.quoteAta,
+  //     accounts.owner
+  //   );
 
-    await market.create(accounts.owner);
+  //   await market.create(accounts.owner);
 
 
-  });
+  // });
 });

@@ -1,8 +1,7 @@
 import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Markets } from "../target/types/markets";
-import { createTokenAccount } from "./utils";
+import { Markets } from "../../target/types/markets";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const INITIAL_TOKEN_AMOUNT = 100_000 * LAMPORTS_PER_SOL;
