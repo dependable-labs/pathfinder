@@ -18,10 +18,9 @@ export class MarketFixture {
     public _provider: BankrunProvider,
     public _marketAddress: PublicKey,
     public _quoteMint: PublicKey,
-    public _quoteAta: PublicKey,
     public _owner: PublicKey
   ) {
-    this.marketAcc= new AccountFixture(
+    this.marketAcc = new AccountFixture(
       "market",
       _marketAddress,
       _program,
@@ -30,7 +29,6 @@ export class MarketFixture {
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
-    this.quoteAta = _quoteAta;
   }
 
   async create(owner: PublicKey): Promise<void> {
@@ -46,7 +44,7 @@ export class MarketFixture {
         owner,
         market: this.marketAcc.key,
         quoteMint: this.quoteMint,
-        vaultAtaQuote: this.quoteAta,
+        vaultAtaQuote: this.get_ata(this.quoteMint),
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -74,22 +72,24 @@ export class MarketFixture {
   // }
 
   async deposit(user: UserFixture, accounts: any, amount: anchor.BN, shares: anchor.BN) {
+
     await this.program.methods
       .deposit({
         amount,
         shares,
       })
       .accounts({
-        user: user.key,
+        user: user.key.publicKey,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(user.key),
+        userShares: this.get_user_shares(user.key.publicKey).key,
         quoteMint: this.quoteMint,
-        vaultAtaQuote: this.quoteAta,
+        vaultAtaQuote: this.get_ata(this.quoteMint),
         userAtaQuote: user.quoteAta,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
+      .signers([user.key.payer])
       .rpc();
   }
 
@@ -156,11 +156,21 @@ export class MarketFixture {
   //     .rpc();
   // }
 
-  async get_user_shares(userKey: PublicKey): Promise<PublicKey> {
-    return PublicKey.findProgramAddressSync(
+  public get_ata(mint: PublicKey): PublicKey {
+    return anchor.utils.token.associatedAddress({ mint, owner: this.marketAcc.key });
+  }
+
+  public get_user_shares(userKey: PublicKey): AccountFixture {
+    let userSharesKey = PublicKey.findProgramAddressSync(
       [Buffer.from("market_shares"), this.marketAcc.key.toBuffer(), userKey.toBuffer()],
       this.program.programId
     )[0];
+    return new AccountFixture(
+      "userShares",
+      userSharesKey,
+      this.program,
+      this.provider
+    );
   }
 
 

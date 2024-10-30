@@ -12,8 +12,9 @@ describe("User Deposit", () => {
   let accounts: any;
   let market: MarketFixture;
   let larry: UserFixture;
+  let lizz: UserFixture;
 
-  before(async () => {
+  beforeEach(async () => {
     let context = await startAnchor('', [], []);
     let provider = new BankrunProvider(context);
 
@@ -27,20 +28,28 @@ describe("User Deposit", () => {
       provider,
       accounts.market,
       accounts.quoteMint,
-      accounts.quoteAta,
       accounts.owner
     );
     await market.create(accounts.owner);
 
     larry = new UserFixture(
-      accounts.owner,
       program,
       provider,
-      context.banksClient,
+      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
     await larry.init_and_fund_accounts(new anchor.BN(1000000000000), new anchor.BN(0))
+
+    lizz = new UserFixture(
+      program,
+      provider,
+      context,
+      accounts.quoteMint,
+      accounts.collateralMint
+    );
+    await lizz.init_and_fund_accounts(new anchor.BN(1000000000000), new anchor.BN(0))
+
   });
 
 
@@ -57,10 +66,53 @@ describe("User Deposit", () => {
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 1000000000000000); assert.equal(marketAccountData.totalQuote.toNumber(), 1000000000);
 
-    const userSharesAccountData = await market.get_user_shares(larry.key);
-    assert.equal(userSharesAccountData.toBase58(), accounts.userShares.toBase58());
+    const userSharesAccountData = await market.get_user_shares(larry.key.publicKey).get_data();
+    assert.equal(userSharesAccountData.shares.toNumber(), 1000000000000000);
+
+    assert.equal(await larry.get_quo_balance(), BigInt(999000000000));
 
   });
+
+  it("two users deposit into a market", async () => {
+
+    await market.deposit(
+      larry,
+      accounts,
+      new anchor.BN(500000000),
+      new anchor.BN(0)
+    );
+
+    const marketAccountData = await market.marketAcc.get_data();
+    assert.equal(marketAccountData.totalShares.toNumber(), 500000000000000);
+    assert.equal(marketAccountData.totalQuote.toNumber(), 500000000);
+
+    const userSharesAccountData = await market.get_user_shares(larry.key.publicKey).get_data();
+    assert.equal(userSharesAccountData.shares.toNumber(), 500000000000000);
+
+    assert.equal(await larry.get_quo_balance(), BigInt(999500000000));
+
+    await market.deposit(
+      lizz,
+      accounts,
+      new anchor.BN(500000000),
+      new anchor.BN(0)
+    );
+
+    const marketAccountData2 = await market.marketAcc.get_data();
+    assert.equal(marketAccountData2.totalShares.toNumber(), 1000000000000000);
+    assert.equal(marketAccountData2.totalQuote.toNumber(), 1000000000);
+
+    const userSharesAccountData2 = await market.get_user_shares(lizz.key.publicKey).get_data();
+    assert.equal(userSharesAccountData2.shares.toNumber(), 500000000000000);
+
+    assert.equal(await larry.get_quo_balance(), BigInt(999500000000));
+    assert.equal(await lizz.get_quo_balance(), BigInt(999500000000));
+
+  });
+
+
+
+
 });
 
 
