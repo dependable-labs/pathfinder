@@ -2,21 +2,19 @@ import { PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js'
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-
-const INITIAL_TOKEN_AMOUNT = 100_000 * LAMPORTS_PER_SOL;
+import { BankrunProvider } from "anchor-bankrun";
 
 export class AccountFixture {
   public name: string;
   public key: PublicKey;
   public program: Program<Markets>;
-  public provider: anchor.AnchorProvider;
+  public provider: BankrunProvider;
 
   public constructor(
     public _name: string,
     public _key: PublicKey,
     public _program: Program<Markets>,
-    public _provider: anchor.AnchorProvider,
+    public _provider: BankrunProvider,
   ) {
     this.name = _name;
     this.key = _key;

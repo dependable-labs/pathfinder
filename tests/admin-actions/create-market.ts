@@ -10,9 +10,10 @@ describe("Market Operations", () => {
 
   let program: Program<Markets>;
   let provider: BankrunProvider;
+  let market: MarketFixture;
   let accounts: any;
 
-  before(async () => {
+  beforeEach(async () => {
     let context = await startAnchor('', [], []);
     let provider = new BankrunProvider(context);
 
@@ -24,13 +25,11 @@ describe("Market Operations", () => {
 
 
   it("creates a market", async () => {
-
-    const market = new MarketFixture(
+    market = new MarketFixture(
       program,
       provider,
       accounts.market,
       accounts.quoteMint,
-      accounts.quoteAta,
       accounts.owner
     );
     await market.create(accounts.owner);
@@ -51,11 +50,9 @@ describe("Market Operations", () => {
   //     accounts.market,
   //     accounts.quoteMint,
   //     accounts.quoteAta,
-  //     accounts.owner
   //   );
 
   //   await market.create(accounts.owner);
-
 
   // });
 });
