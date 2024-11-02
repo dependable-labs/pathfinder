@@ -8,7 +8,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { BanksClient, ProgramTestContext } from "solana-bankrun";
+import { ProgramTestContext } from "solana-bankrun";
 import { BankrunProvider } from "anchor-bankrun";
 import {
   createAccount,
@@ -17,6 +17,7 @@ import {
   getAccount,
 } from "spl-token-bankrun";
 import { BN } from "@coral-xyz/anchor";
+import { fund_w_sol } from "../utils";
 
 export class UserFixture {
   public key: anchor.Wallet;
@@ -49,7 +50,7 @@ export class UserFixture {
   ): Promise<void> {
     await this.init_accounts();
     await this.fund_accounts(quoteAmount, collateralAmount);
-    this.fund_w_sol(1 * LAMPORTS_PER_SOL);
+    await fund_w_sol(this.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
   }
 
   private async init_accounts(): Promise<void> {
@@ -89,15 +90,6 @@ export class UserFixture {
       this.provider.wallet.payer,
       collateralAmount
     );
-  }
-
-  public fund_w_sol(sol_amount: number) {
-    this.context.setAccount(this.key.publicKey, {
-      executable: false,
-      owner: anchor.web3.SystemProgram.programId,
-      lamports: LAMPORTS_PER_SOL * sol_amount,
-      data: Buffer.alloc(0),
-    });
   }
 
   public async get_balance(account: PublicKey): Promise<any> {

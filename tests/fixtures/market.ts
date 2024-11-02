@@ -2,9 +2,10 @@ import { PublicKey} from '@solana/web3.js';
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
-import { AccountFixture } from './account';
+import { AccountFixture} from './account';
 import { BankrunProvider } from 'anchor-bankrun';
 import { UserFixture } from './user';
+import { ControllerFixture } from './controller';
 
 export class MarketFixture {
   public marketAcc: AccountFixture;
@@ -12,13 +13,14 @@ export class MarketFixture {
   public provider: BankrunProvider;
   public quoteMint: PublicKey;
   public quoteAta: PublicKey;
+  public controller: ControllerFixture
 
   public constructor(
     public _program: Program<Markets>,
     public _provider: BankrunProvider,
     public _marketAddress: PublicKey,
     public _quoteMint: PublicKey,
-    public _owner: PublicKey
+    public _controller: ControllerFixture
   ) {
     this.marketAcc = new AccountFixture(
       "market",
@@ -26,12 +28,25 @@ export class MarketFixture {
       _program,
       _provider
     );
+    this.controller= _controller;
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
   }
 
-  async create(owner: PublicKey): Promise<void> {
+  async setAuthority(user: UserFixture): Promise<void> {
+    await this.program.methods
+      .setAuthority({
+        newAuthority: this.controller.authority.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
+  async create(): Promise<void> {
 
     const PYTH_SOL_USD_ID = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
@@ -41,7 +56,8 @@ export class MarketFixture {
         lltv: new anchor.BN(100),
       })
       .accounts({
-        owner,
+        authority: this.controller.authority.publicKey,
+        controller: this.controller.controllerAcc.key,
         market: this.marketAcc.key,
         quoteMint: this.quoteMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -49,6 +65,7 @@ export class MarketFixture {
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
+      .signers([this.controller.authority.payer])
       .rpc();
   }
 

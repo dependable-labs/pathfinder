@@ -15,18 +15,25 @@ pub struct CreateMarketArgs {
 #[instruction(args: CreateMarketArgs)]
 pub struct CreateMarket<'info> {
     #[account(mut)]
-    pub owner: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    #[account(mut,
+        seeds = [CONTROLLER_SEED_PREFIX],
+        bump = controller.bump,
+        constraint = controller.authority == authority.key()
+    )]
+    pub controller: Box<Account<'info, Controller>>,
 
     // market
     #[account(
         init,
-        payer = owner,
+        payer = authority,
         space = 8 + std::mem::size_of::<Market>(),
         seeds = [
             MARKET_SEED_PREFIX,
             quote_mint.key().as_ref(),
         ],
-        bump
+        bump,
     )]
     pub market: Box<Account<'info, Market>>,
 
@@ -36,7 +43,7 @@ pub struct CreateMarket<'info> {
 
     #[account(
         init_if_needed,
-        payer = owner,
+        payer = authority,
         associated_token::authority = market,
         associated_token::mint = quote_mint
     )]
@@ -56,7 +63,8 @@ impl<'info> CreateMarket<'info> {
 
     pub fn handle(ctx: Context<Self>, args: CreateMarketArgs) -> Result<()> {
          let CreateMarket {
-            owner: _,
+            authority,
+            controller,
             market,
             quote_mint,
             vault_ata_quote: _,
@@ -64,9 +72,6 @@ impl<'info> CreateMarket<'info> {
             token_program: _,
             system_program: _,
         } = ctx.accounts;
-
-        const MAXIMUM_AGE: u64 = 30;
-        // let oracle = PythOracle::new(&args.oracle, MAXIMUM_AGE)?;
 
         market.set_inner(Market {
             bump: ctx.bumps.market,
@@ -78,6 +83,10 @@ impl<'info> CreateMarket<'info> {
             quote_mint_decimals: quote_mint.decimals,
 
         });
+
+        // collateral.set_inner(Collateral {
+
+        // })
 
         Ok(())
     }
