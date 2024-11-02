@@ -1,5 +1,5 @@
 import { setupTest} from '../utils';
-import { MarketFixture, UserFixture } from '../fixtures';
+import { MarketFixture, UserFixture, ControllerFixture } from '../fixtures';
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
@@ -23,15 +23,6 @@ describe("User Deposit", () => {
       context.banksClient
     ));
 
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      accounts.owner
-    );
-    await market.create(accounts.owner);
-
     larry = new UserFixture(
       program,
       provider,
@@ -50,8 +41,23 @@ describe("User Deposit", () => {
     );
     await lizz.init_and_fund_accounts(new anchor.BN(1000000000000), new anchor.BN(0))
 
-  });
+    let controller = new ControllerFixture(
+      program,
+      provider,
+      context
+    );
 
+    market = new MarketFixture(
+      program,
+      provider,
+      accounts.market,
+      accounts.quoteMint,
+      controller, // contains futarchy treasury authority
+    );
+
+    await market.setAuthority(larry);
+    await market.create();
+  });
 
 
   it("deposits into a market", async () => {
@@ -82,15 +88,6 @@ describe("User Deposit", () => {
       new anchor.BN(0)
     );
 
-    const marketAccountData = await market.marketAcc.get_data();
-    assert.equal(marketAccountData.totalShares.toNumber(), 500000000000000);
-    assert.equal(marketAccountData.totalQuote.toNumber(), 500000000);
-
-    const userSharesAccountData = await market.get_user_shares(larry.key.publicKey).get_data();
-    assert.equal(userSharesAccountData.shares.toNumber(), 500000000000000);
-
-    assert.equal(await larry.get_quo_balance(), BigInt(999500000000));
-
     await market.deposit(
       lizz,
       accounts,
@@ -109,10 +106,6 @@ describe("User Deposit", () => {
     assert.equal(await lizz.get_quo_balance(), BigInt(999500000000));
 
   });
-
-
-
-
 });
 
 

@@ -2,6 +2,11 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum MarketError {
+    // authority
+    #[msg("Authority already set")]
+    AuthorityAlreadySet,
+
+    // market
     #[msg("You can't create an market with two of the same token mints")]
     SameTokenMints,
     #[msg("The user had insufficient balance to do this")]
@@ -30,4 +35,5 @@ pub enum MarketError {
     InvalidDepositCollateralInput,
     #[msg("Invalid borrow input")]
     InvalidBorrowInput,
+
 }

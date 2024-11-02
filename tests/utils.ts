@@ -3,13 +3,14 @@ import { Program } from "@coral-xyz/anchor";
 import {
   PublicKey,
   Finality,
+  LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { createMint } from "spl-token-bankrun";
 
 import { Markets } from "../target/types/markets";
 import { BankrunProvider } from 'anchor-bankrun';
+import { ProgramTestContext } from "solana-bankrun";
 
 const IDL = require("../target/idl/markets.json");
 
@@ -87,4 +88,17 @@ export async function setupTest(provider: BankrunProvider, banks: any) {
       collateralCustom,
     },
   };
+}
+
+export function fund_w_sol(
+  context: ProgramTestContext,
+  pubkey: PublicKey,
+  sol_amount: number
+) {
+  context.setAccount(pubkey, {
+    executable: false,
+    owner: anchor.web3.SystemProgram.programId,
+    lamports: LAMPORTS_PER_SOL * sol_amount,
+    data: Buffer.alloc(0),
+  });
 }
