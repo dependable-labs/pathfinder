@@ -1,13 +1,13 @@
 import { TestFixture } from "./utils";
 import { testInitializeController } from "./admin-actions/initialize-controller";
-import { testCreateMarket } from "./admin-actions/create-market";
+import { testCreateCollateral } from "./admin-actions/create-collateral";
 import { ControllerFixture } from "./fixtures/controller";
-import { MarketFixture } from "./fixtures/market";
+import { CollateralFixture } from "./fixtures/collateral";
 
-describe("Market", () => {
+describe("Collateral", () => {
   let fixture: TestFixture;
   let controller: ControllerFixture;
-  let market: MarketFixture;
+  let collateral: CollateralFixture;
 
   before(async () => {
     fixture = await TestFixture.setup();
@@ -21,8 +21,8 @@ describe("Market", () => {
     );
   });
 
-  it("should create a market", async () => {
-    market = await testCreateMarket(fixture, controller);
+  it("should create a collateral", async () => {
+    collateral = await testCreateCollateral(fixture, controller);
   });
 
   // Add more test cases as needed

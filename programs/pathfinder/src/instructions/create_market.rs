@@ -8,7 +8,9 @@ use crate::state::*;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
     pub oracle: String,
-    pub lltv: u128,
+    pub lltv: u64,
+    pub debt_cap: u64,
+    pub rate_factor: u64, 
 } 
 
 #[derive(Accounts)]
@@ -37,6 +39,20 @@ pub struct CreateMarket<'info> {
     )]
     pub market: Box<Account<'info, Market>>,
 
+
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + std::mem::size_of::<Collateral>(),
+        seeds = [
+            MARKET_COLLATERAL_SEED_PREFIX,
+            market.key().as_ref(),
+            collateral_mint.key().as_ref(),
+        ],
+        bump,
+    )]
+    pub collateral: Box<Account<'info, Collateral>>,
+
     // quote
     #[account(constraint = quote_mint.is_initialized == true)]
     pub quote_mint: Box<Account<'info, Mint>>,
@@ -48,6 +64,18 @@ pub struct CreateMarket<'info> {
         associated_token::mint = quote_mint
     )]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+
+    // collateral
+    #[account(constraint = collateral_mint.is_initialized == true)]
+    pub collateral_mint: Box<Account<'info, Mint>>,
+
+    #[account(
+        init_if_needed,
+        payer = authority,
+        associated_token::authority = market,
+        associated_token::mint = collateral_mint
+    )]
+    pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
 
     // programs
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -66,8 +94,11 @@ impl<'info> CreateMarket<'info> {
             authority,
             controller,
             market,
+            collateral,
             quote_mint,
             vault_ata_quote: _,
+            collateral_mint,
+            vault_ata_collateral: _,
             associated_token_program: _,
             token_program: _,
             system_program: _,
@@ -84,9 +115,21 @@ impl<'info> CreateMarket<'info> {
 
         });
 
-        // collateral.set_inner(Collateral {
+        collateral.set_inner(Collateral {
+            bump: ctx.bumps.collateral,
 
-        // })
+            total_collateral: 0,
+            total_borrow_shares: 0,
+            total_borrow_assets: 0,
+            debt_cap: args.debt_cap,
+            rate_factor: 0,
+            lltv: args.lltv,
+
+            collateral_mint: collateral_mint.key(),
+            collateral_mint_decimals: collateral_mint.decimals,
+
+            // oracle: args.oracle,
+        });
 
         Ok(())
     }
