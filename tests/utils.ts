@@ -38,14 +38,14 @@ export async function getPDAs({
     programId
   );
 
-  const [collateralCustom] = PublicKey.findProgramAddressSync(
+  const [collateralAcc] = PublicKey.findProgramAddressSync(
     [Buffer.from("market_collateral"), market.toBuffer(), collateral.toBuffer()],
     programId
   );
 
   return {
     market,
-    collateralCustom,
+    collateralAcc,
   };
 }
 

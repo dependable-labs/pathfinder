@@ -1,11 +1,12 @@
-import { PublicKey} from '@solana/web3.js';
+import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
-import { AccountFixture} from './account';
-import { BankrunProvider } from 'anchor-bankrun';
-import { UserFixture } from './user';
-import { ControllerFixture } from './controller';
+import { AccountFixture } from "./account";
+import { BankrunProvider } from "anchor-bankrun";
+import { UserFixture } from "./user";
+import { ControllerFixture } from "./controller";
+import { CollateralFixture } from "./collateral";
 
 export class MarketFixture {
   public marketAcc: AccountFixture;
@@ -13,7 +14,8 @@ export class MarketFixture {
   public provider: BankrunProvider;
   public quoteMint: PublicKey;
   public quoteAta: PublicKey;
-  public controller: ControllerFixture
+  public controller: ControllerFixture;
+  public collaterals: Map<string, CollateralFixture>;
 
   public constructor(
     public _program: Program<Markets>,
@@ -28,10 +30,32 @@ export class MarketFixture {
       _program,
       _provider
     );
-    this.controller= _controller;
+    this.controller = _controller;
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
+
+    this.collaterals = new Map<string, CollateralFixture>();
+  }
+
+  // Add this new method
+  public addCollateral(
+    symbol: string,
+    collateralAddress: PublicKey,
+    collateralMint: PublicKey
+  ): void {
+    const collateral = new CollateralFixture(
+      this.program,
+      this.provider,
+      collateralAddress,
+      collateralMint
+    );
+    this.collaterals.set(symbol, collateral);
+  }
+
+  // Add helper method to get collateral
+  public getCollateral(symbol: string): CollateralFixture | undefined {
+    return this.collaterals.get(symbol);
   }
 
   async setAuthority(user: UserFixture): Promise<void> {
@@ -46,21 +70,37 @@ export class MarketFixture {
       .rpc();
   }
 
-  async create(): Promise<void> {
+  async create({
+    collateralSymbol,
+    debtCap,
+    rateFactor,
+    lltv,
+  }: {
+    collateralSymbol: string;
+    debtCap: anchor.BN;
+    rateFactor: anchor.BN;
+    lltv: anchor.BN;
+  }): Promise<void> {
+    const PYTH_SOL_USD_ID =
+      "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
-    const PYTH_SOL_USD_ID = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+    const collateral = this.getCollateral(collateralSymbol);
 
     await this.program.methods
       .createMarket({
         oracle: PYTH_SOL_USD_ID,
-        lltv: new anchor.BN(100),
+        debtCap,
+        rateFactor,
+        lltv,
       })
       .accounts({
         authority: this.controller.authority.publicKey,
         controller: this.controller.controllerAcc.key,
         market: this.marketAcc.key,
         quoteMint: this.quoteMint,
+        collateralMint: collateral.collateralMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
+        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -69,27 +109,15 @@ export class MarketFixture {
       .rpc();
   }
 
-  // async addCollateral(accounts: any, oracle: string, cap: anchor.BN, rateFactor: anchor.BN ) {
-  //   await this.program.methods
-  //     .addCollateral({
-  //       oracle,
-  //       cap,
-  //       rateFactor,
-  //     })
-  //     .accounts({
-  //       authority: accounts.owner,
-  //       market: this.marketAcc.key,
-  //       collateral: accounts.collateralCustom,
-  //       collateralMint: accounts.collateralMint,
-  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //     })
-  //     .rpc();
-  // }
-
-  async deposit(user: UserFixture, accounts: any, amount: anchor.BN, shares: anchor.BN) {
-
+  async deposit({
+    user,
+    amount,
+    shares,
+  }: {
+    user: UserFixture;
+    amount: anchor.BN;
+    shares: anchor.BN;
+  }): Promise<void> {
     await this.program.methods
       .deposit({
         amount,
@@ -174,12 +202,19 @@ export class MarketFixture {
   // }
 
   public get_ata(mint: PublicKey): PublicKey {
-    return anchor.utils.token.associatedAddress({ mint, owner: this.marketAcc.key });
+    return anchor.utils.token.associatedAddress({
+      mint,
+      owner: this.marketAcc.key,
+    });
   }
 
   public get_user_shares(userKey: PublicKey): AccountFixture {
     let userSharesKey = PublicKey.findProgramAddressSync(
-      [Buffer.from("market_shares"), this.marketAcc.key.toBuffer(), userKey.toBuffer()],
+      [
+        Buffer.from("market_shares"),
+        this.marketAcc.key.toBuffer(),
+        userKey.toBuffer(),
+      ],
       this.program.programId
     )[0];
     return new AccountFixture(
@@ -189,8 +224,4 @@ export class MarketFixture {
       this.provider
     );
   }
-
-
-
-
 }

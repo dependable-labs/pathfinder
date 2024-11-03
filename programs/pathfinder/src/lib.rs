@@ -24,11 +24,6 @@ pub mod markets {
         CreateMarket::handle(ctx, args)
     }
     
-    // TODO: make this update_collateral and have it include init logic
-    pub fn add_collateral(ctx: Context<AddCollateral>, args: AddCollateralArgs) -> Result<()> {
-        AddCollateral::handle(ctx, args)
-    }
-
     pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<()> {
         Deposit::handle(ctx, args)
     }
