@@ -6,7 +6,7 @@ import { Markets } from "../../target/types/markets";
 import assert from "assert";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
 
-describe("User Deposit", () => {
+describe("Deposit", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
   let accounts: any;
@@ -64,12 +64,11 @@ describe("User Deposit", () => {
     await market.create({
       collateralSymbol: "JITO",
       debtCap: new anchor.BN(100),
-      rateFactor: new anchor.BN(0),
-      lltv: new anchor.BN(100),
+      ltvFactor: new anchor.BN(0),
     });
   });
 
-  it("deposits into a market", async () => {
+  it("into a market", async () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1000000000),
@@ -88,7 +87,7 @@ describe("User Deposit", () => {
     assert.equal(await larry.get_quo_balance(), BigInt(999000000000));
   });
 
-  it("two users deposit into a market", async () => {
+  it("two users Deposit into a market", async () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(500000000),

@@ -71,9 +71,8 @@ describe("Market Operations", () => {
     assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
     assert.equal(marketAccountData.totalQuote.toNumber(), 0);
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-
-    // const collateralAccountData = await market.getCollateral("JITO").collateralAcc.get_data();
-    // assert.equal(collateralAccountData.mint.toBase58(), accounts.collateralMint.toBase58());
+    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
 
   });
 });

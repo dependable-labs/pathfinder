@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::{generate_market_seeds, state::*};
+use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -105,6 +105,8 @@ impl<'info> DepositCollateral<'info> {
         if user_shares.collateral_mint.is_none() {
             user_shares.collateral_mint = Some(collateral_mint.key());
         }
+
+        accrue_interest(market)?;
 
         // Update market state
         collateral.total_collateral = collateral.total_collateral

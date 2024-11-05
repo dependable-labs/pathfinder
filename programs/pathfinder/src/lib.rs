@@ -40,4 +40,8 @@ pub mod markets {
         Borrow::handle(ctx, args)
     }
 
+    pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {
+        AccrueInterest::handle(ctx)
+    }
+
 }

@@ -8,9 +8,8 @@ use crate::state::*;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
     pub oracle: String,
-    pub lltv: u64,
+    pub ltv_factor: u64,
     pub debt_cap: u64,
-    pub rate_factor: u64, 
 } 
 
 #[derive(Accounts)]
@@ -104,26 +103,35 @@ impl<'info> CreateMarket<'info> {
             system_program: _,
         } = ctx.accounts;
 
+        // Get current timestamp from the runtime
+        let clock = Clock::get()?;
+        let current_timestamp = clock.unix_timestamp as u64;
+
         market.set_inner(Market {
             bump: ctx.bumps.market,
 
-            total_shares:0,
-
-            total_quote: 0,
             quote_mint: quote_mint.key(),
             quote_mint_decimals: quote_mint.decimals,
 
+            debt_cap: args.debt_cap,
+
+            // lender accounting
+            total_shares:0,
+            total_quote: 0,
+            
+            // borrower accounting
+            total_borrow_shares: 0,
+            total_borrow_assets: 0,
+
+            // interest
+            last_accrual_timestamp: current_timestamp,
         });
 
         collateral.set_inner(Collateral {
             bump: ctx.bumps.collateral,
 
             total_collateral: 0,
-            total_borrow_shares: 0,
-            total_borrow_assets: 0,
-            debt_cap: args.debt_cap,
-            rate_factor: 0,
-            lltv: args.lltv,
+            ltv_factor: args.ltv_factor,
 
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,

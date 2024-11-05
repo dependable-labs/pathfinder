@@ -35,6 +35,10 @@ pub struct Market {
     pub quote_mint: Pubkey,
     pub quote_mint_decimals: u8,
     pub total_shares: u64,
+    pub total_borrow_shares: u64,
+    pub total_borrow_assets: u64,
+    pub last_accrual_timestamp: u64,
+    pub debt_cap: u64,
 }
 
 #[account]
@@ -43,11 +47,7 @@ pub struct Collateral {
     pub total_collateral: u64,
     pub collateral_mint: Pubkey,
     pub collateral_mint_decimals: u8,
-    pub debt_cap: u64,
-    pub rate_factor: u64,
-    pub lltv: u64,
-    pub total_borrow_shares: u64,
-    pub total_borrow_assets: u64,
+    pub ltv_factor: u64,
     // pub oracle: PythOracle,
 }
 

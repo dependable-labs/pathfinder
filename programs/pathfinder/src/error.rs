@@ -35,5 +35,10 @@ pub enum MarketError {
     InvalidDepositCollateralInput,
     #[msg("Invalid borrow input")]
     InvalidBorrowInput,
-
+    #[msg("Invalid accrual timestamp")]
+    InvalidAccrualTimestamp,
+    #[msg("No time elapsed")]
+    NoTimeElapsed,
+    #[msg("Debt cap exceeded")]
+    DebtCapExceeded,
 }

@@ -10,7 +10,7 @@ import { createMint } from "spl-token-bankrun";
 
 import { Markets } from "../target/types/markets";
 import { BankrunProvider } from 'anchor-bankrun';
-import { ProgramTestContext } from "solana-bankrun";
+import { ProgramTestContext, Clock } from "solana-bankrun";
 
 const IDL = require("../target/idl/markets.json");
 
@@ -102,3 +102,19 @@ export function fund_w_sol(
     data: Buffer.alloc(0),
   });
 }
+
+export const TimeUtils = {
+
+  async moveTimeForward(context: ProgramTestContext, seconds: number): Promise<void> {
+    const currentClock = await context.banksClient.getClock();
+    const newUnixTimestamp = currentClock.unixTimestamp + BigInt(seconds);
+    const newClock = new Clock(
+			currentClock.slot,
+			currentClock.epochStartTimestamp,
+			currentClock.epoch,
+			currentClock.leaderScheduleEpoch,
+			newUnixTimestamp
+    );
+    context.setClock(newClock);
+  }
+};
