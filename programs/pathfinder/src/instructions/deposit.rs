@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::{generate_market_seeds, state::*};
+use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
 
@@ -88,6 +88,8 @@ impl<'info> Deposit<'info> {
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
             return err!(MarketError::InvalidDepositInput);
         }
+
+        accrue_interest(market)?;
         
         if assets > 0 {
             shares = to_shares_down(&assets, &market.total_quote, &market.total_shares)?;

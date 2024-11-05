@@ -1,9 +1,9 @@
+use anchor_lang::accounts::program;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
-use crate::math::*;
-use crate::{generate_market_seeds, state::*};
+use crate::{math::*, accrue_interest::accrue_interest, generate_market_seeds, state::*};
 use crate::error::MarketError;
 
 
@@ -93,7 +93,9 @@ impl<'info> Withdraw<'info> {
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
             return err!(MarketError::InvalidWithdrawInput);
         }
-        
+
+        accrue_interest(market)?;
+
         if assets > 0 {
             shares = to_shares_up(&assets, &market.total_quote, &market.total_shares)?;
         } else {

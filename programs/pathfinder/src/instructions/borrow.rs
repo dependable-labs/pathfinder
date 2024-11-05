@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::{generate_market_seeds, state::*};
+use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -104,24 +104,30 @@ impl<'info> Borrow<'info> {
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
             return err!(MarketError::InvalidBorrowInput);
         }
+
+        accrue_interest(market)?;
         
         if assets > 0 {
-            shares = to_shares_up(&assets, &collateral.total_borrow_assets, &collateral.total_borrow_shares)?;
+            shares = to_shares_up(&assets, &market.total_borrow_assets, &market.total_borrow_shares)?;
         } else {
-            assets = to_assets_down(&shares, &collateral.total_borrow_assets, &collateral.total_borrow_shares)?;
+            assets = to_assets_down(&shares, &market.total_borrow_assets, &market.total_borrow_shares)?;
         }
-        
+
         msg!("Borrowing {} from vault", assets);
 
         // Update market shares
-        collateral.total_borrow_shares = collateral.total_borrow_shares
+        market.total_borrow_shares = market.total_borrow_shares
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
         // Update market quote amount
-        collateral.total_borrow_assets = collateral.total_borrow_assets
+        market.total_borrow_assets = market.total_borrow_assets
                 .checked_add(assets)
                 .ok_or(MarketError::MathOverflow)?;
+
+        if market.total_borrow_assets > market.debt_cap {
+            return err!(MarketError::DebtCapExceeded);
+        }
 
         // Update user shares
         user_shares.borrow_shares = user_shares.borrow_shares
