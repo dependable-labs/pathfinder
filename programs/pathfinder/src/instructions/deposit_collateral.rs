@@ -2,8 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
-use crate::math::*;
-use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
+use crate::{state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]

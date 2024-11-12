@@ -16,8 +16,6 @@ pub struct AccrueInterest<'info> {
         bump = market.bump
     )]
     pub market: Account<'info, Market>,
-
-    pub system_program: Program<'info, System>,
 }
 
 impl<'info> AccrueInterest<'info> {
@@ -29,7 +27,6 @@ impl<'info> AccrueInterest<'info> {
     pub fn handle(ctx: Context<Self>) -> Result<()> {
         let AccrueInterest {
             market,
-            system_program,
         } = ctx.accounts;
 
         accrue_interest(

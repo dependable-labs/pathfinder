@@ -45,6 +45,7 @@ describe("Authority Operations", () => {
     market = new MarketFixture(
       program,
       provider,
+      context,
       accounts.market,
       accounts.quoteMint,
       controller, // futarchy treasury authority

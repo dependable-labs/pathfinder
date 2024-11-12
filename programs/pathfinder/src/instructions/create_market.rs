@@ -2,12 +2,13 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
+
 use crate::state::*;
-// use crate::state::market::PythOracle;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
-    pub oracle: String,
+    pub feed_id: String,
     pub ltv_factor: u64,
     pub debt_cap: u64,
 } 
@@ -80,6 +81,7 @@ pub struct CreateMarket<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    // pub price_update: Account<'info, PriceUpdateV2>,
 }
 
 impl<'info> CreateMarket<'info> {
@@ -101,6 +103,7 @@ impl<'info> CreateMarket<'info> {
             associated_token_program: _,
             token_program: _,
             system_program: _,
+            // price_update,
         } = ctx.accounts;
 
         // Get current timestamp from the runtime
@@ -136,7 +139,7 @@ impl<'info> CreateMarket<'info> {
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,
 
-            // oracle: args.oracle,
+            oracle: PythOracle::new(&args.feed_id, 300)?,
         });
 
         Ok(())

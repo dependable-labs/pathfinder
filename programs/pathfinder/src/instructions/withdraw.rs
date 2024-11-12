@@ -58,10 +58,6 @@ pub struct Withdraw<'info> {
     )]
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
-    // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
-    pub collateral_mint: Box<Account<'info, Mint>>,
-
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -79,7 +75,6 @@ impl<'info> Withdraw<'info> {
             user_shares,
             quote_mint,
             user_ata_quote,
-            collateral_mint,
             vault_ata_quote,
             associated_token_program,
             token_program,

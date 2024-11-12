@@ -110,9 +110,4 @@ export class UserFixture {
       owner: this.key.publicKey,
     });
   }
-
-  // public async get_ata_data(mint: PublicKey): Promise<any> {
-  //   let ata = anchor.utils.token.getAssociatedTokenAddressSync(mint, this.key);
-  //   return this.program.account.associatedTokenAccount.fetch(ata);
-  // }
 }
