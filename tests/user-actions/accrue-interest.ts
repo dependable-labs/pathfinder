@@ -7,6 +7,7 @@ import assert from "assert";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
 import { ProgramTestContext } from "solana-bankrun";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import buffer from 'buffer';
 
 describe("Accrue Interest", () => {
   let program: Program<Markets>;
@@ -52,20 +53,25 @@ describe("Accrue Interest", () => {
     market = new MarketFixture(
       program,
       provider,
+      context,
       accounts.market,
       accounts.quoteMint,
       controller
     );
 
     await market.setAuthority(larry);
-    market.addCollateral(
-      "JITO",
-      accounts.collateralAcc,
-      accounts.collateralMint
-    );
+
+    await market.addCollateral({
+      symbol: "BONK",
+      collateralAddress: accounts.collateralAcc,
+      collateralMint: accounts.collateralMint,
+      price: new anchor.BN(100 * 10 ** 9),
+      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      expo: -9
+    });
 
     await market.create({
-      collateralSymbol: "JITO",
+      collateralSymbol: "BONK",
       debtCap: new anchor.BN(1_000 * LAMPORTS_PER_SOL),
       ltvFactor: new anchor.BN(0),
     });
@@ -79,13 +85,13 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: bob,
-      symbol: "JITO",
+      symbol: "BONK",
       amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
     });
 
     await market.borrow({
       user: bob,
-      symbol: "JITO",
+      symbol: "BONK",
       amount: new anchor.BN(500 * LAMPORTS_PER_SOL),
       shares: new anchor.BN(0)
     });

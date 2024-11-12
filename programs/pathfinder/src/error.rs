@@ -41,4 +41,6 @@ pub enum MarketError {
     NoTimeElapsed,
     #[msg("Debt cap exceeded")]
     DebtCapExceeded,
+    #[msg("User is not solvent")]
+    NotSolvent,
 }

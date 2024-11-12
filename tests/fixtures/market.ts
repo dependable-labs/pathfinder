@@ -4,14 +4,19 @@ import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { AccountFixture } from "./account";
 import { BankrunProvider } from "anchor-bankrun";
+import { ProgramTestContext } from "solana-bankrun";
 import { UserFixture } from "./user";
 import { ControllerFixture } from "./controller";
-import { CollateralFixture } from "./collateral";
+import { CollateralFixture, SupportedCollateral } from "./collateral";
+
+import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
+import { Price } from "@pythnetwork/price-service-client";
 
 export class MarketFixture {
   public marketAcc: AccountFixture;
   public program: Program<Markets>;
   public provider: BankrunProvider;
+  public context: ProgramTestContext;
   public quoteMint: PublicKey;
   public quoteAta: PublicKey;
   public controller: ControllerFixture;
@@ -20,6 +25,7 @@ export class MarketFixture {
   public constructor(
     public _program: Program<Markets>,
     public _provider: BankrunProvider,
+    public _context: ProgramTestContext,
     public _marketAddress: PublicKey,
     public _quoteMint: PublicKey,
     public _controller: ControllerFixture
@@ -30,30 +36,46 @@ export class MarketFixture {
       _program,
       _provider
     );
-    this.controller = _controller;
     this.program = _program;
     this.provider = _provider;
+    this.context = _context;
+    this.controller = _controller;
     this.quoteMint = _quoteMint;
 
     this.collaterals = new Map<string, CollateralFixture>();
   }
 
-  // Add this new method
-  public addCollateral(
-    symbol: string,
+  public async addCollateral({
+    symbol,
+    collateralAddress,
+    collateralMint,
+    price,
+    conf,
+    expo
+  } : {
+    symbol: SupportedCollateral,
     collateralAddress: PublicKey,
-    collateralMint: PublicKey
-  ): void {
+    collateralMint: PublicKey,
+    price: anchor.BN,
+    conf: anchor.BN,
+    expo: number
+  }): Promise<void> {
     const collateral = new CollateralFixture(
       this.program,
       this.provider,
+      this.context,
       collateralAddress,
       collateralMint
     );
+    collateral.setSymbol(symbol);
     this.collaterals.set(symbol, collateral);
+    await this.collaterals.get(symbol).initPrice({
+      price,
+      conf,
+      expo
+    });
   }
 
-  // Add helper method to get collateral
   public getCollateral(symbol: string): CollateralFixture | undefined {
     return this.collaterals.get(symbol);
   }
@@ -75,18 +97,18 @@ export class MarketFixture {
     debtCap,
     ltvFactor,
   }: {
-    collateralSymbol: string;
+    collateralSymbol: SupportedCollateral;
     debtCap: anchor.BN;
     ltvFactor: anchor.BN;
   }): Promise<void> {
-    const PYTH_SOL_USD_ID =
-      "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
-
     const collateral = this.getCollateral(collateralSymbol);
+    if (!collateral) {
+      throw new Error(`Collateral ${collateralSymbol} not found`);
+    }
 
     await this.program.methods
       .createMarket({
-        oracle: PYTH_SOL_USD_ID,
+        feedId: collateral.getOracleId(),
         debtCap,
         ltvFactor,
       })
@@ -100,6 +122,7 @@ export class MarketFixture {
         vaultAtaCollateral: this.get_ata(collateral.collateralMint),
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        // priceUpdate: collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([this.controller.authority.payer])
@@ -156,7 +179,6 @@ export class MarketFixture {
         quoteMint: this.quoteMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
         userAtaQuote: user.quoteAta,
-        collateralMint: this.getCollateral("JITO").collateralMint, // TODO: Make this dynamic
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -231,6 +253,7 @@ export class MarketFixture {
         collateralMint: collateral.collateralMint,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        priceUpdate: collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])

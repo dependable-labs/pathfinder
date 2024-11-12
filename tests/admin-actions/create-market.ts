@@ -6,7 +6,7 @@ import { Markets } from "../../target/types/markets";
 import assert from 'assert';
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { UserFixture } from "../fixtures";
-
+import { PublicKey } from "@solana/web3.js";
 describe("Market Operations", () => {
 
   let program: Program<Markets>;
@@ -43,26 +43,29 @@ describe("Market Operations", () => {
     market = new MarketFixture(
       program,
       provider,
+      context,
       accounts.market,
       accounts.quoteMint,
       controller, // futarchy treasury authority
     );
     await market.setAuthority(larry);
 
-    market.addCollateral(
-      "JITO",
-      accounts.collateralAcc,
-      accounts.collateralMint,
-    );
+    await market.addCollateral({
+      symbol: "BONK",
+      collateralAddress: accounts.collateralAcc,
+      collateralMint: accounts.collateralMint,
+      price: new anchor.BN(100 * 10 ** 9),
+      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      expo: -9
+    });
 
   });
 
   it("creates a market", async () => {
     await market.create({
-      collateralSymbol: "JITO",
+      collateralSymbol: "BONK",
       debtCap: new anchor.BN(100),
-      rateFactor: new anchor.BN(0),
-      lltv: new anchor.BN(100),
+      ltvFactor: new anchor.BN(0),
     });
 
     const marketAccountData = await market.marketAcc.get_data();
@@ -73,6 +76,5 @@ describe("Market Operations", () => {
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
-
   });
 });

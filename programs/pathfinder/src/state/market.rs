@@ -1,32 +1,36 @@
 use anchor_lang::prelude::*;
 
-// use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
+use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
 
-// #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
-// pub struct PythOracle {
-//     pub feed_id: [u8; 32],
-//     pub max_age: u64,
-// }
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
+pub struct PythOracle {
+    pub feed_id: [u8; 32],
+    pub max_age: u64,
+}
 
-// impl PythOracle {
-//     pub fn new(oracle_address: &str, max_age: u64) -> Result<Self> {
-//         // Check if the oracle string is a valid hex string with correct length
-//         if oracle_address.len() == 64 || (oracle_address.len() == 66 && oracle_address.starts_with("0x")) {
-//             let feed_id = get_feed_id_from_hex(oracle_address)?;
-//             Ok(Self { feed_id, max_age })
-//         } else {
-//             // Invalid oracle ID
-//             Err(error!(MarketError::InvalidOracleId))
-//         }
-//     }
+impl PythOracle {
+    pub fn new(feed_id: &str, max_age: u64) -> Result<Self> {
 
-//     pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<i64> {
-//         let price = pyth_price.get_price_no_older_than(clock, self.max_age, &self.feed_id)?;
-//         Ok(price.price)
-//     }
-// }
+        // Validate feed_id
+
+        // if feed_id.len() == 64 || (feed_id.len() == 66 && feed_id.starts_with("0x")) {
+        // } else {
+        //     // Invalid oracle ID
+        //     Err(error!(MarketError::InvalidOracleId))
+        // }
+        Ok(Self {
+            feed_id: get_feed_id_from_hex(&feed_id)?,
+            max_age,
+        })
+    }
+
+    pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<i64> {
+        let price = pyth_price.get_price_no_older_than(clock, self.max_age, &self.feed_id)?;
+        Ok(price.price)
+    }
+}
 
 #[account]
 pub struct Market {
@@ -48,7 +52,7 @@ pub struct Collateral {
     pub collateral_mint: Pubkey,
     pub collateral_mint_decimals: u8,
     pub ltv_factor: u64,
-    // pub oracle: PythOracle,
+    pub oracle: PythOracle,
 }
 
 #[account]
