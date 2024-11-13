@@ -5,7 +5,6 @@ import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import assert from 'assert';
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
-import { ProgramTestContext } from 'solana-bankrun';
 
 describe("Authority Operations", () => {
 
@@ -14,11 +13,10 @@ describe("Authority Operations", () => {
   let accounts: any;
   let controller: ControllerFixture;
   let market: MarketFixture;
-  let context: ProgramTestContext;
   let larry: UserFixture;
 
   beforeEach(async () => {
-    context = await startAnchor('', [], []);
+    let context = await startAnchor('', [], []);
     provider = new BankrunProvider(context);
 
     ({ program, accounts } = await setupTest(
@@ -29,14 +27,11 @@ describe("Authority Operations", () => {
     controller = new ControllerFixture(
       program,
       provider,
-      context
     );
 
     // team member who will set the futarchy authority
     larry = new UserFixture(
-      program,
       provider,
-      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
@@ -45,7 +40,6 @@ describe("Authority Operations", () => {
     market = new MarketFixture(
       program,
       provider,
-      context,
       accounts.market,
       accounts.quoteMint,
       controller, // futarchy treasury authority
