@@ -18,8 +18,8 @@ wallet = "/home/evergreen/.config/solana/id.json"
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 # # test-interest = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/accrue-interest.ts"
-# test-create-market = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/create-market.ts"
-# test-borrow = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/borrow.ts"
+test-create-market = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/create-market.ts"
+test-borrow = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/borrow.ts"
 
 # [test.validator]
 # url = "https://api.mainnet-beta.solana.com"

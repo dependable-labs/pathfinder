@@ -1,12 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
 import { setupTest} from '../utils';
-import { ControllerFixture, CollateralFixture, MarketFixture} from '../fixtures';
+import { ControllerFixture, MarketFixture} from '../fixtures';
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import assert from 'assert';
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { UserFixture } from "../fixtures";
-import { PublicKey } from "@solana/web3.js";
 describe("Market Operations", () => {
 
   let program: Program<Markets>;
@@ -17,7 +16,7 @@ describe("Market Operations", () => {
 
   beforeEach(async () => {
     let context = await startAnchor('', [], []);
-    let provider = new BankrunProvider(context);
+    provider = new BankrunProvider(context);
 
     ({ program, accounts } = await setupTest(
       provider,
@@ -26,15 +25,12 @@ describe("Market Operations", () => {
 
     let controller = new ControllerFixture(
       program,
-      provider,
-      context
+      provider
     );
 
     // team member who will set the futarchy authority
     larry = new UserFixture(
-      program,
       provider,
-      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
@@ -43,7 +39,6 @@ describe("Market Operations", () => {
     market = new MarketFixture(
       program,
       provider,
-      context,
       accounts.market,
       accounts.quoteMint,
       controller, // futarchy treasury authority
@@ -58,7 +53,6 @@ describe("Market Operations", () => {
       conf: new anchor.BN(100 / 10 * 10 ** 9),
       expo: -9
     });
-
   });
 
   it("creates a market", async () => {

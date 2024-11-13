@@ -1,45 +1,32 @@
 import {
   PublicKey,
-  Transaction,
-  TransactionInstruction,
   Keypair,
 } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Markets } from "../../target/types/markets";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { ProgramTestContext } from "solana-bankrun";
 import { BankrunProvider } from "anchor-bankrun";
 import {
-  createAccount,
   createAssociatedTokenAccount,
   mintTo,
   getAccount,
 } from "spl-token-bankrun";
-import { BN } from "@coral-xyz/anchor";
 import { fund_w_sol } from "../utils";
 
 export class UserFixture {
   public key: anchor.Wallet;
-  public program: Program<Markets>;
   public provider: BankrunProvider;
-  public context: ProgramTestContext;
   public quoteMint: PublicKey;
   public quoteAta: PublicKey;
   public collateralMint: PublicKey;
   public collateralAta: PublicKey;
 
   public constructor(
-    public _program: Program<Markets>,
     public _provider: BankrunProvider,
-    public _context: ProgramTestContext,
     public _quoteMint: PublicKey,
     public _collateralMint: PublicKey
   ) {
     this.key = new anchor.Wallet(Keypair.generate());
-    this.program = _program;
     this.provider = _provider;
-    this.context = _context;
     this.quoteMint = _quoteMint;
     this.collateralMint = _collateralMint;
   }
@@ -50,19 +37,19 @@ export class UserFixture {
   ): Promise<void> {
     await this.init_accounts();
     await this.fund_accounts(quoteAmount, collateralAmount);
-    await fund_w_sol(this.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
+    await fund_w_sol(this.provider.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
   }
 
   private async init_accounts(): Promise<void> {
     this.quoteAta = await createAssociatedTokenAccount(
-      this.context.banksClient,
+      this.provider.context.banksClient,
       this.provider.wallet.payer,
       this.quoteMint,
       this.key.publicKey
     );
 
     this.collateralAta = await createAssociatedTokenAccount(
-      this.context.banksClient,
+      this.provider.context.banksClient,
       this.provider.wallet.payer,
       this.collateralMint,
       this.key.publicKey
@@ -74,7 +61,7 @@ export class UserFixture {
     collateralAmount: anchor.BN
   ): Promise<void> {
     await mintTo(
-      this.context.banksClient,
+      this.provider.context.banksClient,
       this.provider.wallet.payer,
       this.quoteMint,
       this.get_ata(this.quoteMint),
@@ -83,7 +70,7 @@ export class UserFixture {
     );
 
     await mintTo(
-      this.context.banksClient,
+      this.provider.context.banksClient,
       this.provider.wallet.payer,
       this.collateralMint,
       this.collateralAta,
@@ -93,7 +80,7 @@ export class UserFixture {
   }
 
   public async get_balance(account: PublicKey): Promise<any> {
-    return await getAccount(this.context.banksClient, account);
+    return await getAccount(this.provider.context.banksClient, account);
   }
 
   public async get_quo_balance(): Promise<BigInt> {

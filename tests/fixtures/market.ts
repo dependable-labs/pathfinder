@@ -2,21 +2,13 @@ import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
-import { AccountFixture } from "./account";
 import { BankrunProvider } from "anchor-bankrun";
-import { ProgramTestContext } from "solana-bankrun";
-import { UserFixture } from "./user";
-import { ControllerFixture } from "./controller";
-import { CollateralFixture, SupportedCollateral } from "./collateral";
-
-import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-import { Price } from "@pythnetwork/price-service-client";
+import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, ControllerFixture } from "./index";
 
 export class MarketFixture {
   public marketAcc: AccountFixture;
   public program: Program<Markets>;
   public provider: BankrunProvider;
-  public context: ProgramTestContext;
   public quoteMint: PublicKey;
   public quoteAta: PublicKey;
   public controller: ControllerFixture;
@@ -25,7 +17,6 @@ export class MarketFixture {
   public constructor(
     public _program: Program<Markets>,
     public _provider: BankrunProvider,
-    public _context: ProgramTestContext,
     public _marketAddress: PublicKey,
     public _quoteMint: PublicKey,
     public _controller: ControllerFixture
@@ -34,11 +25,9 @@ export class MarketFixture {
       "market",
       _marketAddress,
       _program,
-      _provider
     );
     this.program = _program;
     this.provider = _provider;
-    this.context = _context;
     this.controller = _controller;
     this.quoteMint = _quoteMint;
 
@@ -61,19 +50,18 @@ export class MarketFixture {
     expo: number
   }): Promise<void> {
     const collateral = new CollateralFixture(
+      symbol,
       this.program,
       this.provider,
-      this.context,
       collateralAddress,
       collateralMint
     );
-    collateral.setSymbol(symbol);
-    this.collaterals.set(symbol, collateral);
-    await this.collaterals.get(symbol).initPrice({
+    await collateral.initPrice({
       price,
       conf,
       expo
     });
+    this.collaterals.set(symbol, collateral);
   }
 
   public getCollateral(symbol: string): CollateralFixture | undefined {
@@ -122,7 +110,6 @@ export class MarketFixture {
         vaultAtaCollateral: this.get_ata(collateral.collateralMint),
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        // priceUpdate: collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([this.controller.authority.payer])

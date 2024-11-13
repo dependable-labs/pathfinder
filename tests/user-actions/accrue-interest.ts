@@ -12,22 +12,19 @@ import buffer from 'buffer';
 describe("Accrue Interest", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
-  let context: ProgramTestContext;
   let accounts: any;
   let market: MarketFixture;
   let larry: UserFixture; // Lender
   let bob: UserFixture;   // Borrower
 
   beforeEach(async () => {
-    context = await startAnchor("", [], []);
-    let provider = new BankrunProvider(context);
+    let context = await startAnchor("", [], []);
+    provider = new BankrunProvider(context);
 
     ({ program, accounts } = await setupTest(provider, context.banksClient));
 
     larry = new UserFixture(
-      program,
       provider,
-      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
@@ -37,9 +34,7 @@ describe("Accrue Interest", () => {
     );
 
     bob = new UserFixture(
-      program,
       provider,
-      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
@@ -48,12 +43,11 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000_000 * LAMPORTS_PER_SOL)  // Collateral for borrowing
     );
 
-    let controller = new ControllerFixture(program, provider, context);
+    let controller = new ControllerFixture(program, provider);
 
     market = new MarketFixture(
       program,
       provider,
-      context,
       accounts.market,
       accounts.quoteMint,
       controller
@@ -101,7 +95,7 @@ describe("Accrue Interest", () => {
     const beforeData = await market.marketAcc.get_data();
     
     // Advance clock by 1 year
-    await TimeUtils.moveTimeForward(context, 365 * 24 * 3600);
+    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
     
     await market.accrueInterest();
     
@@ -121,7 +115,7 @@ describe("Accrue Interest", () => {
     const beforeData = await market.marketAcc.get_data();
     
     // Advance clock by 2 years  
-    await TimeUtils.moveTimeForward(context, 365 * 24 * 2 * 3600);
+    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 2 * 3600);
     
     await market.accrueInterest();
 
@@ -140,7 +134,7 @@ describe("Accrue Interest", () => {
   it("updates last accrual timestamp", async () => {
     const beforeData = await market.marketAcc.get_data();
     
-    await TimeUtils.moveTimeForward(context, 365 * 24 * 3600);
+    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
     
     await market.accrueInterest();
 

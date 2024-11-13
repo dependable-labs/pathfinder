@@ -16,14 +16,12 @@ describe("Deposit", () => {
 
   beforeEach(async () => {
     let context = await startAnchor("", [], []);
-    let provider = new BankrunProvider(context);
+    provider = new BankrunProvider(context);
 
     ({ program, accounts } = await setupTest(provider, context.banksClient));
 
     larry = new UserFixture(
-      program,
       provider,
-      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
@@ -33,9 +31,7 @@ describe("Deposit", () => {
     );
 
     lizz = new UserFixture(
-      program,
       provider,
-      context,
       accounts.quoteMint,
       accounts.collateralMint
     );
@@ -44,12 +40,11 @@ describe("Deposit", () => {
       new anchor.BN(0)
     );
 
-    let controller = new ControllerFixture(program, provider, context);
+    let controller = new ControllerFixture(program, provider);
 
     market = new MarketFixture(
       program,
       provider,
-      context,
       accounts.market,
       accounts.quoteMint,
       controller // contains futarchy treasury authority
