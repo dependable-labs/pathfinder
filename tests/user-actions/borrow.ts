@@ -19,7 +19,12 @@ describe("User Borrow", () => {
     let context = await startAnchor("", [], []);
     provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest(provider, context.banksClient));
+    ({ program, accounts } = await setupTest({
+      provider,
+      banks: context.banksClient,
+      quoteDecimals: 9,
+      collateralDecimals: 9,
+    }));
 
     larry = new UserFixture(
       provider,
@@ -51,22 +56,22 @@ describe("User Borrow", () => {
       controller
     );
 
-    await market.setAuthority(larry);
+    await market.setAuthority();
 
     // add collateral and initialize price
     await market.addCollateral({
       symbol: "BONK",
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
-      price: new anchor.BN(100 * 10 ** 9),
+      price: new anchor.BN(100 * 10 ** 5),
       conf: new anchor.BN(100 / 10 * 10 ** 9),
-      expo: -9
+      expo: -5
     });
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(1000000000),
-      ltvFactor: new anchor.BN(0),
+      debtCap: new anchor.BN(1_000 * 1e9),
+      ltvFactor: new anchor.BN(0.8 * 1e9),
     });
 
     await market.deposit({
@@ -88,7 +93,7 @@ describe("User Borrow", () => {
     await market.borrow({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(500000000),
+      amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
 
@@ -117,39 +122,39 @@ describe("User Borrow", () => {
     );
   });
 
-  // it("fails to borrow without collateral", async () => {
-    // await assert.rejects(
-    //   async () => {
-    //     await market.borrow({
-    //       user: larry,
-    //       symbol: "JITO",
-    //       amount: new anchor.BN(500000000),
-    //       shares: new anchor.BN(0)
-    //     });
-    //   },
-    //   (err: anchor.AnchorError) => {
-    //     assert.strictEqual(err.error.errorCode.number, 6003);
-    //     assert.strictEqual(err.error.errorMessage, 'Insufficient collateral for borrow');
-    //     return true;
-    //   }
-    // );
-  // });
+  it("fails to borrow without collateral", async () => {
+    await assert.rejects(
+      async () => {
+        await market.borrow({
+          user: larry,
+          symbol: "BONK",
+          amount: new anchor.BN(100 * 1e9),
+          shares: new anchor.BN(0)
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorCode.number, 6018);
+        assert.strictEqual(err.error.errorMessage, 'User is not solvent');
+        return true;
+      }
+    );
+  });
 
-  // it("fails to borrow more than debt cap", async () => {
-  //   await assert.rejects(
-  //     async () => {
-  //       await market.borrow({
-  //         user: bob,
-  //         symbol: "BONK",
-  //         amount: new anchor.BN(2000000000), // More than debt cap
-  //         shares: new anchor.BN(0)
-  //       });
-  //     },
-  //     (err: anchor.AnchorError) => {
-  //       assert.strictEqual(err.error.errorCode.number, 6017);
-  //       assert.strictEqual(err.error.errorMessage, 'Debt cap exceeded');
-  //       return true;
-  //     }
-  //   );
-  // });
+  it("fails to borrow more than debt cap", async () => {
+    await assert.rejects(
+      async () => {
+        await market.borrow({
+          user: bob,
+          symbol: "BONK",
+          amount: new anchor.BN(1000_000_000_001), // 1 More than debt cap
+          shares: new anchor.BN(0)
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorCode.number, 6017);
+        assert.strictEqual(err.error.errorMessage, 'Debt cap exceeded');
+        return true;
+      }
+    );
+  });
 });

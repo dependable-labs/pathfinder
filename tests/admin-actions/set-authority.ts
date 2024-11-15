@@ -19,10 +19,12 @@ describe("Authority Operations", () => {
     let context = await startAnchor('', [], []);
     provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest(
+    ({ program, accounts } = await setupTest({
       provider,
-      context.banksClient
-    ));
+      banks: context.banksClient,
+      quoteDecimals: 9,
+      collateralDecimals: 9,
+  }));
 
     controller = new ControllerFixture(
       program,
@@ -46,10 +48,9 @@ describe("Authority Operations", () => {
     );
   });
 
-
   it("sets the authority", async () => {
 
-    await market.setAuthority(larry);
+    await market.setAuthority();
 
     const controllerAccountData = await controller.controllerAcc.get_data();
     assert.equal(controllerAccountData.authority.toBase58(), controller.authority.publicKey.toBase58());
@@ -57,10 +58,10 @@ describe("Authority Operations", () => {
   });
 
   it("can't set the authority twice", async () => {
-    await market.setAuthority(larry);
+    await market.setAuthority();
 
     await assert.rejects(async () => {
-      await market.setAuthority(larry);
+      await market.setAuthority();
     });
   });
 

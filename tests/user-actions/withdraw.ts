@@ -18,7 +18,12 @@ describe("Withdraw", () => {
     let context = await startAnchor("", [], []);
     provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest(provider, context.banksClient));
+    ({ program, accounts } = await setupTest({
+      provider,
+      banks: context.banksClient,
+      quoteDecimals: 9,
+      collateralDecimals: 9,
+    }));
 
     larry = new UserFixture(
       provider,
@@ -26,7 +31,7 @@ describe("Withdraw", () => {
       accounts.collateralMint
     );
     await larry.init_and_fund_accounts(
-      new anchor.BN(1000000000000),
+      new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
@@ -36,7 +41,7 @@ describe("Withdraw", () => {
       accounts.collateralMint
     );
     await lizz.init_and_fund_accounts(
-      new anchor.BN(1000000000000),
+      new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
@@ -50,7 +55,7 @@ describe("Withdraw", () => {
       controller
     );
 
-    await market.setAuthority(larry);
+    await market.setAuthority();
     await market.addCollateral({
       symbol: "BONK",
       collateralAddress: accounts.collateralAcc,

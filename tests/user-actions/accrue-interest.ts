@@ -21,7 +21,12 @@ describe("Accrue Interest", () => {
     let context = await startAnchor("", [], []);
     provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest(provider, context.banksClient));
+    ({ program, accounts } = await setupTest({
+      provider,
+      banks: context.banksClient,
+      quoteDecimals: 9,
+      collateralDecimals: 9,
+    }));
 
     larry = new UserFixture(
       provider,
@@ -53,21 +58,21 @@ describe("Accrue Interest", () => {
       controller
     );
 
-    await market.setAuthority(larry);
+    await market.setAuthority();
 
     await market.addCollateral({
       symbol: "BONK",
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
-      price: new anchor.BN(100 * 10 ** 9),
-      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      price: new anchor.BN(100 * 1e9),
+      conf: new anchor.BN(100 / 10 * 1e9),
       expo: -9
     });
 
     await market.create({
       collateralSymbol: "BONK",
       debtCap: new anchor.BN(1_000 * LAMPORTS_PER_SOL),
-      ltvFactor: new anchor.BN(0),
+      ltvFactor: new anchor.BN(0.8 * 1e9),
     });
 
     // Setup initial state: deposit, collateralize, and borrow
