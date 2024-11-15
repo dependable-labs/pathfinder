@@ -68,15 +68,17 @@ export class MarketFixture {
     return this.collaterals.get(symbol);
   }
 
-  async setAuthority(user: UserFixture): Promise<void> {
+  async setAuthority(): Promise<void> {
+
+    // Futarchy authority is set
     await this.program.methods
       .setAuthority({
         newAuthority: this.controller.authority.publicKey,
       })
       .accounts({
-        user: user.key.publicKey,
+        user: this.provider.wallet.publicKey,
       })
-      .signers([user.key.payer])
+      .signers([this.provider.wallet.payer])
       .rpc();
   }
 
@@ -278,8 +280,7 @@ export class MarketFixture {
     return new AccountFixture(
       "userShares",
       userSharesKey,
-      this.program,
-      this.provider
+      this.program
     );
   }
 }

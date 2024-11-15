@@ -18,10 +18,12 @@ describe("Market Operations", () => {
     let context = await startAnchor('', [], []);
     provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest(
+    ({ program, accounts } = await setupTest({
       provider,
-      context.banksClient
-    ));
+      banks: context.banksClient,
+      quoteDecimals: 9,
+      collateralDecimals: 9,
+    }));
 
     let controller = new ControllerFixture(
       program,
@@ -43,7 +45,7 @@ describe("Market Operations", () => {
       accounts.quoteMint,
       controller, // futarchy treasury authority
     );
-    await market.setAuthority(larry);
+    await market.setAuthority();
 
     await market.addCollateral({
       symbol: "BONK",
