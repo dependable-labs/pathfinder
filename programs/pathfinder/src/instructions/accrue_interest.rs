@@ -54,7 +54,7 @@ pub fn accrue_interest(
         .checked_sub(market.last_accrual_timestamp)
         .ok_or(MarketError::MathOverflow)?;
 
-    let interest_rate: u64 = 5 * 10_000_000; // 0.05
+    let interest_rate: u64 = 5 * 10_000_000; // 0.05 * 1e9
 
     // Calculate interest to accrue
     let interest = calculate_interest(
@@ -88,7 +88,9 @@ fn calculate_interest(
 ) -> Result<u64> {
 
     const SECONDS_IN_YEAR: u64 = 31_536_000;
-    const QUOTE_DECIMALS: u64 = 1_000_000_000;
+
+    // TODO: Make this dynamic
+    const INTEREST_RATE_DECIMALS: u64 = 1e9 as u64;
 
     // Convert to u128 for intermediate calculations to prevent overflow
     let interest = (borrow_amount as u128)
@@ -98,7 +100,7 @@ fn calculate_interest(
         .ok_or(MarketError::MathOverflow)?
         .checked_div(SECONDS_IN_YEAR as u128)
         .ok_or(MarketError::MathOverflow)?
-        .checked_div(QUOTE_DECIMALS as u128)
+        .checked_div(INTEREST_RATE_DECIMALS as u128)
         .ok_or(MarketError::MathOverflow)?;
 
     Ok(interest as u64)

@@ -5,7 +5,6 @@ import {
   Finality,
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { createMint } from "spl-token-bankrun";
 
 import { Markets } from "../target/types/markets";
