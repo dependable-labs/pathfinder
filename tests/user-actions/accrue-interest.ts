@@ -12,13 +12,15 @@ import buffer from 'buffer';
 describe("Accrue Interest", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
+  let context: ProgramTestContext;
+  let controller: ControllerFixture;
   let accounts: any;
   let market: MarketFixture;
   let larry: UserFixture; // Lender
   let bob: UserFixture;   // Borrower
 
   beforeEach(async () => {
-    let context = await startAnchor("", [], []);
+    context = await startAnchor("", [], []);
     provider = new BankrunProvider(context);
 
     ({ program, accounts } = await setupTest({
@@ -48,7 +50,7 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000_000 * LAMPORTS_PER_SOL)  // Collateral for borrowing
     );
 
-    let controller = new ControllerFixture(program, provider);
+    controller = new ControllerFixture(program, provider);
 
     market = new MarketFixture(
       program,
@@ -96,7 +98,7 @@ describe("Accrue Interest", () => {
     });
   });
 
-  it("accrues interest correctly", async () => {
+  it("correctly for year", async () => {
     const beforeData = await market.marketAcc.get_data();
     
     // Advance clock by 1 year
@@ -116,7 +118,7 @@ describe("Accrue Interest", () => {
     );
   });
 
-  it("accrues interest for multiple periods", async () => {
+  it("for multiple periods", async () => {
     const beforeData = await market.marketAcc.get_data();
     
     // Advance clock by 2 years  
@@ -150,4 +152,103 @@ describe("Accrue Interest", () => {
       beforeData.lastAccrualTimestamp.toNumber()
     );
   });
+  
+  it("correctly for year with six decimal quote token", async () => {
+
+    // initialize this test with six decimal quote token
+    ({ program, accounts } = await setupTest({
+      provider,
+      banks: context.banksClient,
+      quoteDecimals: 6,
+      collateralDecimals: 9,
+    }));
+
+    let lip = new UserFixture(
+      provider,
+      accounts.quoteMint,
+      accounts.collateralMint
+    );
+
+    await lip.init_and_fund_accounts(
+      new anchor.BN(1_000 * 1e6),
+      new anchor.BN(0)
+    );
+
+    let barry = new UserFixture(
+      provider,
+      accounts.quoteMint,
+      accounts.collateralMint
+    );
+
+    await barry.init_and_fund_accounts(
+      new anchor.BN(0),
+      new anchor.BN(1_000 * 1e6)
+    );
+
+    // let controller = new ControllerFixture(program, provider);
+
+    market = new MarketFixture(
+      program,
+      provider,
+      accounts.market,
+      accounts.quoteMint,
+      controller // contains futarchy treasury authority
+    );
+
+    // add collateral and initialize price
+    await market.addCollateral({
+      symbol: "BONK",
+      collateralAddress: accounts.collateralAcc,
+      collateralMint: accounts.collateralMint,
+      price: new anchor.BN(100 * 1e6),
+      conf: new anchor.BN(100 / 10 * 1e9),
+      expo: -6
+    });
+
+    await market.create({
+      collateralSymbol: "BONK",
+      debtCap: new anchor.BN(1_000 * 1e6),
+      ltvFactor: new anchor.BN(0.8 * 1e6),
+    });
+
+    // Setup initial state: deposit, collateralize, and borrow
+    await market.deposit({
+      user: lip,
+      amount: new anchor.BN(1_000 * 1e6),
+      shares: new anchor.BN(0)
+    });
+
+    await market.depositCollateral({
+      user: barry,
+      symbol: "BONK",
+      amount: new anchor.BN(100 * 1e6)
+    });
+
+    await market.borrow({
+      user: barry,
+      symbol: "BONK",
+      amount: new anchor.BN(500 * 1e6),
+      shares: new anchor.BN(0)
+    });
+
+    const beforeData = await market.marketAcc.get_data();
+    
+    // Advance clock by 1 year
+    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    
+    await market.accrueInterest();
+    
+    const afterData = await market.marketAcc.get_data();
+    
+    // Convert to BN and calculate difference
+    const difference = afterData.totalBorrowAssets.sub(beforeData.totalBorrowAssets);
+    
+    // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
+    assert.equal(
+      difference.toNumber(),
+      25 * 1e6 // Expected interest accrual
+    );
+  });
 });
+
+

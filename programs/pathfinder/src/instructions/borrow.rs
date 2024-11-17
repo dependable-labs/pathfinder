@@ -196,18 +196,11 @@ pub fn is_solvent(
         .checked_div(price_scale as u128) // Scale down by oracle price scale
         .ok_or(MarketError::MathOverflow)?;
 
-    msg!("Collateral amount: {}", collateral_amount);
-    msg!("Collateral value: {}", col_val);
-    msg!("Price: {}", price);
-    msg!("Price scale: {}", price_scale);
-
     let max_borrow = col_val
         .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?;
 
-    msg!("Max borrow: {}", max_borrow);
-    msg!("Borrowed: {}", borrowed);
-
     // User is solvent if max borrow amount >= borrowed amount
     Ok(max_borrow >= (borrowed as u128))
+
 }

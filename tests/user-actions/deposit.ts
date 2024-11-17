@@ -140,8 +140,6 @@ describe("Deposit", () => {
       new anchor.BN(0)
     );
 
-    // let controller = new ControllerFixture(program, provider);
-
     market = new MarketFixture(
       program,
       provider,
