@@ -190,17 +190,14 @@ pub fn is_solvent(
     )?;
 
     // Calculate max borrow amount based on collateral value and LTV factor
-    let col_val = (collateral_amount as u128)
+    let max_borrow = (collateral_amount as u128)
         .checked_mul(price as u128) // Multiply collateral amount by price
         .ok_or(MarketError::MathOverflow)?
         .checked_div(price_scale as u128) // Scale down by oracle price scale
-        .ok_or(MarketError::MathOverflow)?;
-
-    let max_borrow = col_val
+        .ok_or(MarketError::MathOverflow)?
         .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?;
 
     // User is solvent if max borrow amount >= borrowed amount
     Ok(max_borrow >= (borrowed as u128))
-
 }
