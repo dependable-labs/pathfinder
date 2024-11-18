@@ -63,6 +63,7 @@ pub struct Collateral {
 
 #[account]
 pub struct UserShares {
+    pub bump: u8,
     pub market: Pubkey,
     pub user: Pubkey,
     pub shares: u64,

@@ -45,9 +45,9 @@ impl<'info> SetAuthority<'info> {
         } = ctx.accounts;
 
         controller.set_inner(Controller {
+            bump: ctx.bumps.controller,
             authority_set: true,
             authority: args.new_authority,
-            bump: ctx.bumps.controller,
         });
 
         Ok(())
