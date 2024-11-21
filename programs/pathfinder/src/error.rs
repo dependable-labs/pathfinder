@@ -43,4 +43,6 @@ pub enum MarketError {
     DebtCapExceeded,
     #[msg("User is not solvent")]
     NotSolvent,
+    #[msg("Missing collateral account")]
+    MissingCollateralAccount,
 }

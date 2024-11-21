@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
+use anchor_spl::token_2022::spl_token_2022::extension::group_member_pointer::instruction::update;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 
@@ -29,19 +30,19 @@ pub struct Borrow<'info> {
     )]
     pub market: Account<'info, Market>,
 
-    // user shares
+    // borrower shares
     #[account(
         init_if_needed,
         payer = user,
-        space = 8 + std::mem::size_of::<UserShares>(),
+        space = 8 + std::mem::size_of::<BorrowerShares>(),
         seeds = [
-            MARKET_SHARES_SEED_PREFIX,
-            market.key().as_ref(),
+            BORROWER_SHARES_SEED_PREFIX,
+            collateral.key().as_ref(),
             user.key().as_ref()
         ],
         bump
     )]
-    pub user_shares: Box<Account<'info, UserShares>>,
+    pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
     // quote
     #[account(constraint = quote_mint.is_initialized == true)]
@@ -86,10 +87,10 @@ impl<'info> Borrow<'info> {
     }
 
     pub fn handle(ctx: Context<Self>, args: BorrowArgs) -> Result<()> {
-         let Borrow {
+        let Borrow {
             user,
             market,
-            user_shares,
+            borrower_shares,
             quote_mint,
             user_ata_quote,
             vault_ata_quote,
@@ -108,6 +109,7 @@ impl<'info> Borrow<'info> {
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
             return err!(MarketError::InvalidBorrowInput);
         }
+        msg!("borrowing {}", assets);
 
         accrue_interest(market)?;
         
@@ -118,14 +120,14 @@ impl<'info> Borrow<'info> {
         }
 
         // check if user is solvent after borrowing
-        let updated_shares = user_shares.borrow_shares.checked_add(shares).unwrap();
+        let updated_shares = borrower_shares.borrow_shares.checked_add(shares).unwrap();
 
         if !is_solvent(
             market,
             collateral,
             price_update,
             updated_shares,
-            user_shares.collateral_amount
+            borrower_shares.collateral_amount
         )? {
             return err!(MarketError::NotSolvent);
         }
@@ -137,17 +139,22 @@ impl<'info> Borrow<'info> {
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
+        msg!("total assets {}", market.total_borrow_assets);
+
         // Update market quote amount
         market.total_borrow_assets = market.total_borrow_assets
                 .checked_add(assets)
                 .ok_or(MarketError::MathOverflow)?;
+
+        msg!("total assets {}", market.total_borrow_assets);
+        msg!("debt cap {}", market.debt_cap);
 
         if market.total_borrow_assets > market.debt_cap {
             return err!(MarketError::DebtCapExceeded);
         }
 
         // Update user shares
-        user_shares.borrow_shares = user_shares.borrow_shares
+        borrower_shares.borrow_shares = borrower_shares.borrow_shares
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
@@ -190,17 +197,14 @@ pub fn is_solvent(
     )?;
 
     // Calculate max borrow amount based on collateral value and LTV factor
-    let col_val = (collateral_amount as u128)
+    let max_borrow = (collateral_amount as u128)
         .checked_mul(price as u128) // Multiply collateral amount by price
         .ok_or(MarketError::MathOverflow)?
         .checked_div(price_scale as u128) // Scale down by oracle price scale
-        .ok_or(MarketError::MathOverflow)?;
-
-    let max_borrow = col_val
+        .ok_or(MarketError::MathOverflow)?
         .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?;
 
     // User is solvent if max borrow amount >= borrowed amount
     Ok(max_borrow >= (borrowed as u128))
-
 }

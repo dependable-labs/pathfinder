@@ -199,6 +199,7 @@ export class MarketFixture {
         market: this.marketAcc.key,
         collateral: collateral.collateralAcc.key,
         userShares: this.get_user_shares(user.key.publicKey).key,
+        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
         collateralMint: collateral.collateralMint,
         vaultAtaCollateral: this.get_ata(collateral.collateralMint),
         userAtaCollateral: user.get_ata(collateral.collateralMint),
@@ -226,6 +227,10 @@ export class MarketFixture {
       throw new Error(`Collateral ${symbol} not found`);
     }
 
+    // let newNum = new anchor.BN(500_000_000);
+    // console.log(" inner new amount", newNum.toString());
+    console.log("inner amount", amount.toString());
+
     await this.program.methods
       .borrow({
         amount,
@@ -234,7 +239,7 @@ export class MarketFixture {
       .accounts({
         user: user.key.publicKey,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(user.key.publicKey).key,
+        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
         quoteMint: this.quoteMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
         userAtaQuote: user.quoteAta,
