@@ -25,19 +25,19 @@ pub struct DepositCollateral<'info> {
     )]
     pub market: Account<'info, Market>,
 
-    // user shares
+    // borrower shares
     #[account(
         init_if_needed,
         payer = user,
-        space = 8 + std::mem::size_of::<UserShares>(),
+        space = 8 + std::mem::size_of::<BorrowerShares>(),
         seeds = [
-            MARKET_SHARES_SEED_PREFIX,
-            market.key().as_ref(),
+            BORROWER_SHARES_SEED_PREFIX,
+            collateral.key().as_ref(),
             user.key().as_ref()
         ],
         bump
     )]
-    pub user_shares: Box<Account<'info, UserShares>>,
+    pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
     // collateral
     #[account(
@@ -86,7 +86,7 @@ impl<'info> DepositCollateral<'info> {
         let DepositCollateral {
             user,
             market,
-            user_shares,
+            borrower_shares,
             collateral,
             collateral_mint,
             user_ata_collateral,
@@ -99,12 +99,6 @@ impl<'info> DepositCollateral<'info> {
 
         let assets = args.amount;
 
-        // FIXME: Allow users once they removed all collateral to use another collateral mint
-        // Set the collateral_mint if it hasn't been set yet
-        if user_shares.collateral_mint.is_none() {
-            user_shares.collateral_mint = Some(collateral_mint.key());
-        }
-
         accrue_interest(market)?;
 
         // Update market state
@@ -113,13 +107,9 @@ impl<'info> DepositCollateral<'info> {
             .ok_or(error!(MarketError::MathOverflow))?;
 
         // Update user collateral
-        user_shares.collateral_amount = user_shares.collateral_amount
+        borrower_shares.collateral_amount = borrower_shares.collateral_amount
             .checked_add(assets)
-            .ok_or(MarketError::MathOverflow)?;
-
-        user_shares.collateral_mint = Some(collateral_mint.key());
-
-        
+            .ok_or(MarketError::MathOverflow)?;        
 
         msg!("Depositing {} collateral to the vault", assets);
 
