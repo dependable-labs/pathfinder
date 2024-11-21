@@ -23,6 +23,7 @@ export type SupportedCollateral = keyof typeof ORACLE_CONFIG;
 
 export class CollateralFixture {
   public mockPythPull: Program<MockPythPull>;
+  public program: Program<Markets>;
   public provider: BankrunProvider;
   public collateralAcc: AccountFixture;
   public collateralMint: PublicKey;
@@ -38,6 +39,7 @@ export class CollateralFixture {
     public _collateralMint: PublicKey,
   ) {
     this.symbol = _symbol;
+    this.program = _program;
     this.provider = _provider;
     this.collateralAcc = new AccountFixture(
       "collateral",
@@ -101,4 +103,21 @@ export class CollateralFixture {
     })
     .rpc();
   }
+
+  public get_borrower_shares(userKey: PublicKey): AccountFixture {
+    let borrowerSharesKey = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("borrower_shares"),
+        this.collateralAcc.key.toBuffer(),
+        userKey.toBuffer(),
+      ],
+      this.program.programId
+    )[0];
+    return new AccountFixture(
+      "borrowerShares",
+      borrowerSharesKey,
+      this.program
+    );
+  }
+
 }

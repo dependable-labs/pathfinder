@@ -93,7 +93,7 @@ describe("User Borrow", () => {
     await market.borrow({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(0.5 * 1e9),
+      amount: new anchor.BN(0.5 * 1e9), // 0.5 * 1e9
       shares: new anchor.BN(0)
     });
 
@@ -108,7 +108,8 @@ describe("User Borrow", () => {
     );
 
     const userSharesAccountData = await market
-      .get_user_shares(bob.key.publicKey)
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
       .get_data();
     assert.equal(
       userSharesAccountData.borrowShares.toNumber(),

@@ -84,7 +84,7 @@ export async function setupTest({
     quoteDecimals
   );
 
-  const { market, collateralCustom } = await getPDAs({
+  const { market, collateralAcc } = await getPDAs({
     programId: program.programId,
     collateral: collateralMint,
     quote: quoteMint,
@@ -97,7 +97,7 @@ export async function setupTest({
       collateralMint,
       quoteMint,
       market,
-      collateralCustom,
+      collateralAcc,
     },
   };
 }
