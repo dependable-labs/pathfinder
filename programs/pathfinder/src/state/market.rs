@@ -50,6 +50,7 @@ pub struct Market {
     pub total_borrow_assets: u64,
     pub last_accrual_timestamp: u64,
     pub debt_cap: u64,
+    pub rate_at_target: u64,
 }
 
 #[account]
