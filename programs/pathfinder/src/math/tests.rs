@@ -115,4 +115,82 @@ mod tests {
         let large_depositor_assets = to_assets_down(&large_deposit_shares, &total_assets, &total_shares).unwrap();
         assert_eq!(large_depositor_assets, large_deposit, "Large depositor should receive the same assets as he deposited");
     }
+
+
+// #[test]
+// fn test_w_exp() {
+//     let mut x = WAD_INT; // Start at 1.0
+//     let mut last_successful = 0_i128;
+//     let mut last_successful_result = 0_i128;
+//     let mut iterations = 0;
+
+//     println!("Starting test with WAD_INT = {}", WAD_INT);
+
+//     let increment = WAD_INT / 10; // Increment by 0.1
+
+//     while x < i128::MAX / 2 {
+//         iterations += 1;
+        
+//         let result = std::panic::catch_unwind(|| {
+//             w_exp(x)
+//         });
+
+//         match result {
+//             Ok(Ok(exp_result)) => {
+//                 // Validate that result is positive and reasonable
+//                 if exp_result <= 0 {
+//                     println!("\nINVALID RESULT FOUND (negative or zero)!");
+//                     println!("At x = {} ({}WAD)", x, (x as f64) / (WAD_INT as f64));
+//                     println!("Result = {} ({}WAD)", exp_result, (exp_result as f64) / (WAD_INT as f64));
+//                     break;
+//                 }
+
+//                 last_successful = x;
+//                 last_successful_result = exp_result;
+                
+//                 if iterations % 10 == 0 {
+//                     println!("Success at x = {} ({}WAD)", 
+//                         x, 
+//                         (x as f64) / (WAD_INT as f64)
+//                     );
+//                     println!("Result = {} ({}WAD)", 
+//                         exp_result,
+//                         (exp_result as f64) / (WAD_INT as f64)
+//                     );
+//                 }
+                
+//                 x = x.saturating_add(increment);
+//             },
+//             _ => {
+//                 println!("\nOVERFLOW FOUND!");
+//                 println!("Last successful x: {} ({}WAD)", 
+//                     last_successful,
+//                     (last_successful as f64) / (WAD_INT as f64)
+//                 );
+//                 println!("Last successful result: {} ({}WAD)", 
+//                     last_successful_result,
+//                     (last_successful_result as f64) / (WAD_INT as f64)
+//                 );
+//                 println!("Failing x: {} ({}WAD)", 
+//                     x,
+//                     (x as f64) / (WAD_INT as f64)
+//                 );
+//                 break;
+//             }
+//         }
+//         }
+//     }
+
+
+    #[test]
+    fn test_upper_bound_exp() {
+        let result = w_exp(WEXP_UPPER_BOUND).unwrap();
+        assert_eq!(result, WEXP_UPPER_VALUE);
+    }
+
+    #[test]
+    fn test_upper_bound_minus_one_exp() {
+        let result = w_exp(WEXP_UPPER_BOUND - 1).unwrap();
+        assert_eq!(result, 169_612_341_902_420_792_448);
+    }
 }

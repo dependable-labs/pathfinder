@@ -114,7 +114,36 @@ describe("Accrue Interest", () => {
     // Verify interest accrual (5% on 500_000_000_000 = 25_000_000_000)
     assert.equal(
       difference.toNumber(),
-      25_000_000_000 // Expected interest accrual
+      13_512_691_343 // Expected interest accrual
+    );
+  });
+
+  it("correctly for year 80% utilization", async () => {
+
+    await market.borrow({
+      user: bob,
+      symbol: "BONK",
+      amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
+      shares: new anchor.BN(0)
+    });
+    // 800 Debt, 1000 Capacity -> 80% utilization
+
+    const beforeData = await market.marketAcc.get_data();
+    
+    // Advance clock by 1 year
+    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    
+    await market.accrueInterest();
+    
+    const afterData = await market.marketAcc.get_data();
+    
+    // Convert to BN and calculate difference
+    const difference = afterData.totalBorrowAssets.sub(beforeData.totalBorrowAssets);
+    
+    // Verify interest accrual (5% on 500_000_000_000 = 25_000_000_000)
+    assert.equal(
+      difference.toNumber(),
+      29_877_683_931 // Expected interest accrual
     );
   });
 
@@ -134,7 +163,7 @@ describe("Accrue Interest", () => {
     // Verify interest accrual (5% on 500_000_000_000 = 50_000_000_000)
     assert.equal(
       difference.toNumber(),
-      50_000_000_000
+      54_780_839_446
     );
   });
 
@@ -246,7 +275,7 @@ describe("Accrue Interest", () => {
     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
     assert.equal(
       difference.toNumber(),
-      25 * 1e6 // Expected interest accrual
+      13.512_691 * 1e6 // Expected interest accrual
     );
   });
 });

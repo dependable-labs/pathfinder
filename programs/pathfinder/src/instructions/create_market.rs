@@ -81,7 +81,6 @@ pub struct CreateMarket<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    // pub price_update: Account<'info, PriceUpdateV2>,
 }
 
 impl<'info> CreateMarket<'info> {
@@ -103,7 +102,6 @@ impl<'info> CreateMarket<'info> {
             associated_token_program: _,
             token_program: _,
             system_program: _,
-            // price_update,
         } = ctx.accounts;
 
         // Get current timestamp from the runtime
@@ -116,8 +114,6 @@ impl<'info> CreateMarket<'info> {
             quote_mint: quote_mint.key(),
             quote_mint_decimals: quote_mint.decimals,
 
-            debt_cap: args.debt_cap,
-
             // lender accounting
             total_shares:0,
             total_quote: 0,
@@ -125,19 +121,21 @@ impl<'info> CreateMarket<'info> {
             // borrower accounting
             total_borrow_shares: 0,
             total_borrow_assets: 0,
+            debt_cap: args.debt_cap,
 
             // interest
             last_accrual_timestamp: current_timestamp,
+            rate_at_target: 0,
         });
 
         collateral.set_inner(Collateral {
             bump: ctx.bumps.collateral,
 
-            total_collateral: 0,
-            ltv_factor: args.ltv_factor,
-
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,
+
+            total_collateral: 0,
+            ltv_factor: args.ltv_factor,
 
             oracle: PythOracle::new(&args.feed_id, 300)?,
         });

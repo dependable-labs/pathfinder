@@ -109,6 +109,7 @@ impl<'info> Borrow<'info> {
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
             return err!(MarketError::InvalidBorrowInput);
         }
+
         msg!("borrowing {}", assets);
 
         accrue_interest(market)?;
@@ -132,22 +133,15 @@ impl<'info> Borrow<'info> {
             return err!(MarketError::NotSolvent);
         }
 
-        msg!("Borrowing {} from vault", assets);
-
         // Update market shares
         market.total_borrow_shares = market.total_borrow_shares
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
-        msg!("total assets {}", market.total_borrow_assets);
-
         // Update market quote amount
         market.total_borrow_assets = market.total_borrow_assets
                 .checked_add(assets)
                 .ok_or(MarketError::MathOverflow)?;
-
-        msg!("total assets {}", market.total_borrow_assets);
-        msg!("debt cap {}", market.debt_cap);
 
         if market.total_borrow_assets > market.debt_cap {
             return err!(MarketError::DebtCapExceeded);

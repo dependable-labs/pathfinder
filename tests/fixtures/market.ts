@@ -227,10 +227,6 @@ export class MarketFixture {
       throw new Error(`Collateral ${symbol} not found`);
     }
 
-    // let newNum = new anchor.BN(500_000_000);
-    // console.log(" inner new amount", newNum.toString());
-    console.log("inner amount", amount.toString());
-
     await this.program.methods
       .borrow({
         amount,

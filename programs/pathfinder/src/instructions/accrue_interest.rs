@@ -4,6 +4,8 @@ use anchor_spl::token::*;
 
 use crate::state::*;
 use crate::error::MarketError;
+use crate::interest_rate::get_rate;
+use crate::math::*;
 
 #[derive(Accounts)]
 pub struct AccrueInterest<'info> { 
@@ -56,10 +58,14 @@ pub fn accrue_interest(
 
     let interest_rate: u64 = 5 * 10_000_000; // 0.05 * 1e9
 
+    // Get interest rate from IRM
+    let (avg_rate, end_rate_at_target) = get_rate(market)?;
+    market.rate_at_target = end_rate_at_target;
+
     // Calculate interest to accrue
     let interest = calculate_interest(
         market.total_borrow_assets,
-        interest_rate,
+        w_taylor_compounded(avg_rate as u128, time_elapsed as u128).unwrap() as u64,
         time_elapsed,
     )?;
 
@@ -90,7 +96,7 @@ fn calculate_interest(
     const SECONDS_IN_YEAR: u64 = 31_536_000;
 
     // TODO: Make this dynamic
-    const INTEREST_RATE_DECIMALS: u64 = 1e9 as u64;
+    const INTEREST_RATE_DECIMALS: u64 = 1e18 as u64;
 
     // Convert to u128 for intermediate calculations to prevent overflow
     let interest = (borrow_amount as u128)
