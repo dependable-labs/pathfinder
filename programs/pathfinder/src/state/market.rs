@@ -28,8 +28,9 @@ impl PythOracle {
         })
     }
 
-    pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>, clock: &Clock) -> Result<(u64, u64)> {
-        let price_feed = pyth_price.get_price_no_older_than(clock, self.max_age, &self.feed_id)?;
+    pub fn get_price(&self, pyth_price: &Account<PriceUpdateV2>) -> Result<(u64, u64)> {
+        let clock = Clock::get()?;
+        let price_feed = pyth_price.get_price_no_older_than(&clock, self.max_age, &self.feed_id)?;
 
         let price_precision = 10_u64
             .checked_pow(price_feed.exponent.unsigned_abs())

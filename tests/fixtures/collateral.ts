@@ -90,17 +90,18 @@ export class CollateralFixture {
   
   async setPrice({
     price,
-    confidence
+    conf
   }: {
     price: anchor.BN,
-    confidence: anchor.BN
+    conf: anchor.BN
   }) {
     await this.mockPythPull.methods.setPrice(
       price,
-      confidence,
+      conf,
     ).accounts({
       price: this.oracleAcc.publicKey,
     })
+    // .signers([this.oracleAcc])
     .rpc();
   }
 
