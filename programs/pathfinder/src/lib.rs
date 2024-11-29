@@ -44,4 +44,8 @@ pub mod markets {
         AccrueInterest::handle(ctx)
     }
 
+    pub fn liquidate(ctx: Context<Liquidate>, args: LiquidateArgs) -> Result<()> {
+        Liquidate::handle(ctx, args)
+    }
+
 }

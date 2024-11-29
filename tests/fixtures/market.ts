@@ -227,6 +227,8 @@ export class MarketFixture {
       throw new Error(`Collateral ${symbol} not found`);
     }
 
+    console.log("borrower_shares in borrow:", collateral.get_borrower_shares(user.key.publicKey).key);
+
     await this.program.methods
       .borrow({
         amount,
@@ -250,6 +252,52 @@ export class MarketFixture {
       .rpc();
   }
 
+  async liquidate({
+    user,
+    symbol,
+    borrower,
+    collateralAmount,
+    repayShares,
+  }: {
+    user: UserFixture;
+    symbol: string;
+    borrower: PublicKey;
+    collateralAmount: anchor.BN;
+    repayShares: anchor.BN;
+  }): Promise<void> {
+    const collateral = this.getCollateral(symbol);
+    if (!collateral) {
+      throw new Error(`Collateral ${symbol} not found`);
+    }
+
+    console.log("borrower_shares", collateral.get_borrower_shares(borrower).key);
+
+    const tx = await this.program.methods
+      .liquidate({
+        borrower,
+        collateralAmount,
+        repayShares,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        market: this.marketAcc.key,
+        borrowerShares: collateral.get_borrower_shares(borrower).key,
+        quoteMint: this.quoteMint,
+        vaultAtaQuote: this.get_ata(this.quoteMint),
+        userAtaQuote: user.quoteAta,
+        collateral: collateral.collateralAcc.key,
+        collateralMint: collateral.collateralMint,
+        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+        userAtaCollateral: user.get_ata(collateral.collateralMint),
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        priceUpdate: collateral.getOracleAccount(),
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
   async accrueInterest(): Promise<void> {
     await this.program.methods
       .accrueInterest()
@@ -261,7 +309,6 @@ export class MarketFixture {
   }
 
   // account related methods
-
   public get_ata(mint: PublicKey): PublicKey {
     return anchor.utils.token.associatedAddress({
       mint,

@@ -180,8 +180,7 @@ pub fn is_solvent(
     borrow_shares: u64,
     collateral_amount: u64
 ) -> Result<bool> {
-    let clock = Clock::get()?;
-    let (price, price_scale) = collateral.oracle.get_price(price_update, &clock)?;
+    let (price, price_scale) = collateral.oracle.get_price(price_update)?;
 
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
     let borrowed = to_assets_up(
@@ -190,6 +189,8 @@ pub fn is_solvent(
         &market.total_borrow_shares,
     )?;
 
+    //TODO: cleanup scaling
+
     // Calculate max borrow amount based on collateral value and LTV factor
     let max_borrow = (collateral_amount as u128)
         .checked_mul(price as u128) // Multiply collateral amount by price
@@ -197,6 +198,8 @@ pub fn is_solvent(
         .checked_div(price_scale as u128) // Scale down by oracle price scale
         .ok_or(MarketError::MathOverflow)?
         .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
+        .ok_or(MarketError::MathOverflow)?
+        .checked_div(1e9 as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?;
 
     // User is solvent if max borrow amount >= borrowed amount

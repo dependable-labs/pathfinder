@@ -37,7 +37,7 @@ export class UserFixture {
   ): Promise<void> {
     await this.init_accounts();
     await this.fund_accounts(quoteAmount, collateralAmount);
-    await fund_w_sol(this.provider.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
+    fund_w_sol(this.provider.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
   }
 
   private async init_accounts(): Promise<void> {

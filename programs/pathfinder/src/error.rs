@@ -9,7 +9,7 @@ pub enum MarketError {
     // market
     #[msg("You can't create an market with two of the same token mints")]
     SameTokenMints,
-    #[msg("The user had insufficient balance to do this")]
+    #[msg("Insufficient balance")]
     InsufficientBalance,
     #[msg("Must remove a non-zero amount of liquidity")]
     ZeroLiquidityRemove,
@@ -45,4 +45,6 @@ pub enum MarketError {
     NotSolvent,
     #[msg("Missing collateral account")]
     MissingCollateralAccount,
+    #[msg("Borrower is solvent")]
+    BorrowerIsSolvent, 
 }
