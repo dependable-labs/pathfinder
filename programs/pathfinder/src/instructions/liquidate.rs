@@ -132,7 +132,8 @@ impl<'info> Liquidate<'info> {
             collateral,
             price_update,
             borrower_shares.borrow_shares,
-            borrower_shares.collateral_amount
+            borrower_shares.collateral_amount,
+            collateral_mint.decimals
         )? {
           return err!(MarketError::BorrowerIsSolvent);
         }

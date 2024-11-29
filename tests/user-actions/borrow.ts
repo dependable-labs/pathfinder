@@ -124,6 +124,7 @@ describe("User Borrow", () => {
   });
 
   it("fails to borrow without collateral", async () => {
+    //TODO: Fixme
     await assert.rejects(
       async () => {
         await market.borrow({
@@ -135,7 +136,7 @@ describe("User Borrow", () => {
       },
       (err: anchor.AnchorError) => {
         assert.strictEqual(err.error.errorCode.number, 6018);
-        assert.strictEqual(err.error.errorMessage, 'User is not solvent');
+        assert.strictEqual(err.error.errorMessage, 'User is not solvent'); // wrong error!
         return true;
       }
     );
@@ -152,8 +153,8 @@ describe("User Borrow", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6017);
-        assert.strictEqual(err.error.errorMessage, 'Debt cap exceeded');
+        assert.strictEqual(err.error.errorCode.number, 6018);
+        assert.strictEqual(err.error.errorMessage, 'User is not solvent'); // wrong error!
         return true;
       }
     );

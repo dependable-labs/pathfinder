@@ -144,9 +144,6 @@ pub fn _new_rate_at_target(
 ) -> Result<i128> {
     // Non negative because MIN_RATE_AT_TARGET > 0.
     let result = w_mul_to_zero(start_rate_at_target, w_exp(linear_adaptation)?)?;
-    msg!("result: {}", result);
-    msg!("MIN_RATE_AT_TARGET: {}", MIN_RATE_AT_TARGET);
-    msg!("MAX_RATE_AT_TARGET: {}", MAX_RATE_AT_TARGET);
 
     bound(result, MIN_RATE_AT_TARGET, MAX_RATE_AT_TARGET)
     // Ok(start_rate_at_target)

@@ -174,7 +174,7 @@ describe("Withdraw", () => {
       },
       (err: anchor.AnchorError) => {
         assert.strictEqual(err.error.errorCode.number, 6002);
-        assert.strictEqual(err.error.errorMessage, 'The user had insufficient balance to do this');
+        assert.strictEqual(err.error.errorMessage, 'Insufficient balance');
         return true;
       }
     );
