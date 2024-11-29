@@ -33,8 +33,8 @@ pub enum MarketError {
     MathUnderflow,
     #[msg("Invalid deposit collateral input")]
     InvalidDepositCollateralInput,
-    #[msg("Invalid borrow input")]
-    InvalidBorrowInput,
+    #[msg("Invalid input")]
+    InvalidInput,
     #[msg("Invalid accrual timestamp")]
     InvalidAccrualTimestamp,
     #[msg("No time elapsed")]
