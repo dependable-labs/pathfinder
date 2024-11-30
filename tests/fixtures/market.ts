@@ -211,6 +211,41 @@ export class MarketFixture {
       .rpc();
   }
 
+  async withdrawCollateral({
+    user,
+    symbol,
+    amount,
+  }: {
+    user: UserFixture;
+    symbol: string;
+    amount: anchor.BN;
+  }): Promise<void> {
+    const collateral = this.getCollateral(symbol);
+    if (!collateral) {
+      throw new Error(`Collateral ${symbol} not found`);
+    }
+
+    await this.program.methods
+      .withdrawCollateral({
+        amount,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        market: this.marketAcc.key,
+        collateral: collateral.collateralAcc.key,
+        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
+        collateralMint: collateral.collateralMint,
+        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+        userAtaCollateral: user.get_ata(collateral.collateralMint),
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        priceUpdate: collateral.getOracleAccount(),
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
   async borrow({
     user,
     symbol,
