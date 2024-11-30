@@ -130,7 +130,8 @@ impl<'info> Borrow<'info> {
             collateral,
             price_update,
             updated_shares,
-            borrower_shares.collateral_amount
+            borrower_shares.collateral_amount,
+            collateral_mint.decimals
         )? {
             return err!(MarketError::NotSolvent);
         }
@@ -180,9 +181,17 @@ pub fn is_solvent(
     collateral: &Account<Collateral>, 
     price_update: &Account<PriceUpdateV2>,
     borrow_shares: u64,
-    collateral_amount: u64
+    collateral_amount: u64,
+    collateral_decimals: u8
 ) -> Result<bool> {
     let (price, price_scale) = collateral.oracle.get_price(price_update)?;
+
+    msg!("decimals: {}", collateral_decimals);
+    msg!("decimals_pow: {}", 10_u128.pow(collateral_decimals as u32));
+
+    msg!("borrow_shares: {}", borrow_shares);
+    msg!("total_borrow_assets: {}", market.total_borrow_assets);
+    msg!("total_borrow_shares: {}", market.total_borrow_shares);
 
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
     let borrowed = to_assets_up(
@@ -191,7 +200,11 @@ pub fn is_solvent(
         &market.total_borrow_shares,
     )?;
 
+
+    msg!("borrowed: {}", borrowed);
     //TODO: cleanup scaling
+
+    msg!("collateral_amount: {}", collateral_amount);
 
     // Calculate max borrow amount based on collateral value and LTV factor
     let max_borrow = (collateral_amount as u128)
@@ -201,8 +214,10 @@ pub fn is_solvent(
         .ok_or(MarketError::MathOverflow)?
         .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?
-        .checked_div(1e9 as u128) // Apply LTV factor
+        .checked_div(10_u128.pow(collateral_decimals as u32)) // Scale by collateral decimals
         .ok_or(MarketError::MathOverflow)?;
+
+    msg!("max_borrow: {}", max_borrow);
 
     // User is solvent if max borrow amount >= borrowed amount
     Ok(max_borrow >= (borrowed as u128))

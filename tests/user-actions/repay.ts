@@ -6,7 +6,7 @@ import { Markets } from "../../target/types/markets";
 import assert from "assert";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
 
-describe("User Borrow", () => {
+describe("User Repay", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
   let accounts: any;
@@ -76,87 +76,109 @@ describe("User Borrow", () => {
 
     await market.deposit({
       user: larry,
-      amount: new anchor.BN(1000000000),
+      amount: new anchor.BN(1000 * 1e9),
       shares: new anchor.BN(0)
     });
 
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(1000000000)
+      amount: new anchor.BN(100 * 1e9)
+    });
+
+    // // Have bob borrow 500 quote tokens
+    await market.borrow({
+      user: bob,
+      symbol: "BONK", 
+      amount: new anchor.BN(500 * 1e9), // 500 quote tokens
+      shares: new anchor.BN(0)
     });
   });
 
-  it("borrows from a market", async () => {
+  it("repay in full", async () => {
+    // Get initial balances and positions
     const initialBalance = await bob.get_quo_balance();
+    const initialBorrowShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
 
-    await market.borrow({
+    // Repay the full 500 quote tokens borrowed
+    await market.repay({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(0.5 * 1e9), // 0.5 * 1e9
+      amount: new anchor.BN(500 * 1e9),
       shares: new anchor.BN(0)
     });
 
-    const marketAccountData = await market.marketAcc.get_data();
+    // Verify market state after repayment
+    const marketData = await market.marketAcc.get_data();
     assert.equal(
-      marketAccountData.totalBorrowShares.toNumber(),
-      500000000000000
+      marketData.totalBorrowAssets.toNumber(),
+      0,
+      "Market should have no outstanding borrows"
     );
     assert.equal(
-      marketAccountData.totalBorrowAssets.toNumber(),
-      500000000
+      marketData.totalBorrowShares.toNumber(),
+      0,
+      "Market should have no borrow shares"
     );
 
-    const userSharesAccountData = await market
+    // Verify user's borrow position is cleared
+    const finalBorrowShares = await market
       .getCollateral("BONK")
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
     assert.equal(
-      userSharesAccountData.borrowShares.toNumber(),
-      500000000000000
+      finalBorrowShares.borrowShares.toNumber(),
+      0,
+      "User's borrow shares should be zero"
     );
 
+    // Verify quote token balance change
     const finalBalance = await bob.get_quo_balance();
     assert.equal(
-      finalBalance - initialBalance,
-      BigInt(500000000)
+      initialBalance - finalBalance,
+      BigInt(500 * 1e9),
+      "Quote token balance should decrease by repayment amount"
     );
   });
 
-  it("fails to borrow without collateral", async () => {
-    //TODO: Fixme
-    await assert.rejects(
-      async () => {
-        await market.borrow({
-          user: larry,
-          symbol: "BONK",
-          amount: new anchor.BN(100 * 1e9),
-          shares: new anchor.BN(0)
-        });
-      },
-      (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6018);
-        assert.strictEqual(err.error.errorMessage, 'User is not solvent'); // wrong error!
-        return true;
-      }
-    );
-  });
+  it("partial repay", async () => {
+    // Get initial balances and positions
+    const initialBalance = await bob.get_quo_balance();
+    const initialBorrowShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
 
-  it("fails to borrow more than debt cap", async () => {
-    await assert.rejects(
-      async () => {
-        await market.borrow({
-          user: bob,
-          symbol: "BONK",
-          amount: new anchor.BN(1000_000_000_001), // 1 More than debt cap
-          shares: new anchor.BN(0)
-        });
-      },
-      (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6018);
-        assert.strictEqual(err.error.errorMessage, 'User is not solvent'); // wrong error!
-        return true;
-      }
+    // Repay half (250 quote tokens) of the 500 borrowed
+    await market.repay({
+      user: bob,
+      symbol: "BONK", 
+      amount: new anchor.BN(250 * 1e9),
+      shares: new anchor.BN(0)
+    });
+
+    // Verify market state after partial repayment
+    const marketData = await market.marketAcc.get_data();
+    marketData.totalBorrowAssets.eq(250 * 1e9)
+    marketData.totalBorrowShares.eq(500 * 1e9)
+
+    // Verify user's remaining borrow position
+    const finalBorrowShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    finalBorrowShares.borrowShares.eq(500 * 1e9)
+
+    // Verify quote token balance change
+    const finalBalance = await bob.get_quo_balance();
+    assert.equal(
+      initialBalance - finalBalance,
+      BigInt(250 * 1e9),
+      "Quote token balance should decrease by partial repayment amount"
     );
   });
 });

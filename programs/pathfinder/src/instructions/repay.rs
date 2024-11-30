@@ -76,7 +76,6 @@ pub struct Repay<'info> {
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub price_update: Account<'info, PriceUpdateV2>,
     pub system_program: Program<'info, System>,
 }
 
@@ -97,7 +96,6 @@ impl<'info> Repay<'info> {
             collateral_mint,
             associated_token_program,
             token_program,
-            price_update,
             system_program,
         } = ctx.accounts;
 
