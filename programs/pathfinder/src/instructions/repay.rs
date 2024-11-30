@@ -4,20 +4,19 @@ use anchor_spl::token::*;
 use anchor_spl::token_2022::spl_token_2022::extension::group_member_pointer::instruction::update;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
-
 use crate::math::*;
-use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
+use crate::{state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct BorrowArgs {
+pub struct RepayArgs {
     pub amount: u64,
     pub shares: u64,
 }
 
 #[derive(Accounts)]
-#[instruction(args: BorrowArgs)]
-pub struct Borrow<'info> {
+#[instruction(args: RepayArgs)]
+pub struct Repay<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
@@ -77,19 +76,16 @@ pub struct Borrow<'info> {
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub price_update: Account<'info, PriceUpdateV2>,
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> Borrow<'info> {
-
+impl<'info> Repay<'info> {
     pub fn validate(&self) -> Result<()> {
-        // TODO: Validate that this collateral type / market is live
         Ok(())
     }
 
-    pub fn handle(ctx: Context<Self>, args: BorrowArgs) -> Result<()> {
-        let Borrow {
+    pub fn handle(ctx: Context<Self>, args: RepayArgs) -> Result<()> {
+        let Repay {
             user,
             market,
             borrower_shares,
@@ -100,7 +96,6 @@ impl<'info> Borrow<'info> {
             collateral_mint,
             associated_token_program,
             token_program,
-            price_update,
             system_program,
         } = ctx.accounts;
 
@@ -112,7 +107,7 @@ impl<'info> Borrow<'info> {
             return err!(MarketError::InvalidInput);
         }
 
-        msg!("borrowing {}", assets);
+        msg!("repaying {}", assets);
 
         accrue_interest(market)?;
         
@@ -122,103 +117,37 @@ impl<'info> Borrow<'info> {
             assets = to_assets_down(&shares, &market.total_borrow_assets, &market.total_borrow_shares)?;
         }
 
-        // check if user is solvent after borrowing
-        let updated_shares = borrower_shares.borrow_shares.checked_add(shares).unwrap();
-
-        if !is_solvent(
-            market,
-            collateral,
-            price_update,
-            updated_shares,
-            borrower_shares.collateral_amount,
-            collateral_mint.decimals
-        )? {
-            return err!(MarketError::NotSolvent);
-        }
-
         // Update market shares
         market.total_borrow_shares = market.total_borrow_shares
-                .checked_add(shares)
+                .checked_sub(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
         // Update market quote amount
         market.total_borrow_assets = market.total_borrow_assets
-                .checked_add(assets)
+                .checked_sub(assets)
                 .ok_or(MarketError::MathOverflow)?;
-
-        if market.total_borrow_assets > market.debt_cap {
-            return err!(MarketError::DebtCapExceeded);
-        }
 
         // Update user shares
         borrower_shares.borrow_shares = borrower_shares.borrow_shares
-                .checked_add(shares)
+                .checked_sub(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
-        // transfer tokens to borrower
-        let seeds = generate_market_seeds!(market);
-        let signer = &[&seeds[..]];
-
+        // Create CpiContext for the transfer
+        let cpi_context = CpiContext::new(
+            token_program.to_account_info(),
+            Transfer {
+                from: user_ata_quote.to_account_info(),
+                to: vault_ata_quote.to_account_info(),
+                authority: user.to_account_info(),
+            }
+        );
+        
+        // transfer tokens to vault
         transfer(
-            CpiContext::new_with_signer(
-                token_program.to_account_info(),
-                Transfer {
-                    from: vault_ata_quote.to_account_info(),
-                    to: user_ata_quote.to_account_info(),
-                    authority: market.to_account_info(),
-                },
-                signer,
-            ),
+            cpi_context,
             assets,
         )?;
 
         Ok(())
     }
-}
-
-pub fn is_solvent(
-    market: &Account<Market>,
-    collateral: &Account<Collateral>, 
-    price_update: &Account<PriceUpdateV2>,
-    borrow_shares: u64,
-    collateral_amount: u64,
-    collateral_decimals: u8
-) -> Result<bool> {
-    let (price, price_scale) = collateral.oracle.get_price(price_update)?;
-
-    msg!("decimals: {}", collateral_decimals);
-    msg!("decimals_pow: {}", 10_u128.pow(collateral_decimals as u32));
-
-    msg!("borrow_shares: {}", borrow_shares);
-    msg!("total_borrow_assets: {}", market.total_borrow_assets);
-    msg!("total_borrow_shares: {}", market.total_borrow_shares);
-
-    // Calculate borrowed amount by converting borrow shares to assets, rounding up
-    let borrowed = to_assets_up(
-        &borrow_shares,
-        &market.total_borrow_assets,
-        &market.total_borrow_shares,
-    )?;
-
-
-    msg!("borrowed: {}", borrowed);
-    //TODO: cleanup scaling
-
-    msg!("collateral_amount: {}", collateral_amount);
-
-    // Calculate max borrow amount based on collateral value and LTV factor
-    let max_borrow = (collateral_amount as u128)
-        .checked_mul(price as u128) // Multiply collateral amount by price
-        .ok_or(MarketError::MathOverflow)?
-        .checked_div(price_scale as u128) // Scale down by oracle price scale
-        .ok_or(MarketError::MathOverflow)?
-        .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
-        .ok_or(MarketError::MathOverflow)?
-        .checked_div(10_u128.pow(collateral_decimals as u32)) // Scale by collateral decimals
-        .ok_or(MarketError::MathOverflow)?;
-
-    msg!("max_borrow: {}", max_borrow);
-
-    // User is solvent if max borrow amount >= borrowed amount
-    Ok(max_borrow >= (borrowed as u128))
 }

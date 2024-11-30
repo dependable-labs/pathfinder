@@ -48,4 +48,8 @@ pub mod markets {
         Liquidate::handle(ctx, args)
     }
 
+    pub fn repay(ctx: Context<Repay>, args: RepayArgs) -> Result<()> {
+        Repay::handle(ctx, args)
+    }
+
 }

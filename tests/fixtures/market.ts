@@ -227,8 +227,6 @@ export class MarketFixture {
       throw new Error(`Collateral ${symbol} not found`);
     }
 
-    console.log("borrower_shares in borrow:", collateral.get_borrower_shares(user.key.publicKey).key);
-
     await this.program.methods
       .borrow({
         amount,
@@ -246,6 +244,45 @@ export class MarketFixture {
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         priceUpdate: collateral.getOracleAccount(),
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
+  async repay({
+    user,
+    symbol,
+    amount,
+    shares,
+  }: {
+    user: UserFixture;
+    symbol: string;
+    amount: anchor.BN;
+    shares: anchor.BN;
+  }): Promise<void> {
+    const collateral = this.getCollateral(symbol);
+
+    if (!collateral) {
+      throw new Error(`Collateral ${symbol} not found`);
+    }
+
+    await this.program.methods
+      .repay({
+        amount,
+        shares,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        market: this.marketAcc.key,
+        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
+        quoteMint: this.quoteMint,
+        vaultAtaQuote: this.get_ata(this.quoteMint),
+        userAtaQuote: user.quoteAta,
+        collateral: collateral.collateralAcc.key,
+        collateralMint: collateral.collateralMint,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
