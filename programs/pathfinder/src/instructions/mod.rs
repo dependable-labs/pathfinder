@@ -8,6 +8,7 @@ pub use accrue_interest::*;
 pub use interest_rate::*;
 pub use liquidate::*;
 pub use repay::*;
+pub use withdraw_collateral::*;
 
 pub mod create_market;
 pub mod deposit;
@@ -19,3 +20,4 @@ pub mod accrue_interest;
 pub mod interest_rate;
 pub mod liquidate;
 pub mod repay;
+pub mod withdraw_collateral;

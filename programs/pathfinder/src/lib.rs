@@ -52,4 +52,8 @@ pub mod markets {
         Repay::handle(ctx, args)
     }
 
+    pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, args: WithdrawCollateralArgs) -> Result<()> {
+        WithdrawCollateral::handle(ctx, args)
+    }
+
 }

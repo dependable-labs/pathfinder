@@ -10,7 +10,6 @@ describe("Withdraw Collateral", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
   let accounts: any;
-
   let market: MarketFixture;
   let larry: UserFixture;
   let bob: UserFixture;
@@ -32,7 +31,7 @@ describe("Withdraw Collateral", () => {
       accounts.collateralMint
     );
     await larry.init_and_fund_accounts(
-      new anchor.BN(1000000000000),
+      new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
@@ -43,7 +42,7 @@ describe("Withdraw Collateral", () => {
     );
     await bob.init_and_fund_accounts(
       new anchor.BN(0),
-      new anchor.BN(1000000000000)
+      new anchor.BN(1000 * 1e9)
     );
 
     let controller = new ControllerFixture(program, provider);
@@ -57,8 +56,6 @@ describe("Withdraw Collateral", () => {
     );
 
     await market.setAuthority();
-
-    // add collateral and initialize price
     await market.addCollateral({
       symbol: "BONK",
       collateralAddress: accounts.collateralAcc,
@@ -80,120 +77,119 @@ describe("Withdraw Collateral", () => {
       shares: new anchor.BN(0)
     });
 
-    // Bob deposits 100 collateral tokens
+    // Pre-deposit collateral for withdrawal tests
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9)  // 100 collateral tokens
     });
   });
 
   it("withdraws all collateral when no borrows", async () => {
     const initialBalance = await bob.get_col_balance();
-    const initialCollateralAmount = await market
-      .getCollateral("BONK")
-      .get_borrower_shares(bob.key.publicKey)
-      .get_data();
 
-    // Withdraw all 100 collateral tokens
     await market.withdrawCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9)  // Withdraw all 100 tokens
     });
 
-    // Verify market state after withdrawal
     const collateralData = await market.getCollateral("BONK").collateralAcc.get_data();
-    assert.equal(
-      collateralData.totalCollateral.toNumber(),
-      0,
-      "Market should have no collateral"
-    );
+    assert.ok(collateralData.totalCollateral.eq(new anchor.BN(0)), "Total collateral should be zero");
 
-    // Verify user's collateral position is cleared
-    const finalCollateralAmount = await market
+    const borrowerShares = await market
       .getCollateral("BONK")
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
-    assert.equal(
-      finalCollateralAmount.collateralAmount.toNumber(),
-      0,
-      "User's collateral amount should be zero"
-    );
 
-    // Verify collateral token balance change
+    // user has no collateral after withdrawal
+    assert.ok(borrowerShares.collateralAmount.eq(new anchor.BN(0)), "User should have no collateral");
+
     const finalBalance = await bob.get_col_balance();
+    
     assert.equal(
       initialBalance - finalBalance,
       BigInt(100 * 1e9),
-      "Collateral balance should increase by withdrawal amount"
+      "User should have withdrawn 100 collateral tokens"
     );
   });
 
-  it("withdraws partial collateral when no borrows", async () => {
-    const initialBalance = await bob.get_col_balance();
-    const initialCollateralAmount = await market
-      .getCollateral("BONK")
-      .get_borrower_shares(bob.key.publicKey)
-      .get_data();
-
-    // Withdraw half (50 collateral tokens) of the 100 deposited
-    await market.withdrawCollateral({
-      user: bob,
-      symbol: "BONK",
-      amount: new anchor.BN(50 * 1e9)
-    });
-
-    // Verify market state after partial withdrawal
-    const collateralData = await market.getCollateral("BONK").collateralAcc.get_data();
-    assert.equal(
-      collateralData.totalCollateral.toNumber(),
-      50 * 1e9,
-      "Market should have remaining collateral"
-    );
-
-    // Verify user's remaining collateral position
-    const finalCollateralAmount = await market
-      .getCollateral("BONK")
-      .get_borrower_shares(bob.key.publicKey)
-      .get_data();
-    assert.equal(
-      finalCollateralAmount.collateralAmount.toNumber(),
-      50 * 1e9,
-      "User should have remaining collateral"
-    );
-
-    // Verify collateral token balance change
-    const finalBalance = await bob.get_col_balance();
-    assert.equal(
-      initialBalance - finalBalance,
-      BigInt(50 * 1e9),
-      "Collateral balance should increase by withdrawal amount"
-    );
-  });
-
-  it("fails to withdraw collateral when borrowed against", async () => {
-    // First borrow against the collateral
+  it("partially withdraws collateral with a small borrow position", async () => {
+    // First, borrow a small amount
     await market.borrow({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(50 * 1e9),
+      amount: new anchor.BN(10 * 1e9), // Borrow 10 tokens
       shares: new anchor.BN(0)
     });
 
-    // Try to withdraw collateral
+    const initialBalance = await bob.get_col_balance();
+    const initialCollateralData = await market.getCollateral("BONK").collateralAcc.get_data();
+
+    // Withdraw half of the collateral
+    await market.withdrawCollateral({
+      user: bob,
+      symbol: "BONK",
+      amount: new anchor.BN(50 * 1e9)  // Withdraw 50 tokens
+    });
+
+    const finalCollateralData = await market.getCollateral("BONK").collateralAcc.get_data();
+    assert.ok(
+      finalCollateralData.totalCollateral.eq(initialCollateralData.totalCollateral.sub(new anchor.BN(50 * 1e9))),
+      "Total collateral should decrease by 50 tokens"
+    );
+
+    const borrowerShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    assert.ok(
+      borrowerShares.collateralAmount.eq(new anchor.BN(50 * 1e9)),
+      "User should have 50 tokens of collateral left"
+    );
+
+    const finalBalance = await bob.get_col_balance();
+    
+    assert.equal(
+      initialBalance - finalBalance,
+      BigInt(50 * 1e9),
+      "User should have withdrawn 50 collateral tokens"
+    );
+  });
+
+  it("fails to withdraw collateral when borrower is not solvent", async () => {
+    // First, borrow some tokens to create a debt
+    await market.borrow({
+      user: bob,
+      symbol: "BONK",
+      amount: new anchor.BN(50 * 1e9), // Borrow 50 tokens
+      shares: new anchor.BN(0)
+    });
+
+    // Attempt to withdraw all collateral, which would make the borrower insolvent
     await assert.rejects(
       async () => {
         await market.withdrawCollateral({
           user: bob,
           symbol: "BONK",
-          amount: new anchor.BN(100 * 1e9)
+          amount: new anchor.BN(100 * 1e9) // Attempt to withdraw all 100 tokens
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorMessage, "User is not solvent");
+        assert.strictEqual(err.error.errorCode.number, 6018);
+        assert.strictEqual(err.error.errorMessage, 'User is not solvent');
         return true;
-      }
+      },
+      "Expected withdrawal to fail due to insolvency"
+    );
+
+    // Verify that collateral balance hasn't changed
+    const finalCollateralBalance = await bob.get_col_balance();
+    assert.equal(
+      finalCollateralBalance,
+      BigInt(900 * 1e9),
+      "Collateral balance should remain unchanged"
     );
   });
 });
