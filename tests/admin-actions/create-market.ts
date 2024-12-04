@@ -6,7 +6,7 @@ import { Markets } from "../../target/types/markets";
 import assert from 'assert';
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { UserFixture } from "../fixtures";
-describe("Market Operations", () => {
+describe("Create Market Operations", () => {
 
   let program: Program<Markets>;
   let provider: BankrunProvider;

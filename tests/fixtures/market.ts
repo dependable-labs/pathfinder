@@ -118,6 +118,72 @@ export class MarketFixture {
       .rpc();
   }
 
+  // async update({
+  //   collateralSymbol,
+  //   ltvFactor,
+  // }: {
+  //   collateralSymbol: SupportedCollateral;
+  //   ltvFactor: anchor.BN;
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(collateralSymbol);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${collateralSymbol} not found`);
+  //   }
+
+  //   await this.program.methods
+  //     .updateMarket({
+  //       ltvFactor,
+  //     })
+  //     .accounts({
+  //       authority: this.controller.authority.publicKey,
+  //       controller: this.controller.controllerAcc.key,
+  //       market: this.marketAcc.key,
+  //       quoteMint: this.quoteMint,
+  //       collateralMint: collateral.collateralMint,
+  //       vaultAtaQuote: this.get_ata(this.quoteMint),
+  //       vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([this.controller.authority.payer])
+  //     .rpc();
+  // }
+
+  async update({
+    collateralSymbol,
+    ltvFactor,
+    overrideAuthority, // Add this parameter
+}: {
+  collateralSymbol: SupportedCollateral;
+  ltvFactor: anchor.BN;
+  overrideAuthority?: UserFixture; // Optional parameter for testing
+}): Promise<void> {
+  const collateral = this.getCollateral(collateralSymbol);
+  if (!collateral) {
+    throw new Error(`Collateral ${collateralSymbol} not found`);
+  }
+
+  await this.program.methods
+    .updateMarket({
+      ltvFactor,
+    })
+    .accounts({
+      authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
+      controller: this.controller.controllerAcc.key,
+      market: this.marketAcc.key,
+      quoteMint: this.quoteMint,
+      collateralMint: collateral.collateralMint,
+      vaultAtaQuote: this.get_ata(this.quoteMint),
+      vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+      associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
+    .rpc();
+}
+
   async deposit({
     user,
     amount,
