@@ -56,4 +56,7 @@ pub mod markets {
         WithdrawCollateral::handle(ctx, args)
     }
 
+    pub fn update_market(ctx: Context<UpdateMarket>, args: UpdateMarketArgs) -> Result<()> {
+        UpdateMarket::handle(ctx, args)
+    }
 }

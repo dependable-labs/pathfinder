@@ -24,3 +24,4 @@ test-accrue-interest = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**
 test-liquidate = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/liquidate.ts"
 test-repay = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/repay.ts"
 test-withdraw-collateral = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/withdraw-collateral.ts"
+test-update-market = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/update-market.ts"
