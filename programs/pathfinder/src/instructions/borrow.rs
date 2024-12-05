@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use anchor_spl::token_2022::spl_token_2022::extension::group_member_pointer::instruction::update;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 
@@ -90,18 +89,15 @@ impl<'info> Borrow<'info> {
 
     pub fn handle(ctx: Context<Self>, args: BorrowArgs) -> Result<()> {
         let Borrow {
-            user,
             market,
             borrower_shares,
-            quote_mint,
             user_ata_quote,
             vault_ata_quote,
             collateral,
             collateral_mint,
-            associated_token_program,
             token_program,
             price_update,
-            system_program,
+            ..
         } = ctx.accounts;
 
         let mut shares = args.shares;

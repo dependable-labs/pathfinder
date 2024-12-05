@@ -73,12 +73,10 @@ impl<'info> Deposit<'info> {
             user,
             market,
             user_shares,
-            quote_mint,
             user_ata_quote,
             vault_ata_quote,
-            associated_token_program,
             token_program,
-            system_program,
+            ..
         } = ctx.accounts;
 
         let mut shares = args.shares;

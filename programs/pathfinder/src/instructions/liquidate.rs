@@ -110,11 +110,9 @@ impl<'info> Liquidate<'info> {
             user_ata_collateral,
             vault_ata_quote,
             user_ata_quote,
-            quote_mint,
-            associated_token_program,
             price_update,
             token_program,
-            system_program,
+            ..
         } = ctx.accounts;
 
         let mut repay_shares = args.repay_shares;
@@ -154,7 +152,7 @@ impl<'info> Liquidate<'info> {
 
         let (collateral_price, price_scale) = collateral.oracle.get_price(price_update)?;
 
-        if (collateral_amount > 0) {
+        if collateral_amount > 0 {
           let collateral_quoted = mul_div_up(collateral_amount as u128, collateral_price as u128, price_scale as u128)?;
 
           repay_shares = to_shares_up(

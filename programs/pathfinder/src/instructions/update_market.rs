@@ -2,8 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
-
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -82,17 +80,8 @@ impl<'info> UpdateMarket<'info> {
 
     pub fn handle(ctx: Context<Self>, args: UpdateMarketArgs) -> Result<()> {
          let UpdateMarket {
-            authority,
-            controller,
-            market,
             collateral,
-            quote_mint,
-            vault_ata_quote: _,
-            collateral_mint,
-            vault_ata_collateral: _,
-            associated_token_program: _,
-            token_program: _,
-            system_program: _,
+            ..
         } = ctx.accounts;
 
         // Get current timestamp from the runtime

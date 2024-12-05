@@ -88,12 +88,9 @@ impl<'info> DepositCollateral<'info> {
             market,
             borrower_shares,
             collateral,
-            collateral_mint,
             user_ata_collateral,
             vault_ata_collateral,
             token_program,
-            associated_token_program,
-            system_program,
             ..
         } = ctx.accounts;
 

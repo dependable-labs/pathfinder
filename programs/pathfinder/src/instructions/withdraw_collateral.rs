@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
-use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent};
+use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent, generate_market_seeds};
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -28,9 +28,7 @@ pub struct WithdrawCollateral<'info> {
 
     // borrower shares
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<BorrowerShares>(),
+        mut,
         seeds = [
             BORROWER_SHARES_SEED_PREFIX,
             collateral.key().as_ref(),
@@ -55,8 +53,7 @@ pub struct WithdrawCollateral<'info> {
     #[account(constraint = collateral_mint.is_initialized == true)]
     pub collateral_mint: Box<Account<'info, Mint>>,
     #[account(
-        init_if_needed,
-        payer = user,
+        mut,
         associated_token::mint = collateral_mint,
         associated_token::authority = market,
     )]
@@ -94,8 +91,6 @@ impl<'info> WithdrawCollateral<'info> {
             user_ata_collateral,
             vault_ata_collateral,
             token_program,
-            associated_token_program,
-            system_program,
             price_update,
             ..
         } = ctx.accounts;
@@ -130,15 +125,20 @@ impl<'info> WithdrawCollateral<'info> {
 
         msg!("Withdrawing {} collateral ", assets);
 
+        // transfer tokens to depositor
+        let seeds = generate_market_seeds!(market);
+        let signer = &[&seeds[..]];
+
         // Transfer collateral tokens from user to vault
         transfer(
-            CpiContext::new(
+            CpiContext::new_with_signer(
                 token_program.to_account_info(),
                 Transfer {
-                    from: user_ata_collateral.to_account_info(),
-                    to: vault_ata_collateral.to_account_info(),
-                    authority: user.to_account_info(),
+                    from: vault_ata_collateral.to_account_info(),
+                    to: user_ata_collateral.to_account_info(),
+                    authority: market.to_account_info(),
                 },
+                signer,
             ),
             assets,
         )?;
