@@ -60,14 +60,41 @@ This command will execute all the tests defined in the `tests` directory, verify
 
 ## Key Components
 
-- Market: Represents the main state of the DeFi application
-- Shares: Represents a user's stake in the market
-- Quote and Collateral tokens: The tokens handled by the market
+- Market: The core lending pool that manages quote tokens and collateral positions
+  - Handles deposits/withdrawals of quote tokens
+  - Tracks total shares and total quote token amounts
+  - Manages borrow positions and interest accrual
+  - Controls debt caps and utilization rates
+
+- Collateral: Represents accepted collateral tokens in the market
+  - Tracks total collateral amounts
+  - Manages loan-to-value (LTV) ratios
+  - Integrates with Pyth oracles for price feeds
+  - Controls liquidation parameters
+
+- Shares: 
+  - UserShares: Represents lender's share of the quote token pool
+  - BorrowerShares: Tracks borrower's debt and collateral positions
+
+- Controller:
+  - Manages market authority and permissions
+  - Controls market creation and updates
+  - Enforces protocol-wide parameters
+
+- Interest Rate Model:
+  - Dynamic rate adjustment based on utilization
+  - Compounded interest accrual
+  - Target utilization mechanisms
 
 ## Testing
 
 Run the anchor tests using the `anchor test` command.
 Run the rust sharesMath tests using the `cargo test` command.
+
+## Devnet deployment
+
+pathfinder program ID: `A19kT1hDurp5ntmD19yA1mYxJPDn3UVZL7Ue6Wo9HaVj`
+
 
 ## Disclaimer
 
