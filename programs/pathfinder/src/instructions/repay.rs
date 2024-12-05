@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use anchor_spl::token_2022::spl_token_2022::extension::group_member_pointer::instruction::update;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 use crate::math::*;
 use crate::{state::*, accrue_interest::accrue_interest};
@@ -89,14 +87,10 @@ impl<'info> Repay<'info> {
             user,
             market,
             borrower_shares,
-            quote_mint,
             user_ata_quote,
             vault_ata_quote,
-            collateral,
-            collateral_mint,
-            associated_token_program,
             token_program,
-            system_program,
+            ..
         } = ctx.accounts;
 
         let mut shares = args.shares;

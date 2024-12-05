@@ -1,10 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::*;
 
 use crate::state::*;
 use crate::error::MarketError;
-// use crate::state::market::PythOracle;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetAuthorityArgs {
@@ -39,9 +36,8 @@ impl<'info> SetAuthority<'info> {
 
     pub fn handle(ctx: Context<Self>, args: SetAuthorityArgs) -> Result<()> {
         let SetAuthority {
-            user,
             controller,
-            system_program: _,
+            ..
         } = ctx.accounts;
 
         controller.set_inner(Controller {

@@ -1,6 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::*;
 
 use crate::state::*;
 use crate::error::MarketError;
@@ -55,8 +53,6 @@ pub fn accrue_interest(
     let time_elapsed = current_timestamp
         .checked_sub(market.last_accrual_timestamp)
         .ok_or(MarketError::MathOverflow)?;
-
-    let interest_rate: u64 = 5 * 10_000_000; // 0.05 * 1e9
 
     // Get interest rate from IRM
     let (avg_rate, end_rate_at_target) = get_rate(market)?;

@@ -6,7 +6,7 @@ import { Markets } from "../../target/types/markets";
 import assert from "assert";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
 
-describe("Withdraw Collateral", () => {
+describe("Repay", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
   let accounts: any;
@@ -86,93 +86,135 @@ describe("Withdraw Collateral", () => {
       symbol: "BONK",
       amount: new anchor.BN(100 * 1e9)
     });
-  });
 
-  it("withdraws all collateral when no borrows", async () => {
-    const initialBalance = await bob.get_col_balance();
-    const initialCollateralAmount = await market
-      .getCollateral("BONK")
-      .get_borrower_shares(bob.key.publicKey)
-      .get_data();
-
-    // Withdraw all 100 collateral tokens
-    await market.withdrawCollateral({
+    // Bob borrows 50 quote tokens against his collateral
+    await market.borrow({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(50 * 1e9),
+      shares: new anchor.BN(0)
     });
-
-    // Verify market state after withdrawal
-    const collateralData = await market.getCollateral("BONK").collateralAcc.get_data();
-    assert.equal(
-      collateralData.totalCollateral.toNumber(),
-      0,
-      "Market should have no collateral"
-    );
-
-    // Verify user's collateral position is cleared
-    const finalCollateralAmount = await market
-      .getCollateral("BONK")
-      .get_borrower_shares(bob.key.publicKey)
-      .get_data();
-    assert.equal(
-      finalCollateralAmount.collateralAmount.toNumber(),
-      0,
-      "User's collateral amount should be zero"
-    );
-
-    // Verify collateral token balance change
-    const finalBalance = await bob.get_col_balance();
-    assert.equal(
-      initialBalance - finalBalance,
-      BigInt(100 * 1e9),
-      "Collateral balance should increase by withdrawal amount"
-    );
   });
 
-  it("withdraws partial collateral when no borrows", async () => {
-    const initialBalance = await bob.get_col_balance();
-    const initialCollateralAmount = await market
+  it("repays all debt", async () => {
+    // Get initial balances and state
+    const initialQuoteBalance = await bob.get_quo_balance();
+    const initialMarketData = await market.marketAcc.get_data();
+    const initialBorrowerShares = await market
       .getCollateral("BONK")
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
 
-    // Withdraw half (50 collateral tokens) of the 100 deposited
-    await market.withdrawCollateral({
+    // Repay the full 50 tokens that were borrowed
+    await market.repay({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(50 * 1e9)
+      amount: new anchor.BN(50 * 1e9),
+      shares: new anchor.BN(0)
     });
 
-    // Verify market state after partial withdrawal
-    const collateralData = await market.getCollateral("BONK").collateralAcc.get_data();
-    assert.equal(
-      collateralData.totalCollateral.toNumber(),
-      50 * 1e9,
-      "Market should have remaining collateral"
-    );
-
-    // Verify user's remaining collateral position
-    const finalCollateralAmount = await market
+    // Get final state
+    const finalQuoteBalance = await bob.get_quo_balance();
+    const finalMarketData = await market.marketAcc.get_data();
+    const finalBorrowerShares = await market
       .getCollateral("BONK")
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
-    assert.equal(
-      finalCollateralAmount.collateralAmount.toNumber(),
-      50 * 1e9,
-      "User should have remaining collateral"
-    );
 
-    // Verify collateral token balance change
-    const finalBalance = await bob.get_col_balance();
+    // Verify quote token balance decreased by repayment amount
     assert.equal(
-      initialBalance - finalBalance,
+      initialQuoteBalance - finalQuoteBalance,
       BigInt(50 * 1e9),
-      "Collateral balance should increase by withdrawal amount"
+      "Quote balance should decrease by 50 tokens"
+    );
+
+    // Verify market total borrow assets decreased
+    assert.ok(
+      finalMarketData.totalBorrowAssets.eq(
+        initialMarketData.totalBorrowAssets.sub(new anchor.BN(50 * 1e9))
+      ),
+      "Market total borrow assets should decrease by 50"
+    );
+
+    // Verify market total borrow shares decreased
+    assert.ok(
+      finalMarketData.totalBorrowShares.eq(
+        initialMarketData.totalBorrowShares.sub(initialBorrowerShares.borrowShares)
+      ),
+      "Market total borrow shares should decrease by user's shares"
+    );
+
+    // Verify user has no remaining borrow shares
+    assert.ok(
+      finalBorrowerShares.borrowShares.eq(new anchor.BN(0)),
+      "User should have no remaining borrow shares"
+    );
+
+    // Verify bob's final quote balance is correct
+    assert.equal(
+      finalQuoteBalance,
+      BigInt(0), // Started with 0, borrowed 50, repaid 50
+      "Bob's final quote balance should be 950 tokens"
     );
   });
 
-  it("fails to withdraw collateral when borrowed against", async () => {
+  it("repays partial debt", async () => {
+
+    // Setup initial state
+    await market.borrow({
+      user: bob,
+      symbol: "BONK", 
+      amount: new anchor.BN(50 * 1e9), // Borrow additional 50 tokens
+      shares: new anchor.BN(0)
+    });
+
+    const initialQuoteBalance = await bob.get_quo_balance();
+    const initialMarketData = await market.marketAcc.get_data();
+    const initialBorrowerShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    // Repay half of the borrowed amount
+    await market.repay({
+      user: bob,
+      symbol: "BONK",
+      amount: new anchor.BN(25 * 1e9), // Repay 25 tokens
+      shares: new anchor.BN(0)
+    });
+
+    // Get final state
+    const finalQuoteBalance = await bob.get_quo_balance();
+    const finalMarketData = await market.marketAcc.get_data();
+    const finalBorrowerShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    // Verify quote token balance decreased by repayment amount
+    assert.equal(
+      initialQuoteBalance - finalQuoteBalance,
+      BigInt(25 * 1e9),
+      "Quote balance should decrease by 25 tokens"
+    );
+
+    // Verify market total borrow assets decreased by repayment amount
+    assert.ok(
+      finalMarketData.totalBorrowAssets.eq(
+        initialMarketData.totalBorrowAssets.sub(new anchor.BN(25 * 1e9))
+      ),
+      "Market total borrow assets should decrease by 25"
+    );
+
+    // Verify bob's final quote balance is correct
+    assert.equal(
+      finalQuoteBalance,
+      BigInt(75 * 1e9), // Started with 50, borrowed 50, repaid 25
+      "Bob's final quote balance should be 25 tokens"
+    );
+  });
+
+  it("fails to repay when no debt", async () => {
     // First borrow against the collateral
     await market.borrow({
       user: bob,

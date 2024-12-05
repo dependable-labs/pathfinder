@@ -1,4 +1,3 @@
-use anchor_lang::accounts::program;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
@@ -30,9 +29,7 @@ pub struct Withdraw<'info> {
 
     // user shares
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<UserShares>(),
+        mut,
         seeds = [
             MARKET_SHARES_SEED_PREFIX,
             market.key().as_ref(),
@@ -70,15 +67,12 @@ impl<'info> Withdraw<'info> {
 
     pub fn handle(ctx: Context<Self>, args: WithdrawArgs) -> Result<()> {
          let Withdraw {
-            user,
             market,
             user_shares,
-            quote_mint,
             user_ata_quote,
             vault_ata_quote,
-            associated_token_program,
             token_program,
-            system_program,
+            ..
         } = ctx.accounts;
 
         let mut shares = args.shares;

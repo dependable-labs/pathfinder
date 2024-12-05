@@ -106,11 +106,17 @@ describe("Withdraw Collateral", () => {
     assert.ok(borrowerShares.collateralAmount.eq(new anchor.BN(0)), "User should have no collateral");
 
     const finalBalance = await bob.get_col_balance();
-    
+
     assert.equal(
-      initialBalance - finalBalance,
+      finalBalance - initialBalance,
       BigInt(100 * 1e9),
       "User should have withdrawn 100 collateral tokens"
+    );
+    
+    assert.equal(
+      finalBalance,
+      BigInt(1000 * 1e9),
+      "Users final balance should be 1000 collateral tokens"
     );
   });
 
@@ -152,9 +158,9 @@ describe("Withdraw Collateral", () => {
     const finalBalance = await bob.get_col_balance();
     
     assert.equal(
-      initialBalance - finalBalance,
-      BigInt(50 * 1e9),
-      "User should have withdrawn 50 collateral tokens"
+      finalBalance,
+      BigInt(950 * 1e9),
+      "Users final balance should be 950 collateral tokens"
     );
   });
 

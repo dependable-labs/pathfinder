@@ -7,7 +7,6 @@ pub mod state;
 pub mod error;
 pub mod math;
 
-use crate::state::*;
 use crate::instructions::*;
 
 #[program]
