@@ -59,10 +59,9 @@ pub fn accrue_interest(
     market.rate_at_target = end_rate_at_target;
 
     // Calculate interest to accrue
-    let interest = calculate_interest(
+    let interest = w_mul_down(
         market.total_borrow_assets,
         w_taylor_compounded(avg_rate as u128, time_elapsed as u128).unwrap() as u64,
-        time_elapsed,
     )?;
 
     // Update market state
@@ -80,30 +79,4 @@ pub fn accrue_interest(
 
     Ok(())
 
-}
-
-// Helper function to calculate interest
-fn calculate_interest(
-    borrow_amount: u64,
-    interest_rate: u64,
-    time_elapsed: u64,
-) -> Result<u64> {
-
-    const SECONDS_IN_YEAR: u64 = 31_536_000;
-
-    // TODO: Make this dynamic
-    const INTEREST_RATE_DECIMALS: u64 = 1e18 as u64;
-
-    // Convert to u128 for intermediate calculations to prevent overflow
-    let interest = (borrow_amount as u128)
-        .checked_mul(interest_rate as u128)
-        .ok_or(MarketError::MathOverflow)?
-        .checked_mul(time_elapsed as u128)
-        .ok_or(MarketError::MathOverflow)?
-        .checked_div(SECONDS_IN_YEAR as u128)
-        .ok_or(MarketError::MathOverflow)?
-        .checked_div(INTEREST_RATE_DECIMALS as u128)
-        .ok_or(MarketError::MathOverflow)?;
-
-    Ok(interest as u64)
 }

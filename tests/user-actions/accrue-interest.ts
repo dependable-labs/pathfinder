@@ -161,10 +161,9 @@ describe("Accrue Interest", () => {
     // Convert to BN and calculate difference
     const difference = afterData.totalBorrowAssets.sub(beforeData.totalBorrowAssets);
 
-    // Verify interest accrual (5% on 500_000_000_000 = 50_000_000_000)
     assert.equal(
       difference.toNumber(),
-      54_780_839_446
+      27_390_419_723
     );
   });
 
