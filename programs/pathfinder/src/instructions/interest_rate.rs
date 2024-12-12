@@ -50,7 +50,7 @@ pub fn get_rate(
     } else {
         TARGET_UTILIZATION
     };
-    
+ 
     // The error is the difference between the current utilization and the target utilization,
     let err = w_div_to_zero(utilization - TARGET_UTILIZATION, err_norm_factor)?;
 
@@ -146,5 +146,4 @@ pub fn _new_rate_at_target(
     let result = w_mul_to_zero(start_rate_at_target, w_exp(linear_adaptation)?)?;
 
     bound(result, MIN_RATE_AT_TARGET, MAX_RATE_AT_TARGET)
-    // Ok(start_rate_at_target)
 }

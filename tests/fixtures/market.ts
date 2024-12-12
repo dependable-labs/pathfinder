@@ -84,11 +84,9 @@ export class MarketFixture {
 
   async create({
     collateralSymbol,
-    debtCap,
     ltvFactor,
   }: {
     collateralSymbol: SupportedCollateral;
-    debtCap: anchor.BN;
     ltvFactor: anchor.BN;
   }): Promise<void> {
     const collateral = this.getCollateral(collateralSymbol);
@@ -99,7 +97,6 @@ export class MarketFixture {
     await this.program.methods
       .createMarket({
         feedId: collateral.getOracleId(),
-        debtCap,
         ltvFactor,
       })
       .accounts({
@@ -122,17 +119,17 @@ export class MarketFixture {
     collateralSymbol,
     ltvFactor,
     overrideAuthority, // Add this parameter
-}: {
-  collateralSymbol: SupportedCollateral;
-  ltvFactor: anchor.BN;
-  overrideAuthority?: UserFixture; // Optional parameter for testing
-}): Promise<void> {
-  const collateral = this.getCollateral(collateralSymbol);
-  if (!collateral) {
-    throw new Error(`Collateral ${collateralSymbol} not found`);
-  }
+  }: {
+    collateralSymbol: SupportedCollateral;
+    ltvFactor: anchor.BN;
+    overrideAuthority?: UserFixture; // Optional parameter for testing
+  }): Promise<void> {
+    const collateral = this.getCollateral(collateralSymbol);
+    if (!collateral) {
+      throw new Error(`Collateral ${collateralSymbol} not found`);
+    }
 
-  await this.program.methods
+    await this.program.methods
     .updateMarket({
       ltvFactor,
     })
@@ -150,7 +147,31 @@ export class MarketFixture {
     })
     .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
     .rpc();
-}
+  }
+
+  async restrictCollateral(
+    collateralSymbol: SupportedCollateral,
+    overrideAuthority?: UserFixture
+  ): Promise<void> {
+    const collateral = this.getCollateral(collateralSymbol);
+    if (!collateral) {
+      throw new Error(`Collateral ${collateralSymbol} not found`);
+    }
+
+    await this.program.methods
+    .restrictCollateral()
+    .accounts({
+      authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
+      market: this.marketAcc.key,
+      controller: this.controller.controllerAcc.key,
+      quoteMint: this.quoteMint,
+      collateralMint: collateral.collateralMint,
+      collateral: collateral.collateralAcc.key,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
+    .rpc();
+  }
 
   async deposit({
     user,
@@ -420,6 +441,20 @@ export class MarketFixture {
       mint,
       owner: this.marketAcc.key,
     });
+  }
+
+  public async sharesToAssets(shares: anchor.BN): Promise<anchor.BN> {
+    const marketData = await this.marketAcc.get_data();
+    
+    // If no shares exist, return 0
+    if (marketData.totalBorrowShares.eq(new anchor.BN(0))) {
+      return new anchor.BN(0);
+    }
+
+    // Use the on-chain to_assets_up method to calculate assets from shares
+    return await this.program.methods
+      .toAssetsUp(shares, marketData.totalBorrowAssets, marketData.totalBorrowShares)
+      .view();
   }
 
   public get_user_shares(userKey: PublicKey): AccountFixture {

@@ -5,6 +5,7 @@ import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import assert from "assert";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
+import { TimeUtils } from "../utils";
 
 describe("Repay", () => {
   let program: Program<Markets>;
@@ -32,7 +33,7 @@ describe("Repay", () => {
       accounts.collateralMint
     );
     await larry.init_and_fund_accounts(
-      new anchor.BN(1000000000000),
+      new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
@@ -42,8 +43,8 @@ describe("Repay", () => {
       accounts.collateralMint
     );
     await bob.init_and_fund_accounts(
-      new anchor.BN(0),
-      new anchor.BN(1000000000000)
+      new anchor.BN(100 * 1e9),
+      new anchor.BN(1000 * 1e9)
     );
 
     let controller = new ControllerFixture(program, provider);
@@ -70,7 +71,6 @@ describe("Repay", () => {
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(1_000 * 1e9),
       ltvFactor: new anchor.BN(0.8 * 1e9),
     });
 
@@ -138,9 +138,7 @@ describe("Repay", () => {
 
     // Verify market total borrow shares decreased
     assert.ok(
-      finalMarketData.totalBorrowShares.eq(
-        initialMarketData.totalBorrowShares.sub(initialBorrowerShares.borrowShares)
-      ),
+      finalMarketData.totalBorrowShares.eq(new anchor.BN(0)),
       "Market total borrow shares should decrease by user's shares"
     );
 
@@ -153,7 +151,76 @@ describe("Repay", () => {
     // Verify bob's final quote balance is correct
     assert.equal(
       finalQuoteBalance,
-      BigInt(0), // Started with 0, borrowed 50, repaid 50
+      BigInt(100 * 1e9), // Started with 0, borrowed 50, repaid 50
+      "Bob's final quote balance should be 950 tokens"
+    );
+  });
+
+  it("repays all debt with interest", async () => {
+    // Get initial balances and state
+    const initialQuoteBalance = await bob.get_quo_balance();
+    const initialMarketData = await market.marketAcc.get_data();
+    const initialBorrowerShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    // Instead of converting to number, compare BNs directly -> 0.05 * 1e18
+    assert.ok(initialBorrowerShares.borrowShares.eq(new anchor.BN("50000000000000000")));
+
+    // Move time forward one day
+    await TimeUtils.moveTimeForward(provider.context, 1 * 24 * 60 * 60);
+
+    // See impact of interest accrual
+    await market.accrueInterest();
+
+    // Repay the full 50 tokens that were borrowed
+    await market.repay({
+      user: bob,
+      symbol: "BONK",
+      amount: new anchor.BN(0),
+      shares: new anchor.BN("50000000000000000")
+    });
+
+    // Get final state
+    const finalQuoteBalance = await bob.get_quo_balance();
+    const finalMarketData = await market.marketAcc.get_data();
+    const finalBorrowerShares = await market
+      .getCollateral("BONK")
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    // Verify quote token balance decreased by repayment amount
+    assert.equal(
+      initialQuoteBalance - finalQuoteBalance,
+      BigInt(50.000079910 * 1e9),
+      "Quote balance should decrease by 50 tokens"
+    );
+
+    console.log("here ", finalMarketData.totalBorrowAssets.toString());
+
+    // Verify market total borrow assets decreased
+    assert(
+      finalMarketData.totalBorrowAssets.eq(new anchor.BN(0.001518289 * 1e9)),
+      "Market total borrow assets should decrease by 50"
+    );
+
+    // Verify market total borrow shares decreased
+    assert.ok(
+      finalMarketData.totalBorrowShares.eq(new anchor.BN(0)),
+      "Market total borrow shares should decrease by user's shares"
+    );
+
+    // Verify user has no remaining borrow shares
+    assert.ok(
+      finalBorrowerShares.borrowShares.eq(new anchor.BN(0)),
+      "User should have no remaining borrow shares"
+    );
+
+    // Verify bob's final quote balance is correct
+    assert.equal(
+      finalQuoteBalance,
+      BigInt(99.999920090 * 1e9 ), // Started with 0, borrowed 50, repaid 50
       "Bob's final quote balance should be 950 tokens"
     );
   });
@@ -209,7 +276,7 @@ describe("Repay", () => {
     // Verify bob's final quote balance is correct
     assert.equal(
       finalQuoteBalance,
-      BigInt(75 * 1e9), // Started with 50, borrowed 50, repaid 25
+      BigInt(175 * 1e9), // Started with 50, borrowed 50, repaid 25
       "Bob's final quote balance should be 25 tokens"
     );
   });
@@ -239,3 +306,4 @@ describe("Repay", () => {
     );
   });
 });
+

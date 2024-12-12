@@ -39,12 +39,12 @@ pub enum MarketError {
     InvalidAccrualTimestamp,
     #[msg("No time elapsed")]
     NoTimeElapsed,
-    #[msg("Debt cap exceeded")]
-    DebtCapExceeded,
     #[msg("User is not solvent")]
     NotSolvent,
     #[msg("Missing collateral account")]
     MissingCollateralAccount,
     #[msg("Borrower is solvent")]
     BorrowerIsSolvent, 
+    #[msg("Collateral is not active")]
+    CollateralNotActive,
 }

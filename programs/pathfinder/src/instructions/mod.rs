@@ -1,5 +1,6 @@
 pub use create_market::*;
 pub use update_market::*;
+pub use restrict_collateral::*;
 pub use deposit::*;
 pub use withdraw::*;
 pub use deposit_collateral::*;
@@ -13,6 +14,7 @@ pub use withdraw_collateral::*;
 
 pub mod create_market;
 pub mod update_market;
+pub mod restrict_collateral;
 pub mod deposit;
 pub mod withdraw;
 pub mod deposit_collateral;
