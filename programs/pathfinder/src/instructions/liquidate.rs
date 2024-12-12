@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent};
+use crate::{state::*, accrue_interest::accrue_interest, borrow::{is_solvent, restriction_fee}};
 use crate::error::MarketError;
 use crate::generate_market_seeds;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
@@ -186,6 +186,15 @@ impl<'info> Liquidate<'info> {
 
         borrower_shares.collateral_amount = borrower_shares.collateral_amount.checked_sub(collateral_amount).unwrap();
 
+        let fee = restriction_fee(repaid_quote, collateral.last_active_timestamp)?;
+
+        // Distribute fee back to lenders
+        market.total_quote = market.total_quote
+                .checked_add(fee)
+                .ok_or(MarketError::MathOverflow)?; 
+
+        let repaid_quote_with_fee = repaid_quote.checked_add(fee).ok_or(MarketError::MathOverflow)?;
+
         let mut bad_debt_shares = 0;
         let mut bad_debt = 0;
 
@@ -238,14 +247,14 @@ impl<'info> Liquidate<'info> {
         );
 
         // Verify liquidator has sufficient quote tokens
-        if user_ata_quote.amount < repaid_quote {
+        if user_ata_quote.amount < repaid_quote_with_fee {
             return err!(MarketError::InsufficientBalance);
         }
         
         // transfer tokens to vault
         transfer(
             cpi_context,
-            repaid_quote,
+            repaid_quote_with_fee,
         )?;
 
         Ok(())

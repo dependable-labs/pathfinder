@@ -67,7 +67,6 @@ describe("Withdraw Collateral", () => {
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(1_000 * 1e9),
       ltvFactor: new anchor.BN(0.8 * 1e9),
     });
 
@@ -183,7 +182,7 @@ describe("Withdraw Collateral", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6018);
+        assert.strictEqual(err.error.errorCode.number, 6017);
         assert.strictEqual(err.error.errorMessage, 'User is not solvent');
         return true;
       },

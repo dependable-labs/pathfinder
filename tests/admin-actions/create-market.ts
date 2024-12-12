@@ -60,7 +60,6 @@ describe("Create Market Operations", () => {
   it("creates a market", async () => {
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(100),
       ltvFactor: new anchor.BN(0),
     });
 

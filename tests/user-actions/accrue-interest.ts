@@ -127,9 +127,10 @@ describe("Accrue Interest", () => {
       amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
       shares: new anchor.BN(0)
     });
-    // 800 Debt, 1000 Capacity -> 80% utilization
 
+    // 800 Debt, 1000 Capacity -> 80% utilization
     const beforeData = await market.marketAcc.get_data();
+    assert(beforeData.totalBorrowAssets.eq(new anchor.BN(800 * LAMPORTS_PER_SOL)));
     
     // Advance clock by 1 year
     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
@@ -137,15 +138,18 @@ describe("Accrue Interest", () => {
     await market.accrueInterest();
     
     const afterData = await market.marketAcc.get_data();
+
+    assert.equal(beforeData.totalBorrowAssets.toNumber(), 800_000_000_000);
+    assert.equal(afterData.totalBorrowAssets.toNumber(), 829_877_683_931);
     
     // Convert to BN and calculate difference
     const difference = afterData.totalBorrowAssets.sub(beforeData.totalBorrowAssets);
     
-    // Verify interest accrual (5% on 500_000_000_000 = 25_000_000_000)
     assert.equal(
       difference.toNumber(),
       29_877_683_931 // Expected interest accrual
     );
+
   });
 
   it("for multiple periods", async () => {

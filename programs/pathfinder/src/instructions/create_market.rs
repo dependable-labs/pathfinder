@@ -8,7 +8,6 @@ use crate::state::*;
 pub struct CreateMarketArgs {
     pub feed_id: String,
     pub ltv_factor: u64,
-    pub debt_cap: u64,
 } 
 
 #[derive(Accounts)]
@@ -114,7 +113,6 @@ impl<'info> CreateMarket<'info> {
             // borrower accounting
             total_borrow_shares: 0,
             total_borrow_assets: 0,
-            debt_cap: args.debt_cap,
 
             // interest
             last_accrual_timestamp: current_timestamp,
@@ -131,6 +129,7 @@ impl<'info> CreateMarket<'info> {
             ltv_factor: args.ltv_factor,
 
             oracle: PythOracle::new(&args.feed_id, 300)?,
+            last_active_timestamp: 0,
         });
 
         Ok(())

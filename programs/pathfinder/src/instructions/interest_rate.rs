@@ -43,6 +43,8 @@ pub fn get_rate(
         0
     };
 
+    msg!("Utilization: {}", utilization);
+
     // The normalization factor is used to scale the error and helps in adjusting the interest rate
     // in a way that is proportional to how far the current utilization is from the target utilization.
     let err_norm_factor:i128 = if utilization > TARGET_UTILIZATION {
@@ -50,6 +52,8 @@ pub fn get_rate(
     } else {
         TARGET_UTILIZATION
     };
+
+    msg!("Err norm factor: {}", err_norm_factor);
     
     // The error is the difference between the current utilization and the target utilization,
     let err = w_div_to_zero(utilization - TARGET_UTILIZATION, err_norm_factor)?;
@@ -146,5 +150,4 @@ pub fn _new_rate_at_target(
     let result = w_mul_to_zero(start_rate_at_target, w_exp(linear_adaptation)?)?;
 
     bound(result, MIN_RATE_AT_TARGET, MAX_RATE_AT_TARGET)
-    // Ok(start_rate_at_target)
 }

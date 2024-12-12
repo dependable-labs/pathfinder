@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::{state::*, accrue_interest::accrue_interest};
+use crate::{state::*, accrue_interest::accrue_interest, borrow::restriction_fee};
 use crate::error::MarketError;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -86,6 +86,7 @@ impl<'info> Repay<'info> {
         let Repay {
             user,
             market,
+            collateral,
             borrower_shares,
             user_ata_quote,
             vault_ata_quote,
@@ -104,12 +105,20 @@ impl<'info> Repay<'info> {
         msg!("repaying {}", assets);
 
         accrue_interest(market)?;
-        
+
+        let mut fee = 0;
+
         if assets > 0 {
-            shares = to_shares_up(&assets, &market.total_borrow_assets, &market.total_borrow_shares)?;
+            fee = restriction_fee(assets, collateral.last_active_timestamp)?;
+            assets = assets.checked_sub(fee).ok_or(MarketError::MathOverflow)?;
+
+            shares = to_shares_down(&assets, &market.total_quote, &market.total_shares)?;
         } else {
-            assets = to_assets_down(&shares, &market.total_borrow_assets, &market.total_borrow_shares)?;
+            assets = to_assets_up(&shares, &market.total_quote, &market.total_shares)?;
+
+            fee = restriction_fee(assets, collateral.last_active_timestamp)?;
         }
+        
 
         // Update market shares
         market.total_borrow_shares = market.total_borrow_shares
@@ -126,6 +135,11 @@ impl<'info> Repay<'info> {
                 .checked_sub(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
+        // Update market quote amount
+        market.total_quote = market.total_quote
+                .checked_add(fee)
+                .ok_or(MarketError::MathOverflow)?;
+
         // Create CpiContext for the transfer
         let cpi_context = CpiContext::new(
             token_program.to_account_info(),
@@ -139,7 +153,7 @@ impl<'info> Repay<'info> {
         // transfer tokens to vault
         transfer(
             cpi_context,
-            assets,
+            assets.checked_add(fee).ok_or(MarketError::MathOverflow)?,
         )?;
 
         Ok(())

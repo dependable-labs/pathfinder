@@ -84,7 +84,6 @@ describe("Liquidate", () => {
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(1_000 * 1e9),
       ltvFactor: new anchor.BN(8 * 1e8),  // 80% LTV
     });
 

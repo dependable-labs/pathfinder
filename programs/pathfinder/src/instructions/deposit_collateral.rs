@@ -75,9 +75,16 @@ pub struct DepositCollateral<'info> {
 
 impl<'info> DepositCollateral<'info> {
     pub fn validate(&self, args: &DepositCollateralArgs) -> Result<()> {
-        if args.amount == 0 {
-            return err!(MarketError::InvalidDepositCollateralInput);
-        }
+        require!(
+            args.amount != 0,
+            MarketError::InvalidDepositCollateralInput
+        );
+
+        // Validate that collateral is active
+        require!(
+            self.collateral.last_active_timestamp == 0,
+            MarketError::CollateralNotActive
+        );
 
         Ok(())
     }

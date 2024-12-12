@@ -58,6 +58,7 @@ pub fn accrue_interest(
     let (avg_rate, end_rate_at_target) = get_rate(market)?;
     market.rate_at_target = end_rate_at_target;
 
+
     // Calculate interest to accrue
     let interest = w_mul_down(
         market.total_borrow_assets,

@@ -67,7 +67,6 @@ describe("Withdraw", () => {
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(100),
       ltvFactor: new anchor.BN(0),
     });
 
