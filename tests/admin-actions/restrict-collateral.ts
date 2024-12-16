@@ -100,7 +100,11 @@ describe("Restrict Collateral", () => {
     });
 
     // First restrict the collateral
-    await market.restrictCollateral("BONK");
+    await market.update({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9), // matches LTV on market creation
+      isActive: false,
+    });
 
 
     // Attempt to borrow
@@ -123,7 +127,11 @@ describe("Restrict Collateral", () => {
 
 
   it("prevents new collateral deposits after restriction", async () => {
-    await market.restrictCollateral("BONK");
+    await market.update({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9), // matches LTV on market creation
+      isActive: false,
+    });
 
     await assert.rejects(
       async () => {
@@ -158,7 +166,11 @@ describe("Restrict Collateral", () => {
     });
 
     // Restrict collateral
-    await market.restrictCollateral("BONK");
+    await market.update({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9), // matches LTV on market creation
+      isActive: false,
+    });
 
     // Verify repayment still works
     await market.repay({
@@ -205,7 +217,11 @@ describe("Restrict Collateral", () => {
     assert.ok(borrowerSharesPrior.borrowShares.eq(new anchor.BN("50000000000000000")));
 
     // Restrict collateral
-    await market.restrictCollateral("BONK");
+    await market.update({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9), // matches LTV on market creation
+      isActive: false,
+    });
 
     // Move time forward one day
     await TimeUtils.moveTimeForward(provider.context, 1 * 24 * 60 * 60);
@@ -270,7 +286,11 @@ describe("Restrict Collateral", () => {
     assert.ok(borrowerSharesPrior.borrowShares.eq(new anchor.BN("50000000000000000")));
 
     // Restrict collateral
-    await market.restrictCollateral("BONK");
+    await market.update({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9), // matches LTV on market creation
+      isActive: false,
+    });
 
     // Move time forward one day
     await TimeUtils.moveTimeForward(provider.context, 7 * 24 * 60 * 60);
@@ -331,7 +351,11 @@ describe("Restrict Collateral", () => {
     assert.ok(borrowerSharesPrior.borrowShares.eq(new anchor.BN("7980000000000000000")));
 
     // Restrict collateral
-    await market.restrictCollateral("BONK");
+    await market.update({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9), // matches LTV on market creation
+      isActive: false,
+    });
 
     // Move time forward one week
     await TimeUtils.moveTimeForward(provider.context, 7 * 24 * 60 * 60);
