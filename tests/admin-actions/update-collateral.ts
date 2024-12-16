@@ -68,8 +68,9 @@ describe("Update Market Operations", () => {
     assert.equal(initialCollateralAccountData.ltvFactor.toNumber(), 0);
 
     await market.update({
-      collateralSymbol: "BONK",
+      symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e6),
+      isActive: true,
     });
 
     const marketAccountData = await market.marketAcc.get_data();
@@ -109,8 +110,9 @@ describe("Update Market Operations", () => {
     await assert.rejects(
       async () => {
         await market.update({
-          collateralSymbol: "BONK", 
+          symbol: "BONK", 
           ltvFactor: new anchor.BN(0.8 * 1e6),
+          isActive: true,
           overrideAuthority: nonAuthority, // Pass non-authority keypair
         });
       },

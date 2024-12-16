@@ -5,13 +5,14 @@ use anchor_spl::token::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct UpdateMarketArgs {
+pub struct UpdateCollateralArgs {
     pub ltv_factor: u64,
+    pub is_active: bool,
 } 
 
 #[derive(Accounts)]
-#[instruction(args: UpdateMarketArgs)]
-pub struct UpdateMarket<'info> {
+#[instruction(args: UpdateCollateralArgs)]
+pub struct UpdateCollateral<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
@@ -72,21 +73,36 @@ pub struct UpdateMarket<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> UpdateMarket<'info> {
+impl<'info> UpdateCollateral<'info> {
 
     pub fn validate(&self) -> Result<()> {
         Ok(())
     }
 
-    pub fn handle(ctx: Context<Self>, args: UpdateMarketArgs) -> Result<()> {
-         let UpdateMarket {
+    pub fn handle(ctx: Context<Self>, args: UpdateCollateralArgs) -> Result<()> {
+        let UpdateCollateral {
             collateral,
             ..
         } = ctx.accounts;
 
-        // Get current timestamp from the runtime
-        collateral.ltv_factor = args.ltv_factor;
+        let ltv_factor = args.ltv_factor;
+        let is_active = args.is_active;
+
+
+        // collateral is active && we set collateral to inactive
+        if collateral.last_active_timestamp == 0 && !is_active {
+            collateral.last_active_timestamp = Clock::get()?.unix_timestamp as u64;
+        }
+
+        // collateral is inactive && we set collateral to active
+        if collateral.last_active_timestamp != 0 && is_active {
+            collateral.last_active_timestamp = 0;
+        }
+
+        // update ltv factor
+        collateral.ltv_factor = ltv_factor;
 
         Ok(())
+
     }
 }

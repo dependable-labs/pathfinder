@@ -116,22 +116,25 @@ export class MarketFixture {
   }
 
   async update({
-    collateralSymbol,
+    symbol,
     ltvFactor,
+    isActive,
     overrideAuthority, // Add this parameter
   }: {
-    collateralSymbol: SupportedCollateral;
+    symbol: SupportedCollateral;
     ltvFactor: anchor.BN;
+    isActive: boolean;
     overrideAuthority?: UserFixture; // Optional parameter for testing
   }): Promise<void> {
-    const collateral = this.getCollateral(collateralSymbol);
+    const collateral = this.getCollateral(symbol);
     if (!collateral) {
-      throw new Error(`Collateral ${collateralSymbol} not found`);
+      throw new Error(`Collateral ${symbol} not found`);
     }
 
     await this.program.methods
-    .updateMarket({
+    .updateCollateral({
       ltvFactor,
+      isActive,
     })
     .accounts({
       authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
@@ -143,30 +146,6 @@ export class MarketFixture {
       vaultAtaCollateral: this.get_ata(collateral.collateralMint),
       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
-    .rpc();
-  }
-
-  async restrictCollateral(
-    collateralSymbol: SupportedCollateral,
-    overrideAuthority?: UserFixture
-  ): Promise<void> {
-    const collateral = this.getCollateral(collateralSymbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${collateralSymbol} not found`);
-    }
-
-    await this.program.methods
-    .restrictCollateral()
-    .accounts({
-      authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
-      market: this.marketAcc.key,
-      controller: this.controller.controllerAcc.key,
-      quoteMint: this.quoteMint,
-      collateralMint: collateral.collateralMint,
-      collateral: collateral.collateralAcc.key,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
     .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
