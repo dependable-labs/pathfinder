@@ -90,9 +90,9 @@ impl<'info> Deposit<'info> {
         accrue_interest(market)?;
         
         if assets > 0 {
-            shares = to_shares_down(&assets, &market.total_quote, &market.total_shares)?;
+            shares = to_shares_down(assets, market.total_quote, market.total_shares)?;
         } else {
-            assets = to_assets_up(&shares, &market.total_quote, &market.total_shares)?;
+            assets = to_assets_up(shares, market.total_quote, market.total_shares)?;
         }
         
         msg!("Depositing {} to vault", assets);

@@ -156,17 +156,17 @@ impl<'info> Liquidate<'info> {
           let collateral_quoted = mul_div_up(collateral_amount as u128, collateral_price as u128, price_scale as u128)?;
 
           repay_shares = to_shares_up(
-              &w_div_up(collateral_quoted, liquidation_incentive_factor)?,
-              &market.total_borrow_assets,
-              &market.total_borrow_shares
+              w_div_up(collateral_quoted, liquidation_incentive_factor)?,
+              market.total_borrow_assets,
+              market.total_borrow_shares
           )?;
 
         } else {
 
           let shares_to_collateral = to_assets_down(
-              &repay_shares,
-              &market.total_borrow_assets,
-              &market.total_borrow_shares
+              repay_shares,
+              market.total_borrow_assets,
+              market.total_borrow_shares
           )?;
 
           let collateral_with_incentive = w_mul_down(shares_to_collateral, liquidation_incentive_factor)?;
@@ -175,9 +175,9 @@ impl<'info> Liquidate<'info> {
         }
 
         let repaid_quote = to_assets_up(
-            &repay_shares,
-            &market.total_borrow_assets,
-            &market.total_borrow_shares
+            repay_shares,
+            market.total_borrow_assets,
+            market.total_borrow_shares
         )?;
 
         borrower_shares.borrow_shares = borrower_shares.borrow_shares.checked_sub(repay_shares).unwrap();
@@ -203,9 +203,9 @@ impl<'info> Liquidate<'info> {
           bad_debt = min_u64(
               market.total_borrow_assets,
               to_assets_up(
-                &bad_debt_shares,
-                &market.total_borrow_assets,
-                &market.total_borrow_shares
+                bad_debt_shares,
+                market.total_borrow_assets,
+                market.total_borrow_shares
               )?
           );
 
