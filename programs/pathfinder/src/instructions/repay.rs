@@ -112,9 +112,9 @@ impl<'info> Repay<'info> {
             fee = restriction_fee(assets, collateral.last_active_timestamp)?;
             assets = assets.checked_sub(fee).ok_or(MarketError::MathOverflow)?;
 
-            shares = to_shares_down(&assets, &market.total_quote, &market.total_shares)?;
+            shares = to_shares_down(assets, market.total_quote, market.total_shares)?;
         } else {
-            assets = to_assets_up(&shares, &market.total_quote, &market.total_shares)?;
+            assets = to_assets_up(shares, market.total_quote, market.total_shares)?;
 
             fee = restriction_fee(assets, collateral.last_active_timestamp)?;
         }

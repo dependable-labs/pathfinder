@@ -86,9 +86,9 @@ impl<'info> Withdraw<'info> {
         accrue_interest(market)?;
 
         if assets > 0 {
-            shares = to_shares_up(&assets, &market.total_quote, &market.total_shares)?;
+            shares = to_shares_up(assets, market.total_quote, market.total_shares)?;
         } else {
-            assets = to_assets_down(&shares, &market.total_quote, &market.total_shares)?;
+            assets = to_assets_down(shares, market.total_quote, market.total_shares)?;
         }
 
         // Validate that the user isn't requesting more shares than they possess

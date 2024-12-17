@@ -119,9 +119,9 @@ impl<'info> Borrow<'info> {
         accrue_interest(market)?;
         
         if assets > 0 {
-            shares = to_shares_up(&assets, &market.total_borrow_assets, &market.total_borrow_shares)?;
+            shares = to_shares_up(assets, market.total_borrow_assets, market.total_borrow_shares)?;
         } else {
-            assets = to_assets_down(&shares, &market.total_borrow_assets, &market.total_borrow_shares)?;
+            assets = to_assets_down(shares, market.total_borrow_assets, market.total_borrow_shares)?;
         }
 
         // check if user is solvent after borrowing
@@ -186,9 +186,9 @@ pub fn is_solvent(
 
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
     let mut borrowed = to_assets_up(
-        &borrow_shares,
-        &market.total_borrow_assets,
-        &market.total_borrow_shares,
+        borrow_shares,
+        market.total_borrow_assets,
+        market.total_borrow_shares,
     )?;
 
     // if fee is active, add fee to borrowed amount
