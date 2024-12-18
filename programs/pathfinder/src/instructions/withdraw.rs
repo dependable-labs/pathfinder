@@ -80,10 +80,13 @@ impl<'info> Withdraw<'info> {
 
         // Validate that either shares or amount is zero, but not both
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-            return err!(MarketError::InvalidWithdrawInput);
+            return err!(MarketError::AssetShareValueMismatch);
         }
 
         accrue_interest(market)?;
+
+        msg!("After accrue_interest");
+        msg!("Before shares calc");
 
         if assets > 0 {
             shares = to_shares_up(assets, market.total_quote, market.total_shares)?;
@@ -92,9 +95,11 @@ impl<'info> Withdraw<'info> {
         }
 
         // Validate that the user isn't requesting more shares than they possess
-        if shares > user_shares.shares {
-            return err!(MarketError::InsufficientBalance);
-        }
+        require_gte!(
+            user_shares.shares,
+            shares,
+            MarketError::InsufficientBalance
+        );
 
         // Update accumulators
         market.total_shares = market.total_shares
@@ -108,7 +113,7 @@ impl<'info> Withdraw<'info> {
         // Update user shares
         user_shares.shares = user_shares.shares
                 .checked_sub(shares)
-                .ok_or(MarketError::MathUnderflow)?;
+                .ok_or(error!(MarketError::MathUnderflow))?;
 
         msg!("Withdrawing {} from the vault", assets);
 

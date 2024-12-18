@@ -111,7 +111,7 @@ impl<'info> Borrow<'info> {
 
         // Validate that either shares or amount is zero, but not both
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-            return err!(MarketError::InvalidInput);
+            return err!(MarketError::AssetShareValueMismatch);
         }
 
         msg!("borrowing {}", assets);

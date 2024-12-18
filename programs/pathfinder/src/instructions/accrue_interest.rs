@@ -52,7 +52,7 @@ pub fn accrue_interest(
     // Calculate time elapsed since last accrual
     let time_elapsed = current_timestamp
         .checked_sub(market.last_accrual_timestamp)
-        .ok_or(MarketError::MathOverflow)?;
+        .ok_or(MarketError::MathUnderflow)?;
 
     // Get interest rate from IRM
     let (avg_rate, end_rate_at_target) = get_rate(market)?;

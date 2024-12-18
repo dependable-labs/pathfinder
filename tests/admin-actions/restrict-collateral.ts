@@ -12,7 +12,7 @@ describe("Restrict Collateral", () => {
   let accounts: any;
   let market: MarketFixture;
   let larry: UserFixture; // Lender
-  let bob: UserFixture;   // Borrower
+  let bob: UserFixture; // Borrower
   let liquidator: UserFixture; // Liquidator
 
   beforeEach(async () => {
@@ -43,7 +43,7 @@ describe("Restrict Collateral", () => {
     );
     await bob.init_and_fund_accounts(
       new anchor.BN(1000 * 1e9), // Quote tokens for repaying
-      new anchor.BN(1000 * 1e9)  // Collateral for borrowing
+      new anchor.BN(1000 * 1e9) // Collateral for borrowing
     );
 
     // Setup liquidator with quote tokens to repay debt
@@ -53,7 +53,7 @@ describe("Restrict Collateral", () => {
       accounts.collateralMint
     );
     await liquidator.init_and_fund_accounts(
-      new anchor.BN(10_000 * 1e9),  // 1000 quote tokens
+      new anchor.BN(10_000 * 1e9), // 1000 quote tokens
       new anchor.BN(0)
     );
 
@@ -73,8 +73,8 @@ describe("Restrict Collateral", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 10 ** 9),
-      conf: new anchor.BN(100 / 10 * 10 ** 9),
-      expo: -9
+      conf: new anchor.BN((100 / 10) * 10 ** 9),
+      expo: -9,
     });
 
     await market.create({
@@ -86,17 +86,15 @@ describe("Restrict Collateral", () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(10000 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
   });
 
-
   it("prevents new borrows after restriction", async () => {
-
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
     });
 
     // First restrict the collateral
@@ -106,7 +104,6 @@ describe("Restrict Collateral", () => {
       isActive: false,
     });
 
-
     // Attempt to borrow
     await assert.rejects(
       async () => {
@@ -114,17 +111,16 @@ describe("Restrict Collateral", () => {
           user: bob,
           symbol: "BONK",
           amount: new anchor.BN(50000000),
-          shares: new anchor.BN(0)
+          shares: new anchor.BN(0),
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6020);
+        assert.strictEqual(err.error.errorCode.number, 6013);
         assert.strictEqual(err.error.errorMessage, "Collateral is not active");
         return true;
       }
     );
   });
-
 
   it("prevents new collateral deposits after restriction", async () => {
     await market.update({
@@ -138,31 +134,30 @@ describe("Restrict Collateral", () => {
         await market.depositCollateral({
           user: bob,
           symbol: "BONK",
-          amount: new anchor.BN(100000000)
+          amount: new anchor.BN(100000000),
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6020);
+        assert.strictEqual(err.error.errorCode.number, 6013);
         assert.strictEqual(err.error.errorMessage, "Collateral is not active");
         return true;
       }
     );
   });
 
-
   it("allows repayment after restriction", async () => {
     // Setup initial borrow position
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
     });
 
     await market.borrow({
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(50 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     // Restrict collateral
@@ -177,7 +172,7 @@ describe("Restrict Collateral", () => {
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(50 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     const borrowerShares = await market
@@ -188,20 +183,19 @@ describe("Restrict Collateral", () => {
     assert.equal(borrowerShares.borrowShares.toNumber(), 0);
   });
 
-
   it("repayment after restriction one day", async () => {
     // Setup initial borrow position
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
     });
 
     await market.borrow({
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(50 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     // Should have 1000 * 1e9 + 50 * 1e9 quote tokens
@@ -214,7 +208,9 @@ describe("Restrict Collateral", () => {
       .get_data();
 
     // Instead of converting to number, compare BNs directly -> 0.05 * 1e18
-    assert.ok(borrowerSharesPrior.borrowShares.eq(new anchor.BN("50000000000000000")));
+    assert.ok(
+      borrowerSharesPrior.borrowShares.eq(new anchor.BN("50000000000000000"))
+    );
 
     // Restrict collateral
     await market.update({
@@ -229,14 +225,17 @@ describe("Restrict Collateral", () => {
     // See impact of interest accrual
     await market.accrueInterest();
     const totalBorrowedAssets = await market.marketAcc.get_data();
-    assert.equal(totalBorrowedAssets.totalBorrowAssets.toNumber(), 50.001392713 * 1e9);
+    assert.equal(
+      totalBorrowedAssets.totalBorrowAssets.toNumber(),
+      50.001392713 * 1e9
+    );
 
     // Repayment should be all outstanding debt + the fee
     await market.repay({
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(0),
-      shares: new anchor.BN("50000000000000000")
+      shares: new anchor.BN("50000000000000000"),
     });
 
     // Get bob's quote balance after repayment
@@ -255,7 +254,10 @@ describe("Restrict Collateral", () => {
     assert.equal(totalBorrowShares.totalBorrowShares.toNumber(), 0);
 
     // borrower pays fee on top of interest accrued
-    assert.equal(bobPriorQuoteBalance - bobPostRepaymentQuoteBalance, BigInt(50.216006994 * 1e9));
+    assert.equal(
+      bobPriorQuoteBalance - bobPostRepaymentQuoteBalance,
+      BigInt(50.216006994 * 1e9)
+    );
   });
 
   it("repayment after restriction one week", async () => {
@@ -263,14 +265,14 @@ describe("Restrict Collateral", () => {
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
     });
 
     await market.borrow({
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(50 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     // Should have 1000 * 1e9 + 50 * 1e9 quote tokens
@@ -283,7 +285,9 @@ describe("Restrict Collateral", () => {
       .get_data();
 
     // Instead of converting to number, compare BNs directly -> 0.05 * 1e18
-    assert.ok(borrowerSharesPrior.borrowShares.eq(new anchor.BN("50000000000000000")));
+    assert.ok(
+      borrowerSharesPrior.borrowShares.eq(new anchor.BN("50000000000000000"))
+    );
 
     // Restrict collateral
     await market.update({
@@ -298,14 +302,17 @@ describe("Restrict Collateral", () => {
     // See impact of interest accrual
     await market.accrueInterest();
     const totalBorrowedAssets = await market.marketAcc.get_data();
-    assert.equal(totalBorrowedAssets.totalBorrowAssets.toNumber(), 50.009749808 * 1e9);
+    assert.equal(
+      totalBorrowedAssets.totalBorrowAssets.toNumber(),
+      50.009749808 * 1e9
+    );
 
     // Repayment should be all outstanding debt + the fee
     await market.repay({
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(0),
-      shares: new anchor.BN("50000000000000000")
+      shares: new anchor.BN("50000000000000000"),
     });
 
     // Get bob's quote balance after repayment
@@ -324,22 +331,25 @@ describe("Restrict Collateral", () => {
     assert.equal(totalBorrowShares.totalBorrowShares.toNumber(), 0);
 
     // borrower pays fee on top of interest accrued
-    assert.equal(bobPriorQuoteBalance - bobPostRepaymentQuoteBalance - BigInt(50 * 1e9), BigInt(1.512050224 * 1e9));
-  });  
+    assert.equal(
+      bobPriorQuoteBalance - bobPostRepaymentQuoteBalance - BigInt(50 * 1e9),
+      BigInt(1.512050224 * 1e9)
+    );
+  });
 
   it("liquidation after restriction one week", async () => {
     // Setup initial borrow position
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
     });
 
     await market.borrow({
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(7980 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     const borrowerSharesPrior = await market
@@ -348,7 +358,9 @@ describe("Restrict Collateral", () => {
       .get_data();
 
     // Instead of converting to number, compare BNs directly -> 0.05 * 1e18
-    assert.ok(borrowerSharesPrior.borrowShares.eq(new anchor.BN("7980000000000000000")));
+    assert.ok(
+      borrowerSharesPrior.borrowShares.eq(new anchor.BN("7980000000000000000"))
+    );
 
     // Restrict collateral
     await market.update({
@@ -363,10 +375,13 @@ describe("Restrict Collateral", () => {
     // See impact of interest accrual
     await market.accrueInterest();
     const totalBorrowedAssets = await market.marketAcc.get_data();
-    assert.equal(totalBorrowedAssets.totalBorrowAssets.toNumber(), 7985.603270394 * 1e9);
+    assert.equal(
+      totalBorrowedAssets.totalBorrowAssets.toNumber(),
+      7985.603270394 * 1e9
+    );
 
     await market.getCollateral("BONK").setPrice({
-      price: new anchor.BN(100 * 1e9),  // $100.00
+      price: new anchor.BN(100 * 1e9), // $100.00
       conf: new anchor.BN(1 * 10 ** 9),
     });
 
@@ -380,12 +395,16 @@ describe("Restrict Collateral", () => {
       symbol: "BONK",
       borrower: bob.key.publicKey,
       collateralAmount: new anchor.BN(0),
-      repayShares: new anchor.BN("7980000000000000000")
+      repayShares: new anchor.BN("7980000000000000000"),
     });
 
     // Get bob's quote balance after repayment
-    const liquidatorPostLiquidationQuoteBalance = await liquidator.get_quo_balance();
-    assert.equal(liquidatorPostLiquidationQuoteBalance, BigInt(1772.912086710 * 1e9));
+    const liquidatorPostLiquidationQuoteBalance =
+      await liquidator.get_quo_balance();
+    assert.equal(
+      liquidatorPostLiquidationQuoteBalance,
+      BigInt(1772.91208671 * 1e9)
+    );
 
     const borrowerSharesPostRepayment = await market
       .getCollateral("BONK")
@@ -398,13 +417,14 @@ describe("Restrict Collateral", () => {
     assert.equal(totalBorrowShares.totalBorrowShares.toNumber(), 0);
 
     // Calculate and verify liquidator's quote token expenditure
-    const liquidatorQuoteSpent = Number(liquidatorPriorQuoteBalance - liquidatorPostLiquidationQuoteBalance);
+    const liquidatorQuoteSpent = Number(
+      liquidatorPriorQuoteBalance - liquidatorPostLiquidationQuoteBalance
+    );
 
     assert.equal(
       liquidatorQuoteSpent,
       8227087913290,
       "Incorrect amount of quote tokens spent by liquidator"
     );
-
-  });  
+  });
 });

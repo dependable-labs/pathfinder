@@ -75,7 +75,7 @@ pub struct WithdrawCollateral<'info> {
 impl<'info> WithdrawCollateral<'info> {
     pub fn validate(&self, args: &WithdrawCollateralArgs) -> Result<()> {
         if args.amount == 0 {
-            return err!(MarketError::InvalidDepositCollateralInput);
+            return err!(MarketError::InvalidWithdrawInput);
         }
 
         Ok(())
@@ -116,12 +116,12 @@ impl<'info> WithdrawCollateral<'info> {
         // Update market state
         collateral.total_collateral = collateral.total_collateral
             .checked_sub(assets)
-            .ok_or(error!(MarketError::MathOverflow))?;
+            .ok_or(error!(MarketError::MathUnderflow))?;
 
         // Update user collateral
         borrower_shares.collateral_amount = borrower_shares.collateral_amount
             .checked_sub(assets)
-            .ok_or(MarketError::MathOverflow)?;        
+            .ok_or(MarketError::MathUnderflow)?;        
 
         msg!("Withdrawing {} collateral ", assets);
 
