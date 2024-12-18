@@ -64,8 +64,8 @@ describe("User Borrow", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 10 ** 5),
-      conf: new anchor.BN(100 / 10 * 10 ** 9),
-      expo: -5
+      conf: new anchor.BN((100 / 10) * 10 ** 9),
+      expo: -5,
     });
 
     await market.create({
@@ -76,13 +76,13 @@ describe("User Borrow", () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1000000000),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(1000000000)
+      amount: new anchor.BN(1000000000),
     });
   });
 
@@ -93,7 +93,7 @@ describe("User Borrow", () => {
       user: bob,
       symbol: "BONK",
       amount: new anchor.BN(0.5 * 1e9), // 0.5 * 1e9
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
     });
 
     const marketAccountData = await market.marketAcc.get_data();
@@ -101,10 +101,7 @@ describe("User Borrow", () => {
       marketAccountData.totalBorrowShares.toNumber(),
       500000000000000
     );
-    assert.equal(
-      marketAccountData.totalBorrowAssets.toNumber(),
-      500000000
-    );
+    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 500000000);
 
     const userSharesAccountData = await market
       .getCollateral("BONK")
@@ -116,10 +113,7 @@ describe("User Borrow", () => {
     );
 
     const finalBalance = await bob.get_quo_balance();
-    assert.equal(
-      finalBalance - initialBalance,
-      BigInt(500000000)
-    );
+    assert.equal(finalBalance - initialBalance, BigInt(500000000));
   });
 
   it("fails to borrow without collateral", async () => {
@@ -130,12 +124,12 @@ describe("User Borrow", () => {
           user: larry,
           symbol: "BONK",
           amount: new anchor.BN(100 * 1e9),
-          shares: new anchor.BN(0)
+          shares: new anchor.BN(0),
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6017);
-        assert.strictEqual(err.error.errorMessage, 'User is not solvent'); // wrong error!
+        assert.strictEqual(err.error.errorCode.number, 6011);
+        assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
         return true;
       }
     );
@@ -148,12 +142,12 @@ describe("User Borrow", () => {
           user: bob,
           symbol: "BONK",
           amount: new anchor.BN(1000_000_000_001), // 1 More than debt cap
-          shares: new anchor.BN(0)
+          shares: new anchor.BN(0),
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6017);
-        assert.strictEqual(err.error.errorMessage, 'User is not solvent'); // wrong error!
+        assert.strictEqual(err.error.errorCode.number, 6011);
+        assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
         return true;
       }
     );

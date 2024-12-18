@@ -82,9 +82,9 @@ impl<'info> Deposit<'info> {
         let mut shares = args.shares;
         let mut assets = args.amount;
 
-        // Validate that either shares or amount is zero, but not both
+        // Validate that either shares or assets must be specified, but not both
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-            return err!(MarketError::InvalidDepositInput);
+            return err!(MarketError::AssetShareValueMismatch);
         }
 
         accrue_interest(market)?;

@@ -99,7 +99,7 @@ impl<'info> Repay<'info> {
 
         // Validate that either shares or amount is zero, but not both
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-            return err!(MarketError::InvalidInput);
+            return err!(MarketError::AssetShareValueMismatch);
         }
 
         msg!("repaying {}", assets);
@@ -123,17 +123,17 @@ impl<'info> Repay<'info> {
         // Update market shares
         market.total_borrow_shares = market.total_borrow_shares
                 .checked_sub(shares)
-                .ok_or(MarketError::MathOverflow)?;
+                .ok_or(MarketError::MathUnderflow)?;
 
         // Update market quote amount
         market.total_borrow_assets = market.total_borrow_assets
                 .checked_sub(assets)
-                .ok_or(MarketError::MathOverflow)?;
+                .ok_or(MarketError::MathUnderflow)?;
 
         // Update user shares
         borrower_shares.borrow_shares = borrower_shares.borrow_shares
                 .checked_sub(shares)
-                .ok_or(MarketError::MathOverflow)?;
+                .ok_or(MarketError::MathUnderflow)?;
 
         // Update market quote amount
         market.total_quote = market.total_quote

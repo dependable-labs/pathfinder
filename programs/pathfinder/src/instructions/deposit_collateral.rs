@@ -113,7 +113,7 @@ impl<'info> DepositCollateral<'info> {
         // Update user collateral
         borrower_shares.collateral_amount = borrower_shares.collateral_amount
             .checked_add(assets)
-            .ok_or(MarketError::MathOverflow)?;        
+            .ok_or(error!(MarketError::MathOverflow))?;        
 
         msg!("Depositing {} collateral to the vault", assets);
 

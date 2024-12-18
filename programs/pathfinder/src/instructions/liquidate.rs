@@ -120,7 +120,7 @@ impl<'info> Liquidate<'info> {
 
         // Validate that either shares or amount is zero, but not both
         if (repay_shares == 0 && collateral_amount == 0) || (repay_shares != 0 && collateral_amount != 0) {
-            return err!(MarketError::InvalidDepositInput);
+            return err!(MarketError::AssetShareValueMismatch);
         }
 
         accrue_interest(market)?;
@@ -180,11 +180,21 @@ impl<'info> Liquidate<'info> {
             market.total_borrow_shares
         )?;
 
-        borrower_shares.borrow_shares = borrower_shares.borrow_shares.checked_sub(repay_shares).unwrap();
-        market.total_borrow_shares = market.total_borrow_shares.checked_sub(repay_shares).unwrap();
-        market.total_borrow_assets = max_u64(market.total_borrow_assets.checked_sub(repaid_quote).unwrap(), 0);
+        borrower_shares.borrow_shares = borrower_shares.borrow_shares
+                .checked_sub(repay_shares)
+                .ok_or(MarketError::MathUnderflow)?;
 
-        borrower_shares.collateral_amount = borrower_shares.collateral_amount.checked_sub(collateral_amount).unwrap();
+        market.total_borrow_shares = market.total_borrow_shares
+                .checked_sub(repay_shares)
+                .ok_or(MarketError::MathUnderflow)?;
+
+        market.total_borrow_assets = max_u64(market.total_borrow_assets
+                .checked_sub(repaid_quote)
+                .ok_or(MarketError::MathUnderflow)?, 0);
+
+        borrower_shares.collateral_amount = borrower_shares.collateral_amount
+                .checked_sub(collateral_amount)
+                .ok_or(MarketError::MathUnderflow)?;
 
         let fee = restriction_fee(repaid_quote, collateral.last_active_timestamp)?;
 
@@ -247,9 +257,11 @@ impl<'info> Liquidate<'info> {
         );
 
         // Verify liquidator has sufficient quote tokens
-        if user_ata_quote.amount < repaid_quote_with_fee {
-            return err!(MarketError::InsufficientBalance);
-        }
+        require_gte!(
+            user_ata_quote.amount,
+            repaid_quote_with_fee,
+            MarketError::InsufficientBalance
+        );
         
         // transfer tokens to vault
         transfer(

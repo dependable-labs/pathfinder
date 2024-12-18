@@ -34,7 +34,7 @@ pub fn mul_div_down(a: u128, b: u128, c: u128) -> Result<u64> {
 pub fn mul_div_up(a: u128, b: u128, c: u128) -> Result<u64> {
   // (a * b + (c - 1)) / c
   let product = a.checked_mul(b).ok_or(error!(MarketError::MathOverflow))?;
-  let c_minus_one = c.checked_sub(1).ok_or(error!(MarketError::MathOverflow))?;
+  let c_minus_one = c.checked_sub(1).ok_or(error!(MarketError::MathUnderflow))?;
   let numerator = product.checked_add(c_minus_one).ok_or(error!(MarketError::MathOverflow))?;
   let result = numerator.checked_div(c).ok_or(error!(MarketError::MathOverflow))?;
 

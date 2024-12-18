@@ -182,7 +182,7 @@ describe("Withdraw Collateral", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6017);
+        assert.strictEqual(err.error.errorCode.number, 6011);
         assert.strictEqual(err.error.errorMessage, 'User is not solvent');
         return true;
       },

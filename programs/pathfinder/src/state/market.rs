@@ -18,7 +18,7 @@ impl PythOracle {
         // if feed_id.len() == 64 || (feed_id.len() == 66 && feed_id.starts_with("0x")) {
         // } else {
         //     // Invalid oracle ID
-        //     Err(error!(MarketError::InvalidOracleId))
+        //     Err(err!(MarketError::InvalidOracleId))
         // }
 
         Ok(Self {
