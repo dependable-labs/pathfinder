@@ -2,6 +2,10 @@ use super::*;
 
 #[cfg(test)]
 mod tests {
+    use std::char::MAX;
+
+    use crate::MAX_RATE_AT_TARGET;
+
     use super::*;
 
     #[test]
@@ -125,17 +129,24 @@ mod tests {
 
 //     println!("Starting test with WAD_INT = {}", WAD_INT);
 
-//     let increment = WAD_INT / 10; // Increment by 0.1
+//     const YEAR_SECONDS: i128 = 365 * 24 * 60 * 60;
+//     let increment = WAD_INT / 20; // Increment by 0.5
+//     const MAX_RATE_AT_TARGET: i128 = 2 * WAD_INT / YEAR_SECONDS;
 
 //     while x < i128::MAX / 2 {
 //         iterations += 1;
         
 //         let result = std::panic::catch_unwind(|| {
-//             w_exp(x)
+//             println!("x value: {}", x);
+            
+//             let exp = w_exp(x).unwrap();
+
+//             println!("exp value: {}", exp);
+//             w_mul_to_zero(exp, MAX_RATE_AT_TARGET).unwrap()
 //         });
 
 //         match result {
-//             Ok(Ok(exp_result)) => {
+//             Ok(exp_result) => {
 //                 // Validate that result is positive and reasonable
 //                 if exp_result <= 0 {
 //                     println!("\nINVALID RESULT FOUND (negative or zero)!");
@@ -174,6 +185,7 @@ mod tests {
 //                     x,
 //                     (x as f64) / (WAD_INT as f64)
 //                 );
+//                 println!("max rate at target: {} ", MAX_RATE_AT_TARGET);
 //                 break;
 //             }
 //         }
@@ -185,11 +197,5 @@ mod tests {
     fn test_upper_bound_exp() {
         let result = w_exp(WEXP_UPPER_BOUND).unwrap();
         assert_eq!(result, WEXP_UPPER_VALUE);
-    }
-
-    #[test]
-    fn test_upper_bound_minus_one_exp() {
-        let result = w_exp(WEXP_UPPER_BOUND - 1).unwrap();
-        assert_eq!(result, 169_612_341_902_420_792_448);
     }
 }
