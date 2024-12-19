@@ -16,12 +16,14 @@ pub const LN_WEI_INT: i128 = -41_446_531_673_892_822_312;
 // pub const WEXP_UPPER_BOUND: i128 = 93_859_467_695_000_404_319;
 
 /// @dev This upper bound corresponds to: ln(i128::MAX / 1e36)
-pub const WEXP_UPPER_BOUND: i128 = 5_136_628_583_327_409_665;
+// pub const WEXP_UPPER_BOUND: i128 = 5_136_628_583_327_409_665;
+pub const WEXP_UPPER_BOUND: i128 = 21_700_000_000_000_000_000;
 
 // The value of wExp(`WEXP_UPPER_BOUND`).
 // 57716089161558943949701069502944508345128.422502756744429568 * WAD_INT;
 // pub const WEXP_UPPER_VALUE: i128 = 57716089161558943949701069502944508345128.422502756744429568 * WAD_INT;
-pub const WEXP_UPPER_VALUE: i128 = 169_612_341_902_420_792_704;
+// pub const WEXP_UPPER_VALUE: i128 = 169_612_341_902_420_792_704;
+pub const WEXP_UPPER_VALUE: i128 = 2_652_147_089_148_298_802_378_047_488;
 
 /// @dev Returns an approximation of exp.
 pub fn w_exp(x: i128) -> Result<i128> {
@@ -29,7 +31,7 @@ pub fn w_exp(x: i128) -> Result<i128> {
   if x < LN_WEI_INT { return Ok(0); }
 
   // `wExp` is clipped to avoid overflowing when multiplied with 1 ether.
-  if x >= WEXP_UPPER_BOUND { return Ok(WEXP_UPPER_VALUE); }
+  // if x >= WEXP_UPPER_BOUND { return Ok(WEXP_UPPER_VALUE); }
 
   // Decompose x as x = q * ln(2) + r with q an integer and -ln(2)/2 <= r <= ln(2)/2.
   // q = x / ln(2) rounded half toward zero.
