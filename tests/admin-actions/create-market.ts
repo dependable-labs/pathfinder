@@ -72,4 +72,36 @@ describe("Create Market Operations", () => {
     assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
   });
+
+  it("fails to create a market with the same mint as the quote mint", async () => {
+
+    await assert.rejects(
+      async () => {
+        await market.createCustom({
+          collateralSymbol: "BONK",
+          ltvFactor: new anchor.BN(0),
+          quoteMint: accounts.quoteMint,
+          vaultAtaQuote: market.get_ata(accounts.quoteMint),
+          collateralMint: accounts.quoteMint,
+          vaultAtaCollateral: market.get_ata(accounts.quoteMint),
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorCode.number, 2003); // Updated error code
+        assert.strictEqual(err.error.errorMessage, 'A raw constraint was violated'); // Updated error message
+        return true;
+      },
+      "Expected update to fail when called by non-authority"
+    );
+
+    await assert.rejects(
+      async () => {
+        await market.marketAcc.get_data();
+      },
+      (err: anchor.AnchorError) => {
+        return true;
+      },
+      "Expected market account to not exist"
+    );
+  });
 });
