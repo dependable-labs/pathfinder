@@ -52,6 +52,10 @@ pub struct CreateMarket<'info> {
 
     // quote
     #[account(constraint = quote_mint.is_initialized == true)]
+
+    #[account(
+        constraint = quote_mint.is_initialized == true && collateral_mint.key() != quote_mint.key()
+    )]
     pub quote_mint: Box<Account<'info, Mint>>,
 
     #[account(
@@ -63,7 +67,9 @@ pub struct CreateMarket<'info> {
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 
     // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
+    #[account(
+        constraint = collateral_mint.is_initialized == true && collateral_mint.key() != quote_mint.key()
+    )]
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     #[account(

@@ -89,6 +89,31 @@ export class MarketFixture {
     collateralSymbol: SupportedCollateral;
     ltvFactor: anchor.BN;
   }): Promise<void> {
+    await this.createCustom({
+      collateralSymbol,
+      ltvFactor,
+      quoteMint: this.quoteMint,
+      vaultAtaQuote: this.get_ata(this.quoteMint),
+      collateralMint: this.getCollateral(collateralSymbol).collateralMint,
+      vaultAtaCollateral: this.get_ata(this.getCollateral(collateralSymbol).collateralMint),
+    });
+  }
+
+  async createCustom({
+    collateralSymbol,
+    ltvFactor,
+    quoteMint,
+    vaultAtaQuote,
+    collateralMint,
+    vaultAtaCollateral,
+  }: {
+    collateralSymbol: SupportedCollateral;
+    ltvFactor: anchor.BN;
+    quoteMint: PublicKey;
+    vaultAtaQuote: PublicKey;
+    collateralMint: PublicKey;
+    vaultAtaCollateral: PublicKey;
+  }): Promise<void> {
     const collateral = this.getCollateral(collateralSymbol);
     if (!collateral) {
       throw new Error(`Collateral ${collateralSymbol} not found`);
@@ -103,10 +128,10 @@ export class MarketFixture {
         authority: this.controller.authority.publicKey,
         controller: this.controller.controllerAcc.key,
         market: this.marketAcc.key,
-        quoteMint: this.quoteMint,
-        collateralMint: collateral.collateralMint,
-        vaultAtaQuote: this.get_ata(this.quoteMint),
-        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+        quoteMint: quoteMint,
+        collateralMint: collateralMint,
+        vaultAtaQuote: vaultAtaQuote,
+        vaultAtaCollateral: vaultAtaCollateral,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
