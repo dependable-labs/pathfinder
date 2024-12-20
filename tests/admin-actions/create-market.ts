@@ -73,7 +73,38 @@ describe("Create Market Operations", () => {
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
   });
 
-  it("fails to create a market with the same mint as the quote mint", async () => {
+  it("fails to create a duplicate market", async () => {
+    await market.create({
+      collateralSymbol: "BONK",
+      ltvFactor: new anchor.BN(0),
+    });
+
+    const marketAccountData = await market.marketAcc.get_data();
+
+    assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
+    assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
+    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
+    assert.equal(marketAccountData.totalShares.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
+
+    await assert.rejects(
+      async () => {
+        await market.create({
+          collateralSymbol: "BONK",
+          ltvFactor: new anchor.BN(0),
+        });
+      },
+      (err: anchor.AnchorError) => {
+        // errors with account already in use
+        return true;
+      },
+      "Expected update to fail when called by non-authority"
+    );
+
+  });
+
+  it("fails to create a market where the collateral mint is the same as the quote mint", async () => {
 
     await assert.rejects(
       async () => {
