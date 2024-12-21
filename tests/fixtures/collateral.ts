@@ -25,7 +25,7 @@ export const ORACLE_CONFIG = {
 
 export type SupportedCollateral = keyof typeof ORACLE_CONFIG;
 
-export class  CollateralFixture {
+export class CollateralFixture {
   public mockPythPull: Program<MockPythPull>;
   public program: Program<Markets>;
   public provider: BankrunProvider;
