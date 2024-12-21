@@ -1,13 +1,16 @@
 import * as anchor from "@coral-xyz/anchor";
-import { setupTest} from '../utils';
+import { setupTest } from '../utils';
 import { ControllerFixture, MarketFixture} from '../fixtures';
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import assert from 'assert';
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { UserFixture } from "../fixtures";
-describe("Create Market Operations", () => {
+import { createMint } from "spl-token-bankrun";
+import { ProgramTestContext } from 'solana-bankrun';
 
+describe("Create Market Operations", () => {
+  let context: ProgramTestContext;
   let program: Program<Markets>;
   let provider: BankrunProvider;
   let market: MarketFixture;
@@ -15,7 +18,7 @@ describe("Create Market Operations", () => {
   let larry: UserFixture;
 
   beforeEach(async () => {
-    let context = await startAnchor('', [], []);
+    context = await startAnchor('', [], []);
     provider = new BankrunProvider(context);
 
     ({ program, accounts } = await setupTest({
@@ -55,6 +58,15 @@ describe("Create Market Operations", () => {
       conf: new anchor.BN(100 / 10 * 10 ** 9),
       expo: -9
     });
+
+    await market.addCollateral({
+      symbol: "META",
+      collateralAddress: accounts.collateralAcc,
+      collateralMint: accounts.collateralMint,
+      price: new anchor.BN(100 * 10 ** 9),
+      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      expo: -9
+    });
   });
 
   it("creates a market", async () => {
@@ -71,6 +83,62 @@ describe("Create Market Operations", () => {
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
+  });
+
+  it("adds second collateral to existing market", async () => {
+    await market.create({
+      collateralSymbol: "BONK",
+      ltvFactor: new anchor.BN(0),
+    });
+
+    let marketAccountData = await market.marketAcc.get_data();
+    assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
+    assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
+    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
+    assert.equal(marketAccountData.totalShares.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
+
+    const bonkCollateralAccount = await market.getCollateral("BONK").collateralAcc.get_data();
+    assert.equal(bonkCollateralAccount.collateralMint.toBase58(), accounts.collateralMint.toBase58());
+    assert.equal(bonkCollateralAccount.collateralMintDecimals, 9, "Collateral mint decimals should be 9");
+    assert.equal(bonkCollateralAccount.totalCollateral.toNumber(), 0);
+    assert.equal(bonkCollateralAccount.ltvFactor.toNumber(), 0);
+    assert.equal(bonkCollateralAccount.lastActiveTimestamp.toNumber(), 0);
+
+
+    const newCollateralMint = await createMint(
+      context.banksClient,
+      provider.wallet.payer,
+      provider.wallet.publicKey,
+      provider.wallet.publicKey,
+      9
+    );
+
+    await market.createCustom({
+      collateralSymbol: "META",
+      ltvFactor: new anchor.BN(0),
+      quoteMint: accounts.quoteMint,
+      vaultAtaQuote: market.get_ata(accounts.quoteMint),
+      collateralMint: newCollateralMint,
+      vaultAtaCollateral: market.get_ata(newCollateralMint),
+    });
+
+    marketAccountData = await market.marketAcc.get_data();
+
+    assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
+    assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
+    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
+    assert.equal(marketAccountData.totalShares.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
+
+    let metaCollateralAccount = await market.getCollateral("META").collateralAcc.get_data();
+    assert.equal(metaCollateralAccount.collateralMintDecimals, 9, "Collateral mint decimals should be 9");
+    assert.equal(metaCollateralAccount.totalCollateral.toNumber(), 0);
+    assert.equal(metaCollateralAccount.ltvFactor.toNumber(), 0);
+    assert.equal(metaCollateralAccount.lastActiveTimestamp.toNumber(), 0);
+
   });
 
   it("fails to create a duplicate market", async () => {

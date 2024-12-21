@@ -17,6 +17,10 @@ export const ORACLE_CONFIG = {
     id: "0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419",
     decimals: 9,
   },
+  "META": { // META-USD
+    id: "0xe379d8d3a1a44952474f057bdfe6e902a97f093b2872c152dcf04f612e3e3be9",
+    decimals: 9,
+  },
 } as const;
 
 export type SupportedCollateral = keyof typeof ORACLE_CONFIG;

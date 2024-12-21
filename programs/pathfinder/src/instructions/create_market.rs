@@ -25,7 +25,7 @@ pub struct CreateMarket<'info> {
 
     // market
     #[account(
-        init,
+        init_if_needed,
         payer = authority,
         space = 8 + std::mem::size_of::<Market>(),
         seeds = [
@@ -106,24 +106,30 @@ impl<'info> CreateMarket<'info> {
         let clock = Clock::get()?;
         let current_timestamp = clock.unix_timestamp as u64;
 
-        market.set_inner(Market {
-            bump: ctx.bumps.market,
+        // create market if it doesn't exist
+        if market.quote_mint == Pubkey::default() {
 
-            quote_mint: quote_mint.key(),
-            quote_mint_decimals: quote_mint.decimals,
+            println!("Creating market here");
 
-            // lender accounting
-            total_shares:0,
-            total_quote: 0,
-            
-            // borrower accounting
-            total_borrow_shares: 0,
-            total_borrow_assets: 0,
+            market.set_inner(Market {
+                bump: ctx.bumps.market,
 
-            // interest
-            last_accrual_timestamp: current_timestamp,
-            rate_at_target: 0,
-        });
+                quote_mint: quote_mint.key(),
+                quote_mint_decimals: quote_mint.decimals,
+
+                // lender accounting
+                total_shares:0,
+                total_quote: 0,
+                
+                // borrower accounting
+                total_borrow_shares: 0,
+                total_borrow_assets: 0,
+
+                // interest
+                last_accrual_timestamp: current_timestamp,
+                rate_at_target: 0,
+            });
+        }
 
         collateral.set_inner(Collateral {
             bump: ctx.bumps.collateral,
