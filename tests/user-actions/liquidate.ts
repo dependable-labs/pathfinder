@@ -105,7 +105,7 @@ describe("Liquidate", () => {
     await market.borrow({
       user: borrower,
       symbol: "BONK",
-      amount: new anchor.BN(75 * 1e9),  // 75 quote tokens (75% LTV)
+      amount: new anchor.BN(70 * 1e9),
       shares: new anchor.BN(0)
     });
   });
@@ -139,7 +139,7 @@ describe("Liquidate", () => {
     // Verify liquidator's balance changes
     assert.equal(
       initialLiquidatorQuote - finalLiquidatorQuote,
-      BigInt(869_565_218),  // Spent quote tokens
+      BigInt(1_043_478_261),  // Spent quote tokens
       "Incorrect quote token change"
     );
 

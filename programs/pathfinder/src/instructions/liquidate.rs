@@ -150,7 +150,7 @@ impl<'info> Liquidate<'info> {
             )?
         );
 
-        let (collateral_price, price_scale) = collateral.oracle.get_price(price_update)?;
+        let (collateral_price, price_scale) = collateral.oracle.get_price(price_update, true)?;
 
         if collateral_amount > 0 {
           let collateral_quoted = mul_div_up(collateral_amount as u128, collateral_price as u128, price_scale as u128)?;

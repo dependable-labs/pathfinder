@@ -61,7 +61,7 @@ describe("Withdraw Collateral", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 10 ** 5),
-      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      conf: new anchor.BN(10 * 1e5),
       expo: -5
     });
 
