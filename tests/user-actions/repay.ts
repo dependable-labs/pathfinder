@@ -65,7 +65,7 @@ describe("Repay", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 10 ** 5),
-      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      conf: new anchor.BN(10 * 1e5),
       expo: -5
     });
 
@@ -249,6 +249,7 @@ describe("Repay", () => {
       amount: new anchor.BN(25 * 1e9), // Repay 25 tokens
       shares: new anchor.BN(0)
     });
+
 
     // Get final state
     const finalQuoteBalance = await bob.get_quo_balance();

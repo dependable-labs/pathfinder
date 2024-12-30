@@ -5,8 +5,10 @@ import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import assert from "assert";
 import { BankrunProvider, startAnchor } from "anchor-bankrun";
+import { TimeUtils } from "../utils";
 
-describe("User Borrow", () => {
+
+describe("Oracle", () => {
   let program: Program<Markets>;
   let provider: BankrunProvider;
   let accounts: any;
@@ -63,9 +65,9 @@ describe("User Borrow", () => {
       symbol: "BONK",
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
-      price: new anchor.BN(100 * 1e5),
-      conf: new anchor.BN(10 * 1e5), // upperbound: 110 * 1e5, lowerbound: 90 * 1e5
-      expo: -5,
+      price: new anchor.BN(100 * 10 ** 9),
+      conf: new anchor.BN(10 * 1e9),
+      expo: -9,
     });
 
     await market.create({
@@ -75,79 +77,91 @@ describe("User Borrow", () => {
 
     await market.deposit({
       user: larry,
-      amount: new anchor.BN(1000000000),
+      amount: new anchor.BN(1000 * 1e9),
       shares: new anchor.BN(0),
     });
 
     await market.depositCollateral({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(1000000000),
+      amount: new anchor.BN(1 * 1e9),
     });
   });
 
-  it("borrows from a market", async () => {
-    const initialBalance = await bob.get_quo_balance();
+  it("oracle price returns none if price is too old", async () => {
 
-    await market.borrow({
-      user: bob,
-      symbol: "BONK",
-      amount: new anchor.BN(0.5 * 1e9), // 0.5 * 1e9
-      shares: new anchor.BN(0),
-    });
+    await TimeUtils.moveTimeForward(provider.context, 3601);
 
-    const marketAccountData = await market.marketAcc.get_data();
-    assert.equal(
-      marketAccountData.totalBorrowShares.toNumber(),
-      500000000000000
-    );
-    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 500000000);
-
-    const userSharesAccountData = await market
-      .getCollateral("BONK")
-      .get_borrower_shares(bob.key.publicKey)
-      .get_data();
-    assert.equal(
-      userSharesAccountData.borrowShares.toNumber(),
-      500000000000000
-    );
-
-    const finalBalance = await bob.get_quo_balance();
-    assert.equal(finalBalance - initialBalance, BigInt(500000000));
-  });
-
-  it("fails to borrow without collateral", async () => {
-    //TODO: Fixme
-    await assert.rejects(
-      async () => {
-        await market.borrow({
-          user: larry,
-          symbol: "BONK",
-          amount: new anchor.BN(100 * 1e9),
-          shares: new anchor.BN(0),
-        });
-      },
-      (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6011);
-        assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
-        return true;
-      }
-    );
-  });
-
-  it("fails to borrow more than debt cap", async () => {
+    // TODO: Fixme
     await assert.rejects(
       async () => {
         await market.borrow({
           user: bob,
           symbol: "BONK",
-          amount: new anchor.BN(1000_000_000_001), // 1 More than debt cap
+          amount: new anchor.BN(10 * 1e9),
           shares: new anchor.BN(0),
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6011);
-        assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
+        assert.strictEqual(err.error.errorCode.number, 16000);
+        assert.strictEqual(err.error.errorMessage, "This price feed update's age exceeds the requested maximum age");
+        return true;
+      }
+    );
+  });
+
+  it("confidence exceeds price in solvent check", async () => {
+    await market.getCollateral("BONK").setPrice({
+      price: new anchor.BN(100 * 1e9), // $100.00
+      conf: new anchor.BN(101 * 1e9),
+    });
+
+    await assert.rejects(
+      async () => {
+        await market.borrow({
+          user: bob,
+          symbol: "BONK",
+          amount: new anchor.BN(10 * 1e9),
+          shares: new anchor.BN(0),
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorCode.number, 6009);
+        assert.strictEqual(err.error.errorMessage, "Math overflow");
+        return true;
+      }
+    );
+  });
+
+  it("confidence exceeds price in liquidation check", async () => {
+    await market.borrow({
+      user: bob,
+      symbol: "BONK",
+      amount: new anchor.BN(70 * 1e9),
+      shares: new anchor.BN(0),
+    });
+
+    // advance 1 year
+    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 60 * 60);
+
+    await market.getCollateral("BONK").setPrice({
+      price: new anchor.BN(100 * 1e9), // $100.00
+      conf: new anchor.BN(101 * 1e9),
+    });
+
+    await assert.rejects(
+      async () => {
+        await market.liquidate({
+          user: bob,
+          symbol: "BONK",
+          borrower: bob.key.publicKey,
+          collateralAmount: new anchor.BN(0),
+          repayShares: new anchor.BN(10 * 1e9),
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorCode.number, 6009);
+        assert.strictEqual(err.error.errorMessage, "Math overflow");
         return true;
       }
     );

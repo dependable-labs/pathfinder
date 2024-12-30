@@ -140,7 +140,7 @@ impl<'info> CreateMarket<'info> {
             total_collateral: 0,
             ltv_factor: args.ltv_factor,
 
-            oracle: PythOracle::new(&args.feed_id, 300)?,
+            oracle: PythOracle::new(&args.feed_id)?,
             last_active_timestamp: 0,
         });
 

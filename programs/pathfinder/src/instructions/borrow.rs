@@ -182,7 +182,9 @@ pub fn is_solvent(
     collateral_amount: u64,
     collateral_decimals: u8
 ) -> Result<bool> {
-    let (price, price_scale) = collateral.oracle.get_price(price_update)?;
+
+    // price is low end of confidence interval
+    let (price, price_scale) = collateral.oracle.get_price(price_update, false)?;
 
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
     let mut borrowed = to_assets_up(

@@ -73,7 +73,7 @@ describe("Restrict Collateral", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 10 ** 9),
-      conf: new anchor.BN((100 / 10) * 10 ** 9),
+      conf: new anchor.BN(10 * 1e9), // lowerbound: 90 * 1e9, upperbound: 110 * 1e9
       expo: -9,
     });
 
@@ -327,7 +327,6 @@ describe("Restrict Collateral", () => {
     assert.equal(borrowerSharesPostRepayment.borrowShares.toNumber(), 0);
 
     const totalBorrowShares = await market.marketAcc.get_data();
-    console.log(totalBorrowShares.totalBorrowShares.toNumber());
     assert.equal(totalBorrowShares.totalBorrowShares.toNumber(), 0);
 
     // borrower pays fee on top of interest accrued
@@ -348,7 +347,7 @@ describe("Restrict Collateral", () => {
     await market.borrow({
       user: bob,
       symbol: "BONK",
-      amount: new anchor.BN(7980 * 1e9),
+      amount: new anchor.BN(7200 * 1e9),
       shares: new anchor.BN(0),
     });
 
@@ -359,7 +358,7 @@ describe("Restrict Collateral", () => {
 
     // Instead of converting to number, compare BNs directly -> 0.05 * 1e18
     assert.ok(
-      borrowerSharesPrior.borrowShares.eq(new anchor.BN("7980000000000000000"))
+      borrowerSharesPrior.borrowShares.eq(new anchor.BN("7200000000000000000"))
     );
 
     // Restrict collateral
@@ -377,12 +376,12 @@ describe("Restrict Collateral", () => {
     const totalBorrowedAssets = await market.marketAcc.get_data();
     assert.equal(
       totalBorrowedAssets.totalBorrowAssets.toNumber(),
-      7985.603270394 * 1e9
+      7204.696325482 * 1e9
     );
 
     await market.getCollateral("BONK").setPrice({
       price: new anchor.BN(100 * 1e9), // $100.00
-      conf: new anchor.BN(1 * 10 ** 9),
+      conf: new anchor.BN(10 * 1e9),
     });
 
     // Get liquidator's quote balance before liquidation
@@ -395,7 +394,7 @@ describe("Restrict Collateral", () => {
       symbol: "BONK",
       borrower: bob.key.publicKey,
       collateralAmount: new anchor.BN(0),
-      repayShares: new anchor.BN("7980000000000000000"),
+      repayShares: new anchor.BN("7200000000000000000"),
     });
 
     // Get bob's quote balance after repayment
@@ -403,7 +402,7 @@ describe("Restrict Collateral", () => {
       await liquidator.get_quo_balance();
     assert.equal(
       liquidatorPostLiquidationQuoteBalance,
-      BigInt(1772.91208671 * 1e9)
+      BigInt(2577.433657636 * 1e9)
     );
 
     const borrowerSharesPostRepayment = await market
@@ -423,7 +422,7 @@ describe("Restrict Collateral", () => {
 
     assert.equal(
       liquidatorQuoteSpent,
-      8227087913290,
+      7422.566342364 * 1e9,
       "Incorrect amount of quote tokens spent by liquidator"
     );
   });

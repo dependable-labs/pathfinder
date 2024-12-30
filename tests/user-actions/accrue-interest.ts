@@ -234,13 +234,12 @@ describe("Accrue Interest", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 1e6),
-      conf: new anchor.BN(100 / 10 * 1e9),
+      conf: new anchor.BN(10 * 1e6),
       expo: -6
     });
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(1_000 * 1e6),
       ltvFactor: new anchor.BN(0.8 * 1e6),
     });
 
@@ -428,13 +427,12 @@ describe("Accrue Interest", () => {
       collateralAddress: accounts.collateralAcc,
       collateralMint: accounts.collateralMint,
       price: new anchor.BN(100 * 1e6),
-      conf: new anchor.BN(100 / 10 * 1e9),
+      conf: new anchor.BN(10 * 1e6),
       expo: -6
     });
 
     await market.create({
       collateralSymbol: "BONK",
-      debtCap: new anchor.BN(1_000 * 1e9),
       ltvFactor: new anchor.BN(0.8 * 1e9),
     });
 
