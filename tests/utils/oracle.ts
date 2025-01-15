@@ -126,8 +126,8 @@ describe("Oracle", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6009);
-        assert.strictEqual(err.error.errorMessage, "Math overflow");
+        assert.strictEqual(err.error.errorCode.number, 6010);
+        assert.strictEqual(err.error.errorMessage, "Math Underflow");
         return true;
       }
     );
@@ -160,8 +160,8 @@ describe("Oracle", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6009);
-        assert.strictEqual(err.error.errorMessage, "Math overflow");
+        assert.strictEqual(err.error.errorCode.number, 6010);
+        assert.strictEqual(err.error.errorMessage, "Math Underflow");
         return true;
       }
     );
