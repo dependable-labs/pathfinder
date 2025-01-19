@@ -42,7 +42,9 @@ Before you begin, ensure you have the following installed:
 
 4. Update the program ID in `lib.rs` and `Anchor.toml` with the new program ID generated during the build process.
 
-5. Run tests:
+5. Update the `wallet` variable in `Anchor.toml` with your local wallet.
+
+6. Run tests:
    ```
    anchor test
    ```

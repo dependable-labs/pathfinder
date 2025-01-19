@@ -13,7 +13,8 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "/home/evergreen/.config/solana/id.json"
+wallet = "/Users/eloqjava/.config/solana/id.json"
+# wallet = "/home/evergreen/.config/solana/id.json"
 # cluster = "devnet"
 # wallet = "/home/evergreen/.config/solana/id.json"
 
