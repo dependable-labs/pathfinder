@@ -36,9 +36,12 @@ pub fn get_rate(
     market: &mut Account<Market>,
 ) -> Result<(u64, u64)> { 
 
+
+    let total_deposits = market.total_deposits()?;
+
     // Safe "unchecked" cast because the utilization is smaller than 1 (scaled by WAD).
-    let utilization: i128 = if market.total_quote > 0 {
-        w_div_down(market.total_borrow_assets, market.total_quote)? as i128
+    let utilization: i128 = if total_deposits > 0 {
+        w_div_down(market.total_borrow_assets, total_deposits)? as i128
     } else {
         0
     };

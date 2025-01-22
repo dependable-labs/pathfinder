@@ -3,14 +3,14 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { BankrunProvider } from "anchor-bankrun";
-import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, ControllerFixture } from "./index";
+import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture } from "./index";
 
 export class MarketFixture {
-  public marketAcc: AccountFixture;
+  public marketAcc: marketAccountFixture;
   public program: Program<Markets>;
   public provider: BankrunProvider;
   public quoteMint: PublicKey;
-  public quoteAta: PublicKey;
+  public quoteAta: splAccountFixture;
   public controller: ControllerFixture;
   public collaterals: Map<string, CollateralFixture>;
 
@@ -21,7 +21,7 @@ export class MarketFixture {
     public _quoteMint: PublicKey,
     public _controller: ControllerFixture
   ) {
-    this.marketAcc = new AccountFixture(
+    this.marketAcc = new marketAccountFixture(
       "market",
       _marketAddress,
       _program,
@@ -30,6 +30,11 @@ export class MarketFixture {
     this.provider = _provider;
     this.controller = _controller;
     this.quoteMint = _quoteMint;
+    this.quoteAta = new splAccountFixture(
+      "quoteAta",
+      this.get_ata(this.quoteMint),
+      _program,
+    );
 
     this.collaterals = new Map<string, CollateralFixture>();
   }

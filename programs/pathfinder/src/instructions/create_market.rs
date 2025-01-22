@@ -4,6 +4,8 @@ use anchor_spl::token::*;
 
 use crate::state::*;
 
+use crate::math::WAD;
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
     pub feed_id: String,
@@ -119,8 +121,8 @@ impl<'info> CreateMarket<'info> {
 
                 // lender accounting
                 total_shares:0,
-                total_quote: 0,
-                
+                deposit_index: WAD as u64,
+                borrow_index: WAD as u64,
                 // borrower accounting
                 total_borrow_shares: 0,
                 total_borrow_assets: 0,

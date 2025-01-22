@@ -117,11 +117,13 @@ impl<'info> Borrow<'info> {
         msg!("borrowing {}", assets);
 
         accrue_interest(market)?;
-        
+
+        let total_borrows = market.total_borrows()?;
+ 
         if assets > 0 {
-            shares = to_shares_up(assets, market.total_borrow_assets, market.total_borrow_shares)?;
+            shares = to_shares_up(assets, total_borrows, market.total_borrow_shares)?;
         } else {
-            assets = to_assets_down(shares, market.total_borrow_assets, market.total_borrow_shares)?;
+            assets = to_assets_down(shares, total_borrows, market.total_borrow_shares)?;
         }
 
         // check if user is solvent after borrowing
@@ -144,9 +146,9 @@ impl<'info> Borrow<'info> {
                 .ok_or(MarketError::MathOverflow)?;
 
         // Update market quote amount
-        market.total_borrow_assets = market.total_borrow_assets
-                .checked_add(assets)
-                .ok_or(MarketError::MathOverflow)?;
+        // market.total_borrow_assets = market.total_borrow_assets
+        //         .checked_add(assets)
+        //         .ok_or(MarketError::MathOverflow)?;
 
         // Update user shares
         borrower_shares.borrow_shares = borrower_shares.borrow_shares
@@ -186,10 +188,12 @@ pub fn is_solvent(
     // price is low end of confidence interval
     let (price, price_scale) = collateral.oracle.get_price(price_update, false)?;
 
+    let total_borrows = market.total_borrows()?;
+
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
     let mut borrowed = to_assets_up(
         borrow_shares,
-        market.total_borrow_assets,
+        total_borrows,
         market.total_borrow_shares,
     )?;
 

@@ -89,13 +89,15 @@ impl<'info> Deposit<'info> {
 
         accrue_interest(market)?;
         
+        let total_deposits = market.total_deposits()?;
+
+        msg!("Total deposits: {}", total_deposits);
+
         if assets > 0 {
-            shares = to_shares_down(assets, market.total_quote, market.total_shares)?;
+            shares = to_shares_down(assets, total_deposits, market.total_shares)?;
         } else {
-            assets = to_assets_up(shares, market.total_quote, market.total_shares)?;
+            assets = to_assets_up(shares, total_deposits, market.total_shares)?;
         }
-        
-        msg!("Depositing {} to vault", assets);
 
         // Update market shares
         market.total_shares = market.total_shares
@@ -103,9 +105,9 @@ impl<'info> Deposit<'info> {
                 .ok_or(MarketError::MathOverflow)?;
 
         // Update market quote amount
-        market.total_quote = market.total_quote
-                .checked_add(args.amount)
-                .ok_or(MarketError::MathOverflow)?;
+        // market.total_quote = market.total_quote
+        //         .checked_add(args.amount)
+        //         .ok_or(MarketError::MathOverflow)?;
 
         // Update user shares
         user_shares.shares = user_shares.shares
