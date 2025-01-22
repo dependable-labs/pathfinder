@@ -145,11 +145,6 @@ impl<'info> Borrow<'info> {
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
-        // Update market quote amount
-        // market.total_borrow_assets = market.total_borrow_assets
-        //         .checked_add(assets)
-        //         .ok_or(MarketError::MathOverflow)?;
-
         // Update user shares
         borrower_shares.borrow_shares = borrower_shares.borrow_shares
                 .checked_add(shares)

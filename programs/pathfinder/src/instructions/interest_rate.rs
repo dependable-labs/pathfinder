@@ -38,10 +38,11 @@ pub fn get_rate(
 
 
     let total_deposits = market.total_deposits()?;
+    let total_borrows = market.total_borrows()?;
 
     // Safe "unchecked" cast because the utilization is smaller than 1 (scaled by WAD).
     let utilization: i128 = if total_deposits > 0 {
-        w_div_down(market.total_borrow_assets, total_deposits)? as i128
+        w_div_down(total_borrows, total_deposits)? as i128
     } else {
         0
     };

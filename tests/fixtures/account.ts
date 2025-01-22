@@ -44,8 +44,6 @@ export class marketAccountFixture extends AccountFixture {
 
   public async getTotalBorrows(): Promise<anchor.BN> {
     const market = await this.get_data();
-    console.log("borrowIndex", market.borrowIndex.toString());
-    console.log("totalBorrowShares", market.totalBorrowShares.toString());
     return market.borrowIndex
                     .mul(market.totalBorrowShares)
                     .div(new anchor.BN("1000000000000000000"));

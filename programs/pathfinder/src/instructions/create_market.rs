@@ -111,8 +111,6 @@ impl<'info> CreateMarket<'info> {
         // create market if it doesn't exist
         if market.quote_mint == Pubkey::default() {
 
-            println!("Creating market here");
-
             market.set_inner(Market {
                 bump: ctx.bumps.market,
 

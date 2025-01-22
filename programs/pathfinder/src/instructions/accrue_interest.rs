@@ -79,16 +79,7 @@ pub fn accrue_interest(
         market.borrow_index,
         interest_factor as u64,
     )?;
-
-    // Update market state
-    // market.total_borrow_assets = market.total_borrow_assets
-    //     .checked_add(interest)
-    //     .ok_or(MarketError::MathOverflow)?;
-
-    // market.total_quote = market.total_quote
-    //     .checked_add(interest)
-    //     .ok_or(MarketError::MathOverflow)?;
-    
+ 
     market.last_accrual_timestamp = current_timestamp;
 
     msg!("Accrued {} interest", interest);

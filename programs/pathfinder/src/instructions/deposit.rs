@@ -104,10 +104,6 @@ impl<'info> Deposit<'info> {
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
-        // Update market quote amount
-        // market.total_quote = market.total_quote
-        //         .checked_add(args.amount)
-        //         .ok_or(MarketError::MathOverflow)?;
 
         // Update user shares
         user_shares.shares = user_shares.shares
