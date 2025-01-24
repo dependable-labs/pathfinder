@@ -87,11 +87,11 @@ impl<'info> Deposit<'info> {
             return err!(MarketError::AssetShareValueMismatch);
         }
 
+        msg!("depositing {}", assets);
+
         accrue_interest(market)?;
         
         let total_deposits = market.total_deposits()?;
-
-        msg!("Total deposits: {}", total_deposits);
 
         if assets > 0 {
             shares = to_shares_down(assets, total_deposits, market.total_shares)?;

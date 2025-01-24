@@ -8,22 +8,6 @@ mod tests {
 
     use super::*;
 
-    // #[test]
-    // fn test_calculate_total_assets() {
-    //     assert_eq!(calculate_total_assets(0).unwrap(), 1);
-    //     assert_eq!(calculate_total_assets(100).unwrap(), 101);
-    //     assert_eq!(calculate_total_assets(u64::MAX).unwrap(), u64::MAX as u128 + 1);
-    // }
-    // #[test]
-    // fn test_calculate_total_shares() {
-    //     assert_eq!(calculate_total_shares(0).unwrap(), 1_000_000);
-    //     assert_eq!(calculate_total_shares(100).unwrap(), 1_000_100);
-
-    //     let result = calculate_total_shares(u64::MAX).unwrap();
-    //     let expected = (u64::MAX as u128) + 1_000_000;
-    //     assert_eq!(result, expected);
-    // }
-
     #[test]
     fn test_to_shares_down() {
 
