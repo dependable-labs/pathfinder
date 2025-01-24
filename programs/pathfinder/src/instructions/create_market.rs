@@ -119,11 +119,11 @@ impl<'info> CreateMarket<'info> {
 
                 // lender accounting
                 total_shares:0,
-                deposit_index: WAD as u64,
-                borrow_index: WAD as u64,
+                deposit_index: WAD,
+
                 // borrower accounting
                 total_borrow_shares: 0,
-                total_borrow_assets: 0,
+                borrow_index: WAD,
 
                 // interest
                 last_accrual_timestamp: current_timestamp,

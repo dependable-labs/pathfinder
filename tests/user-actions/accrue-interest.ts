@@ -358,7 +358,6 @@ describe("Accrue Interest", () => {
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    console.log("beforeTotalBorrows", beforeTotalBorrows.toNumber());
     
     // Advance clock by 1 year
     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
@@ -373,10 +372,10 @@ describe("Accrue Interest", () => {
     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
-    // assert.equal(
-    //   difference.toNumber(),
-    //   13.512_691_343 * 1e9 // Expected interest accrual
-    // );
+    assert.equal(
+      difference.toNumber(),
+      13.512_691_343 * 1e9 // Expected interest accrual
+    );
   });
 
   it("correctly for year with six decimal collateral token", async () => {

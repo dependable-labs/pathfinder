@@ -452,20 +452,6 @@ export class MarketFixture {
     });
   }
 
-  public async sharesToAssets(shares: anchor.BN): Promise<anchor.BN> {
-    const marketData = await this.marketAcc.get_data();
-    
-    // If no shares exist, return 0
-    if (marketData.totalBorrowShares.eq(new anchor.BN(0))) {
-      return new anchor.BN(0);
-    }
-
-    // Use the on-chain to_assets_up method to calculate assets from shares
-    return await this.program.methods
-      .toAssetsUp(shares, marketData.totalBorrowAssets, marketData.totalBorrowShares)
-      .view();
-  }
-
   public get_user_shares(userKey: PublicKey): AccountFixture {
     let userSharesKey = PublicKey.findProgramAddressSync(
       [
