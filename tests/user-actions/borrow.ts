@@ -97,11 +97,13 @@ describe("User Borrow", () => {
     });
 
     const marketAccountData = await market.marketAcc.get_data();
+    const totalBorrows = await market.marketAcc.getTotalBorrows();
+
     assert.equal(
       marketAccountData.totalBorrowShares.toNumber(),
-      500000000000000
+      500000000
     );
-    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 500000000);
+    assert.equal(totalBorrows.toNumber(), 500000000);
 
     const userSharesAccountData = await market
       .getCollateral("BONK")
@@ -109,7 +111,7 @@ describe("User Borrow", () => {
       .get_data();
     assert.equal(
       userSharesAccountData.borrowShares.toNumber(),
-      500000000000000
+      500000000
     );
 
     const finalBalance = await bob.get_quo_balance();

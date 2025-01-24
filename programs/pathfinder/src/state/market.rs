@@ -4,6 +4,7 @@ use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex
 
 use crate::error::MarketError;
 use crate::state::MAX_PRICE_AGE;
+use crate::math::w_mul_down;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
 pub struct PythOracle {
@@ -47,14 +48,24 @@ impl PythOracle {
 #[account]
 pub struct Market {
     pub bump: u8,
-    pub total_quote: u64,
     pub quote_mint: Pubkey,
     pub quote_mint_decimals: u8,
     pub total_shares: u64,
     pub total_borrow_shares: u64,
-    pub total_borrow_assets: u64,
+    pub deposit_index: u128,
+    pub borrow_index: u128,
     pub last_accrual_timestamp: u64,
     pub rate_at_target: u64,
+}
+
+impl Market {
+    pub fn total_deposits(&self) -> Result<u64> {
+        w_mul_down(self.deposit_index as u64, self.total_shares)
+    }
+
+    pub fn total_borrows(&self) -> Result<u64> {
+        w_mul_down(self.borrow_index as u64, self.total_borrow_shares)
+    }
 }
 
 #[account]

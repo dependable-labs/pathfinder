@@ -73,13 +73,13 @@ describe("Withdraw", () => {
     // Pre-deposit funds for withdrawal tests
     await market.deposit({
       user: larry,
-      amount: new anchor.BN(1000000000),
+      amount: new anchor.BN(1 * 1e9),
       shares: new anchor.BN(0)
     });
 
     await market.deposit({
       user: lizz,
-      amount: new anchor.BN(1000000000),
+      amount: new anchor.BN(1 * 1e9),
       shares: new anchor.BN(0)
     });
   });
@@ -90,18 +90,19 @@ describe("Withdraw", () => {
 
     await market.withdraw({
       user: larry,
-      amount: new anchor.BN(500000000),
+      amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
 
     const marketAccountData = await market.marketAcc.get_data();
+    const totalDeposits = await market.marketAcc.getTotalDeposits();
     assert.equal(
       marketAccountData.totalShares.toNumber(), 
-      1500000000000000 // Original 2000000000000000 - 500000000000000
+      1.5 * 1e9 // Original 2000000000000000 - 500000000000000
     );
     assert.equal(
-      marketAccountData.totalQuote.toNumber(),
-      1500000000 // Original 2000000000 - 500000000
+      totalDeposits.toNumber(),
+      1.5 * 1e9  // Original 2000000000 - 500000000
     );
 
     const larryShares = await market
@@ -109,37 +110,39 @@ describe("Withdraw", () => {
       .get_data();
     assert.equal(
       larryShares.shares.toNumber(), 
-      500000000000000 // Original 1000000000000000 - 500000000000000
+      0.5 * 1e9 // Original 1000000000000000 - 500000000000000
     );
 
     const finalBalance: BigInt = await larry.get_quo_balance();
     assert.equal(
       finalBalance - initialBalance, 
-      BigInt(500000000)
+      BigInt(0.5 * 1e9)
     );
   });
   
   it("two users withdraw from a market", async () => {
     await market.withdraw({
       user: larry,
-      amount: new anchor.BN(500000000),
+      amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
 
     await market.withdraw({
       user: lizz,
-      amount: new anchor.BN(500000000),
+      amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
 
     const marketAccountData = await market.marketAcc.get_data();
+    const totalDeposits = await market.marketAcc.getTotalDeposits();
+
     assert.equal(
       marketAccountData.totalShares.toNumber(), 
-      1000000000000000 // Original 2000000000000000 - 1000000000000000
+      1 * 1e9 // Original 2000000000000000 - 1000000000000000
     );
     assert.equal(
-      marketAccountData.totalQuote.toNumber(), 
-      1000000000 // Original 2000000000 - 1000000000
+      totalDeposits.toNumber(), 
+      1 * 1e9 // Original 2000000000 - 1000000000
     );
 
     const larrySharesData = await market
@@ -149,16 +152,16 @@ describe("Withdraw", () => {
       .get_user_shares(lizz.key.publicKey)
       .get_data();
 
-    assert.equal(larrySharesData.shares.toNumber(), 500000000000000);
-    assert.equal(lizzSharesData.shares.toNumber(), 500000000000000);
+    assert.equal(larrySharesData.shares.toNumber(), 0.5 * 1e9);
+    assert.equal(lizzSharesData.shares.toNumber(), 0.5 * 1e9);
 
     assert.equal(
       await larry.get_quo_balance(), 
-      BigInt(999500000000)
+      BigInt(999.5 * 1e9)
     );
     assert.equal(
       await lizz.get_quo_balance(), 
-      BigInt(999500000000)
+      BigInt(999.5 * 1e9)
     );
   });
 
@@ -167,7 +170,7 @@ describe("Withdraw", () => {
       async () => {
         await market.withdraw({
           user: larry,
-          amount: new anchor.BN(2000000000), // More than deposited
+          amount: new anchor.BN(2 * 1e9), // More than deposited
           shares: new anchor.BN(0)
         });
       },

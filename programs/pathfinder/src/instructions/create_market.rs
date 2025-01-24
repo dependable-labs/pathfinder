@@ -4,6 +4,8 @@ use anchor_spl::token::*;
 
 use crate::state::*;
 
+use crate::math::WAD;
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
     pub feed_id: String,
@@ -109,8 +111,6 @@ impl<'info> CreateMarket<'info> {
         // create market if it doesn't exist
         if market.quote_mint == Pubkey::default() {
 
-            println!("Creating market here");
-
             market.set_inner(Market {
                 bump: ctx.bumps.market,
 
@@ -119,11 +119,11 @@ impl<'info> CreateMarket<'info> {
 
                 // lender accounting
                 total_shares:0,
-                total_quote: 0,
-                
+                deposit_index: WAD,
+
                 // borrower accounting
                 total_borrow_shares: 0,
-                total_borrow_assets: 0,
+                borrow_index: WAD,
 
                 // interest
                 last_accrual_timestamp: current_timestamp,

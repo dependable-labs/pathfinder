@@ -128,7 +128,6 @@ describe("Withdraw Collateral", () => {
       shares: new anchor.BN(0)
     });
 
-    const initialBalance = await bob.get_col_balance();
     const initialCollateralData = await market.getCollateral("BONK").collateralAcc.get_data();
 
     // Withdraw half of the collateral

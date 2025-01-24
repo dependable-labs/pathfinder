@@ -9,6 +9,10 @@ pub fn w_mul_down(x: u64, y: u64) -> Result<u64> {
   mul_div_down(x as u128, y as u128, WAD)
 }
 
+pub fn w_mul_down_u128(x: u128, y: u128) -> Result<u128> {
+  mul_div_down_u128(x, y, WAD)
+}
+
 /// Returns (x * WAD) / y rounded down
 pub fn w_div_down(x: u64, y: u64) -> Result<u64> {
   mul_div_down(x as u128, WAD, y as u128)
@@ -22,12 +26,18 @@ pub fn w_div_up(x: u64, y: u64) -> Result<u64> {
 /// Performs multiplication followed by division, rounding down.
 pub fn mul_div_down(a: u128, b: u128, c: u128) -> Result<u64> {
     // a * b / c
+    u128_to_u64(mul_div_down_u128(a, b, c)?)
+}
+
+/// Performs multiplication followed by division, rounding down.
+pub fn mul_div_down_u128(a: u128, b: u128, c: u128) -> Result<u128> {
+    // a * b / c
     let result = a.checked_mul(b)
         .ok_or(error!(MarketError::MathOverflow))?
         .checked_div(c)
         .ok_or(error!(MarketError::MathOverflow))?;
 
-    u128_to_u64(result)
+    Ok(result)
 }
 
 /// Performs multiplication followed by division, rounding up.
@@ -76,13 +86,15 @@ pub fn bound(value: i128, min: i128, max: i128) -> Result<i128> {
 /// Returns the sum of the first three non-zero terms of a Taylor expansion of e^(nx) - 1, to approximate a
 /// continuous compound interest rate.
 pub fn w_taylor_compounded(x: u128, n: u128) -> Result<u128> {
-    let first_term = x * n;
-    let second_term = mul_div_down(first_term, first_term, 2 * WAD).unwrap() as u128;
-    let third_term = mul_div_down(second_term, first_term, 3 * WAD).unwrap() as u128;
+  let first_term = x * n;
+  let second_term = mul_div_down(first_term, first_term, 2 * WAD).unwrap() as u128;
+  let third_term = mul_div_down(second_term, first_term, 3 * WAD).unwrap() as u128;
 
-    Ok(first_term
-      .checked_add(second_term)
-      .ok_or(error!(MarketError::MathOverflow))?
-      .checked_add(third_term)
-      .ok_or(error!(MarketError::MathOverflow))?)
+  Ok(first_term
+    .checked_add(second_term)
+    .ok_or(error!(MarketError::MathOverflow))?
+    .checked_add(third_term)
+    .ok_or(error!(MarketError::MathOverflow))?
+    .checked_add(WAD)
+    .ok_or(error!(MarketError::MathOverflow))?)
 }

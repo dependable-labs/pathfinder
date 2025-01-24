@@ -117,11 +117,13 @@ impl<'info> Borrow<'info> {
         msg!("borrowing {}", assets);
 
         accrue_interest(market)?;
-        
+
+        let total_borrows = market.total_borrows()?;
+ 
         if assets > 0 {
-            shares = to_shares_up(assets, market.total_borrow_assets, market.total_borrow_shares)?;
+            shares = to_shares_up(assets, total_borrows, market.total_borrow_shares)?;
         } else {
-            assets = to_assets_down(shares, market.total_borrow_assets, market.total_borrow_shares)?;
+            assets = to_assets_down(shares, total_borrows, market.total_borrow_shares)?;
         }
 
         // check if user is solvent after borrowing
@@ -141,11 +143,6 @@ impl<'info> Borrow<'info> {
         // Update market shares
         market.total_borrow_shares = market.total_borrow_shares
                 .checked_add(shares)
-                .ok_or(MarketError::MathOverflow)?;
-
-        // Update market quote amount
-        market.total_borrow_assets = market.total_borrow_assets
-                .checked_add(assets)
                 .ok_or(MarketError::MathOverflow)?;
 
         // Update user shares
@@ -186,20 +183,14 @@ pub fn is_solvent(
     // price is low end of confidence interval
     let (price, price_scale) = collateral.oracle.get_price(price_update, false)?;
 
+    let total_borrows = market.total_borrows()?;
+
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
     let mut borrowed = to_assets_up(
         borrow_shares,
-        market.total_borrow_assets,
+        total_borrows,
         market.total_borrow_shares,
     )?;
-
-    // if fee is active, add fee to borrowed amount
-    if collateral.last_active_timestamp != 0 {
-        let fee = restriction_fee(borrowed, collateral.last_active_timestamp)?;
-        borrowed = borrowed.checked_add(fee).ok_or(MarketError::MathOverflow)?;
-    }
-
-    //TODO: cleanup scaling
 
     // Calculate max borrow amount based on collateral value and LTV factor
     let max_borrow = (collateral_amount as u128)
@@ -214,26 +205,6 @@ pub fn is_solvent(
 
     // User is solvent if max borrow amount >= borrowed amount
     Ok(max_borrow >= (borrowed as u128))
-}
-
-pub fn restriction_fee(
-    debt_amount: u64,
-    last_active: u64,
-) -> Result<u64> {
-
-    if last_active == 0 {
-        return Ok(0);
-    }
-    // 0.000005% per second = 0.00000005  = 50_000_000_000 (18 zeros) in WAD
-    const BASE_FEE_RATE: u64 = 50_000_000_000; // WAD representation of 0.000005%
-
-    let current_time = Clock::get()?.unix_timestamp as u64;
-    let time_elapsed = current_time - last_active;
-    
-    w_mul_down(
-        debt_amount,
-        BASE_FEE_RATE.checked_mul(time_elapsed).ok_or(MarketError::MathOverflow)?
-    )
 }
 
 pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {

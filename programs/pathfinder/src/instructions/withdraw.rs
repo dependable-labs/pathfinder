@@ -85,13 +85,12 @@ impl<'info> Withdraw<'info> {
 
         accrue_interest(market)?;
 
-        msg!("After accrue_interest");
-        msg!("Before shares calc");
+        let total_deposits = market.total_deposits()?;
 
         if assets > 0 {
-            shares = to_shares_up(assets, market.total_quote, market.total_shares)?;
+            shares = to_shares_up(assets, total_deposits, market.total_shares)?;
         } else {
-            assets = to_assets_down(shares, market.total_quote, market.total_shares)?;
+            assets = to_assets_down(shares, total_deposits, market.total_shares)?;
         }
 
         // Validate that the user isn't requesting more shares than they possess
@@ -104,10 +103,6 @@ impl<'info> Withdraw<'info> {
         // Update accumulators
         market.total_shares = market.total_shares
                 .checked_sub(shares)
-                .ok_or(error!(MarketError::MathUnderflow))?;
-
-        market.total_quote = market.total_quote
-                .checked_sub(assets)
                 .ok_or(error!(MarketError::MathUnderflow))?;
 
         // Update user shares

@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::{state::*, accrue_interest::accrue_interest, borrow::{is_solvent, restriction_fee}};
+use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent};
 use crate::error::MarketError;
 use crate::generate_market_seeds;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
@@ -152,12 +152,14 @@ impl<'info> Liquidate<'info> {
 
         let (collateral_price, price_scale) = collateral.oracle.get_price(price_update, true)?;
 
+        let total_borrows = market.total_borrows()?;
+
         if collateral_amount > 0 {
           let collateral_quoted = mul_div_up(collateral_amount as u128, collateral_price as u128, price_scale as u128)?;
 
           repay_shares = to_shares_up(
               w_div_up(collateral_quoted, liquidation_incentive_factor)?,
-              market.total_borrow_assets,
+              total_borrows,
               market.total_borrow_shares
           )?;
 
@@ -165,7 +167,7 @@ impl<'info> Liquidate<'info> {
 
           let shares_to_collateral = to_assets_down(
               repay_shares,
-              market.total_borrow_assets,
+              total_borrows,
               market.total_borrow_shares
           )?;
 
@@ -176,9 +178,16 @@ impl<'info> Liquidate<'info> {
 
         let repaid_quote = to_assets_up(
             repay_shares,
-            market.total_borrow_assets,
+            total_borrows,
             market.total_borrow_shares
         )?;
+
+        // Verify liquidator has sufficient quote tokens
+        require_gte!(
+            user_ata_quote.amount,
+            repaid_quote,
+            MarketError::InsufficientBalance
+        );
 
         borrower_shares.borrow_shares = borrower_shares.borrow_shares
                 .checked_sub(repay_shares)
@@ -188,41 +197,14 @@ impl<'info> Liquidate<'info> {
                 .checked_sub(repay_shares)
                 .ok_or(MarketError::MathUnderflow)?;
 
-        market.total_borrow_assets = max_u64(market.total_borrow_assets
-                .checked_sub(repaid_quote)
-                .ok_or(MarketError::MathUnderflow)?, 0);
-
         borrower_shares.collateral_amount = borrower_shares.collateral_amount
                 .checked_sub(collateral_amount)
                 .ok_or(MarketError::MathUnderflow)?;
 
-        let fee = restriction_fee(repaid_quote, collateral.last_active_timestamp)?;
-
-        // Distribute fee back to lenders
-        market.total_quote = market.total_quote
-                .checked_add(fee)
-                .ok_or(MarketError::MathOverflow)?; 
-
-        let repaid_quote_with_fee = repaid_quote.checked_add(fee).ok_or(MarketError::MathOverflow)?;
-
-        let mut bad_debt_shares = 0;
-        let mut bad_debt = 0;
-
         if borrower_shares.collateral_amount == 0 {
-          bad_debt_shares = borrower_shares.borrow_shares;
-          bad_debt = min_u64(
-              market.total_borrow_assets,
-              to_assets_up(
-                bad_debt_shares,
-                market.total_borrow_assets,
-                market.total_borrow_shares
-              )?
-          );
-
-          market.total_borrow_assets = max_u64(market.total_borrow_assets.checked_sub(bad_debt).unwrap(), 0);
-          market.total_quote = max_u64(market.total_quote.checked_sub(bad_debt).unwrap(), 0);
-          market.total_borrow_shares = market.total_borrow_shares.checked_sub(bad_debt_shares).unwrap();
-          borrower_shares.borrow_shares = 0;
+            let bad_debt_shares = borrower_shares.borrow_shares;
+            market.total_borrow_shares = market.total_borrow_shares.checked_sub(bad_debt_shares).unwrap();
+            borrower_shares.borrow_shares = 0;
         }
 
         //add callback mechansim?
@@ -256,17 +238,10 @@ impl<'info> Liquidate<'info> {
             }
         );
 
-        // Verify liquidator has sufficient quote tokens
-        require_gte!(
-            user_ata_quote.amount,
-            repaid_quote_with_fee,
-            MarketError::InsufficientBalance
-        );
-        
         // transfer tokens to vault
         transfer(
             cpi_context,
-            repaid_quote_with_fee,
+            repaid_quote,
         )?;
 
         Ok(())

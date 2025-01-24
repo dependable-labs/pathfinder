@@ -161,7 +161,7 @@ describe("Liquidate", () => {
     );
   });
 
-  it("fails to liquidate a healthy position", async () => {
+    it("fails if borrower is solvent", async () => {
     await assert.rejects(
       async () => {
         await market.liquidate({

@@ -3,14 +3,14 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { BankrunProvider } from "anchor-bankrun";
-import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, ControllerFixture } from "./index";
+import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture } from "./index";
 
 export class MarketFixture {
-  public marketAcc: AccountFixture;
+  public marketAcc: marketAccountFixture;
   public program: Program<Markets>;
   public provider: BankrunProvider;
   public quoteMint: PublicKey;
-  public quoteAta: PublicKey;
+  public quoteAta: splAccountFixture;
   public controller: ControllerFixture;
   public collaterals: Map<string, CollateralFixture>;
 
@@ -21,7 +21,7 @@ export class MarketFixture {
     public _quoteMint: PublicKey,
     public _controller: ControllerFixture
   ) {
-    this.marketAcc = new AccountFixture(
+    this.marketAcc = new marketAccountFixture(
       "market",
       _marketAddress,
       _program,
@@ -30,6 +30,11 @@ export class MarketFixture {
     this.provider = _provider;
     this.controller = _controller;
     this.quoteMint = _quoteMint;
+    this.quoteAta = new splAccountFixture(
+      "quoteAta",
+      this.get_ata(this.quoteMint),
+      _program,
+    );
 
     this.collaterals = new Map<string, CollateralFixture>();
   }
@@ -445,20 +450,6 @@ export class MarketFixture {
       mint,
       owner: this.marketAcc.key,
     });
-  }
-
-  public async sharesToAssets(shares: anchor.BN): Promise<anchor.BN> {
-    const marketData = await this.marketAcc.get_data();
-    
-    // If no shares exist, return 0
-    if (marketData.totalBorrowShares.eq(new anchor.BN(0))) {
-      return new anchor.BN(0);
-    }
-
-    // Use the on-chain to_assets_up method to calculate assets from shares
-    return await this.program.methods
-      .toAssetsUp(shares, marketData.totalBorrowAssets, marketData.totalBorrowShares)
-      .view();
   }
 
   public get_user_shares(userKey: PublicKey): AccountFixture {

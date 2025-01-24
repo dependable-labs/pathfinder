@@ -79,9 +79,7 @@ describe("Create Market Operations", () => {
 
     assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
     assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
-    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
   });
 
@@ -94,9 +92,7 @@ describe("Create Market Operations", () => {
     let marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
     assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
-    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
 
     const bonkCollateralAccount = await market.getCollateral("BONK").collateralAcc.get_data();
@@ -128,9 +124,7 @@ describe("Create Market Operations", () => {
 
     assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
     assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
-    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
 
     let metaCollateralAccount = await market.getCollateral("META").collateralAcc.get_data();
@@ -151,9 +145,7 @@ describe("Create Market Operations", () => {
 
     assert.equal(marketAccountData.quoteMint.toBase58(), accounts.quoteMint.toBase58());
     assert.equal(marketAccountData.quoteMintDecimals, 9, "Quote mint decimals should be 9");
-    assert.equal(marketAccountData.totalQuote.toNumber(), 0);
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-    assert.equal(marketAccountData.totalBorrowAssets.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
 
     await assert.rejects(

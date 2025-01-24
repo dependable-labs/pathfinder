@@ -56,9 +56,4 @@ pub mod markets {
     pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, args: WithdrawCollateralArgs) -> Result<()> {
         WithdrawCollateral::handle(ctx, args)
     }
-
-    pub fn update_collateral(ctx: Context<UpdateCollateral>, args: UpdateCollateralArgs) -> Result<()> {
-        UpdateCollateral::handle(ctx, args)
-    }
-
 }

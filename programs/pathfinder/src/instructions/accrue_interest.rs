@@ -58,24 +58,23 @@ pub fn accrue_interest(
     let (avg_rate, end_rate_at_target) = get_rate(market)?;
     market.rate_at_target = end_rate_at_target;
 
-    // Calculate interest to accrue
-    let interest = w_mul_down(
-        market.total_borrow_assets,
-        w_taylor_compounded(avg_rate as u128, time_elapsed as u128).unwrap() as u64,
+    // Calculate interest factor using taylor series
+    let interest_factor = w_taylor_compounded(avg_rate as u128, time_elapsed as u128).unwrap();
+
+    msg!("Interest factor: {}", interest_factor);
+
+    // Update the borrow index by multiplying it with the interest factor
+    market.deposit_index = w_mul_down_u128(
+        market.deposit_index,
+        interest_factor,
     )?;
 
-    // Update market state
-    market.total_borrow_assets = market.total_borrow_assets
-        .checked_add(interest)
-        .ok_or(MarketError::MathOverflow)?;
-
-    market.total_quote = market.total_quote
-        .checked_add(interest)
-        .ok_or(MarketError::MathOverflow)?;
-    
+    market.borrow_index = w_mul_down_u128(
+        market.borrow_index,
+        interest_factor,
+    )?;
+ 
     market.last_accrual_timestamp = current_timestamp;
-
-    msg!("Accrued {} interest", interest);
 
     Ok(())
 
