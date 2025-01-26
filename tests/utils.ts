@@ -10,7 +10,7 @@ import { createMint } from "spl-token-bankrun";
 import { Markets } from "../target/types/markets";
 import { BankrunProvider } from 'anchor-bankrun';
 import { ProgramTestContext, Clock, BanksClient} from "solana-bankrun";
-
+import { ControllerFixture } from "./fixtures/controller";
 const IDL = require("../target/idl/markets.json");
 
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
@@ -33,18 +33,12 @@ export async function getPDAs({
   quote: PublicKey;
 }) {
   const [market] = PublicKey.findProgramAddressSync(
-    [Buffer.from("market"), quote.toBuffer()],
-    programId
-  );
-
-  const [collateralAcc] = PublicKey.findProgramAddressSync(
-    [Buffer.from("market_collateral"), market.toBuffer(), collateral.toBuffer()],
+    [Buffer.from("market"), quote.toBuffer(), collateral.toBuffer()],
     programId
   );
 
   return {
     market,
-    collateralAcc,
   };
 }
 
@@ -119,7 +113,7 @@ export async function createTokenAndAccounts(provider: BankrunProvider, banks: a
     owner,
     9);
 
-  const { market, collateralCustom } = await getPDAs({
+  const { market } = await getPDAs({
     programId: program.programId,
     collateral: collateralMint,
     quote: quoteMint,
@@ -161,5 +155,63 @@ export const TimeUtils = {
     context.setClock(newClock);
   }
 };
+
+export class FixFactory {
+  protected constructor(
+    public program: Program<Markets>,
+    public provider: BankrunProvider,
+    public context: ProgramTestContext,
+
+  ) {}
+
+  public static async init({
+    provider,
+    banks,
+    quoteDecimals = 9,
+    collateralDecimals = 9,
+  }: {
+    provider: BankrunProvider,
+    banks: BanksClient,
+    quoteDecimals?: number,
+    collateralDecimals?: number,
+  }): Promise<TestFactory> {
+
+    const program = new Program<Markets>(
+      IDL,
+      provider
+    );
+  
+    const owner = provider.wallet.publicKey;
+    const payer = provider.wallet.payer;
+  
+    const collateralMint = await createMint(
+      banks,
+      payer,
+      owner,
+      owner,
+      collateralDecimals
+    );
+  
+    const quoteMint = await createMint(
+      banks,
+      payer,
+      owner,
+      owner,
+      quoteDecimals
+    );
+
+    let controller = new ControllerFixture(
+      program,
+      provider
+    );
+
+    const accounts = {
+      owner,
+      collateralMint,
+      quoteMint,
+      controller,
+    };
+  }
+}
 
 

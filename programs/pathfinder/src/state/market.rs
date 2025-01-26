@@ -48,14 +48,25 @@ impl PythOracle {
 #[account]
 pub struct Market {
     pub bump: u8,
+
+    // deposits
+    pub deposit_index: u128,
+    pub total_shares: u64,
     pub quote_mint: Pubkey,
     pub quote_mint_decimals: u8,
-    pub total_shares: u64,
-    pub total_borrow_shares: u64,
-    pub deposit_index: u128,
+
+    // borrows
     pub borrow_index: u128,
-    pub last_accrual_timestamp: u64,
+    pub total_borrow_shares: u64,
+    pub total_collateral: u64,
+    pub collateral_mint: Pubkey,
+    pub collateral_mint_decimals: u8,
+    pub ltv_factor: u64,
+
+    // accounting
+    pub oracle: PythOracle,
     pub rate_at_target: u64,
+    pub last_accrual_timestamp: u64,
 }
 
 impl Market {
@@ -66,17 +77,6 @@ impl Market {
     pub fn total_borrows(&self) -> Result<u64> {
         w_mul_down(self.borrow_index as u64, self.total_borrow_shares)
     }
-}
-
-#[account]
-pub struct Collateral {
-    pub bump: u8,
-    pub total_collateral: u64,
-    pub collateral_mint: Pubkey,
-    pub collateral_mint_decimals: u8,
-    pub ltv_factor: u64,
-    pub oracle: PythOracle,
-    pub last_active_timestamp: u64,
 }
 
 #[account]

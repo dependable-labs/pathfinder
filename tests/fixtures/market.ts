@@ -19,11 +19,13 @@ export class MarketFixture {
     public _provider: BankrunProvider,
     public _marketAddress: PublicKey,
     public _quoteMint: PublicKey,
-    public _controller: ControllerFixture
+    public _collateralMint: PublicKey,
+    public _collateralSymbol: SupportedCollateral,
+    public _ltvFactor: anchor.BN,
   ) {
     this.marketAcc = new marketAccountFixture(
       "market",
-      _marketAddress,
+      deriveMarketAddress(_quoteMint, _collateralMint, _ltvFactor, _feed_id, _program.programId),
       _program,
     );
     this.program = _program;
@@ -131,7 +133,6 @@ export class MarketFixture {
       })
       .accounts({
         authority: this.controller.authority.publicKey,
-        controller: this.controller.controllerAcc.key,
         market: this.marketAcc.key,
         quoteMint: quoteMint,
         collateralMint: collateralMint,
