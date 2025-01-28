@@ -5,20 +5,21 @@ import { UserFixture } from "../fixtures";
 import { TestUtils } from "../utils";
 
 describe("Create Market Operations", () => {
+  let test: TestUtils;
   let market: MarketFixture;
   let larry: UserFixture;
 
   beforeEach(async () => {
 
-    await TestUtils.init({
+    test = await TestUtils.create({
       quoteDecimals: 9,
       collateralDecimals: 9,
     });
 
-    larry = TestUtils.createUser();
+    larry = test.createUser();
     await larry.init_and_fund_accounts(new anchor.BN(999999999999), new anchor.BN(0))
 
-    market = await TestUtils.createMarket({
+    market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
       price: new anchor.BN(100 * 10 ** 9),
@@ -36,7 +37,7 @@ describe("Create Market Operations", () => {
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
-    assert.equal(marketAccountData.lastAccrualTimestamp.toNumber(), await TestUtils.getTime());
+    assert.equal(marketAccountData.lastAccrualTimestamp.toNumber(), await test.getTime());
     assert.equal(marketAccountData.rateAtTarget.toNumber(), 0);
     assert.equal(marketAccountData.depositIndex.toString(), "1000000000000000000");
     assert.equal(marketAccountData.borrowIndex.toString(), "1000000000000000000");
@@ -54,7 +55,7 @@ describe("Create Market Operations", () => {
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
     assert.equal(marketAccountData.totalBorrowShares.toNumber(), 0);
-    assert.equal(marketAccountData.lastAccrualTimestamp.toNumber(), await TestUtils.getTime());
+    assert.equal(marketAccountData.lastAccrualTimestamp.toNumber(), await test.getTime());
     assert.equal(marketAccountData.rateAtTarget.toNumber(), 0);
     assert.equal(marketAccountData.depositIndex.toString(), "1000000000000000000");
     assert.equal(marketAccountData.borrowIndex.toString(), "1000000000000000000");

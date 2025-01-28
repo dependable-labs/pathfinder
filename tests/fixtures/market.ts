@@ -125,19 +125,6 @@ export class MarketFixture {
     collateralMint: PublicKey;
     vaultAtaCollateral: PublicKey;
   }): Promise<void> {
-
-    console.log("Creating market with accounts:", {
-      user: user.toString(),
-      market: this.marketAcc.key.toString(),
-      quoteMint: quoteMint.toString(),
-      collateralMint: collateralMint.toString(), 
-      vaultAtaQuote: vaultAtaQuote.toString(),
-      vaultAtaCollateral: vaultAtaCollateral.toString(),
-      associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID.toString(),
-      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID.toString(),
-      systemProgram: anchor.web3.SystemProgram.programId.toString()
-    });
-
     await this.program.methods
       .createMarket({
         feedId: this.collateral.getOracleId(),

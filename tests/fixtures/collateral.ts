@@ -5,7 +5,6 @@ import { Markets } from "../../target/types/markets";
 import { MockPythPull } from "../../target/types/mock_pyth_pull";
 import { AccountFixture } from "./account";
 import { BankrunProvider } from "anchor-bankrun";
-import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 
 const PythIDL = require("../../target/idl/mock_pyth_pull.json");
 
@@ -56,13 +55,6 @@ export class CollateralFixture {
   }
 
   getOracleId(): string {
-    // const hexString = ORACLE_CONFIG[this.symbol].id;
-    // const bytes = Buffer.from(hexString.replace('0x', ''), 'hex');
-    // const base58String = bs58.encode(bytes);
-
-    // // Or better yet, use Solana's PublicKey class
-    // const publicKey = new PublicKey(base58String);
-    // return publicKey;
     return ORACLE_CONFIG[this.symbol].id;
   }
 
