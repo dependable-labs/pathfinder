@@ -4,6 +4,8 @@ import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { BankrunProvider } from "anchor-bankrun";
 import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture } from "./index";
+import { deriveMarketAddress } from "../utils";
+import { assert } from "chai";
 
 export class MarketFixture {
   public marketAcc: marketAccountFixture;
@@ -12,20 +14,22 @@ export class MarketFixture {
   public quoteMint: PublicKey;
   public quoteAta: splAccountFixture;
   public controller: ControllerFixture;
-  public collaterals: Map<string, CollateralFixture>;
+  public collateral: CollateralFixture;
 
   public constructor(
     public _program: Program<Markets>,
     public _provider: BankrunProvider,
-    public _marketAddress: PublicKey,
     public _quoteMint: PublicKey,
     public _collateralMint: PublicKey,
     public _collateralSymbol: SupportedCollateral,
-    public _ltvFactor: anchor.BN,
+    public _collateral: CollateralFixture,
+    public _controller: ControllerFixture,
   ) {
+    this.collateral = _collateral;
+
     this.marketAcc = new marketAccountFixture(
       "market",
-      deriveMarketAddress(_quoteMint, _collateralMint, _ltvFactor, _feed_id, _program.programId),
+      deriveMarketAddress(_quoteMint, _collateralMint, this.collateral._ltvFactor, this.collateral.getOracleId(), _program.programId),
       _program,
     );
     this.program = _program;
@@ -38,42 +42,41 @@ export class MarketFixture {
       _program,
     );
 
-    this.collaterals = new Map<string, CollateralFixture>();
   }
 
-  public async addCollateral({
-    symbol,
-    collateralAddress,
-    collateralMint,
-    price,
-    conf,
-    expo
-  } : {
-    symbol: SupportedCollateral,
-    collateralAddress: PublicKey,
-    collateralMint: PublicKey,
-    price: anchor.BN,
-    conf: anchor.BN,
-    expo: number
-  }): Promise<void> {
-    const collateral = new CollateralFixture(
-      symbol,
-      this.program,
-      this.provider,
-      collateralAddress,
-      collateralMint
-    );
-    await collateral.initPrice({
-      price,
-      conf,
-      expo
-    });
-    this.collaterals.set(symbol, collateral);
-  }
+  // public async addCollateral({
+  //   symbol,
+  //   collateralAddress,
+  //   collateralMint,
+  //   price,
+  //   conf,
+  //   expo
+  // } : {
+  //   symbol: SupportedCollateral,
+  //   collateralAddress: PublicKey,
+  //   collateralMint: PublicKey,
+  //   price: anchor.BN,
+  //   conf: anchor.BN,
+  //   expo: number
+  // }): Promise<void> {
+  //   const collateral = new CollateralFixture(
+  //     symbol,
+  //     this.program,
+  //     this.provider,
+  //     collateralAddress,
+  //     collateralMint
+  //   );
+  //   await collateral.initPrice({
+  //     price,
+  //     conf,
+  //     expo
+  //   });
+  //   // this.collaterals.set(symbol, collateral);
+  // }
 
-  public getCollateral(symbol: string): CollateralFixture | undefined {
-    return this.collaterals.get(symbol);
-  }
+  // public getCollateral(symbol: string): CollateralFixture | undefined {
+  //   return this.collaterals.get(symbol);
+  // }
 
   async setAuthority(): Promise<void> {
 
@@ -90,23 +93,23 @@ export class MarketFixture {
   }
 
   async create({
-    collateralSymbol,
-    ltvFactor,
+    user,
   }: {
-    collateralSymbol: SupportedCollateral;
-    ltvFactor: anchor.BN;
+    user: UserFixture;
   }): Promise<void> {
     await this.createCustom({
-      collateralSymbol,
-      ltvFactor,
+      user,
+      collateralSymbol: this.collateral.symbol,
+      ltvFactor: this.collateral._ltvFactor,
       quoteMint: this.quoteMint,
       vaultAtaQuote: this.get_ata(this.quoteMint),
-      collateralMint: this.getCollateral(collateralSymbol).collateralMint,
-      vaultAtaCollateral: this.get_ata(this.getCollateral(collateralSymbol).collateralMint),
+      collateralMint: this.collateral.collateralMint,
+      vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
     });
   }
 
   async createCustom({
+    user,
     collateralSymbol,
     ltvFactor,
     quoteMint,
@@ -114,6 +117,7 @@ export class MarketFixture {
     collateralMint,
     vaultAtaCollateral,
   }: {
+    user: UserFixture;
     collateralSymbol: SupportedCollateral;
     ltvFactor: anchor.BN;
     quoteMint: PublicKey;
@@ -121,319 +125,332 @@ export class MarketFixture {
     collateralMint: PublicKey;
     vaultAtaCollateral: PublicKey;
   }): Promise<void> {
-    const collateral = this.getCollateral(collateralSymbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${collateralSymbol} not found`);
-    }
+
+    console.log("Creating market with accounts:", {
+      user: user.toString(),
+      market: this.marketAcc.key.toString(),
+      quoteMint: quoteMint.toString(),
+      collateralMint: collateralMint.toString(), 
+      vaultAtaQuote: vaultAtaQuote.toString(),
+      vaultAtaCollateral: vaultAtaCollateral.toString(),
+      associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID.toString(),
+      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID.toString(),
+      systemProgram: anchor.web3.SystemProgram.programId.toString()
+    });
 
     await this.program.methods
       .createMarket({
-        feedId: collateral.getOracleId(),
+        feedId: this.collateral.getOracleId(),
         ltvFactor,
       })
       .accounts({
-        authority: this.controller.authority.publicKey,
-        market: this.marketAcc.key,
-        quoteMint: quoteMint,
-        collateralMint: collateralMint,
-        vaultAtaQuote: vaultAtaQuote,
-        vaultAtaCollateral: vaultAtaCollateral,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([this.controller.authority.payer])
-      .rpc();
-  }
-
-  async update({
-    symbol,
-    ltvFactor,
-    isActive,
-    overrideAuthority, // Add this parameter
-  }: {
-    symbol: SupportedCollateral;
-    ltvFactor: anchor.BN;
-    isActive: boolean;
-    overrideAuthority?: UserFixture; // Optional parameter for testing
-  }): Promise<void> {
-    const collateral = this.getCollateral(symbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${symbol} not found`);
-    }
-
-    await this.program.methods
-    .updateCollateral({
-      ltvFactor,
-      isActive,
-    })
-    .accounts({
-      authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
-      controller: this.controller.controllerAcc.key,
-      market: this.marketAcc.key,
-      quoteMint: this.quoteMint,
-      collateralMint: collateral.collateralMint,
-      vaultAtaQuote: this.get_ata(this.quoteMint),
-      vaultAtaCollateral: this.get_ata(collateral.collateralMint),
-      associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
-    .rpc();
-  }
-
-  async deposit({
-    user,
-    amount,
-    shares,
-  }: {
-    user: UserFixture;
-    amount: anchor.BN;
-    shares: anchor.BN;
-  }): Promise<void> {
-    await this.program.methods
-      .deposit({
-        amount,
-        shares,
-      })
-      .accounts({
         user: user.key.publicKey,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(user.key.publicKey).key,
-        quoteMint: this.quoteMint,
-        vaultAtaQuote: this.get_ata(this.quoteMint),
-        userAtaQuote: user.quoteAta,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        quoteMint,
+        collateralMint,
+        vaultAtaQuote,
+        vaultAtaCollateral,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
       .rpc();
+
+    const marketAccountData = await this.marketAcc.get_data();
+    assert.equal(marketAccountData.quoteMint.toBase58(), quoteMint.toBase58());
+    assert.equal(marketAccountData.collateralMint.toBase58(), collateralMint.toBase58());
+    assert.equal(marketAccountData.ltvFactor.toString(), ltvFactor.toString());
   }
 
-  async withdraw({
-    user,
-    amount,
-    shares,
-  }: {
-    user: UserFixture;
-    amount: anchor.BN;
-    shares: anchor.BN;
-  }): Promise<void> {
-    await this.program.methods
-      .withdraw({
-        amount,
-        shares,
-      })
-      .accounts({
-        user: user.key.publicKey,
-        market: this.marketAcc.key,
-        userShares: this.get_user_shares(user.key.publicKey).key,
-        quoteMint: this.quoteMint,
-        vaultAtaQuote: this.get_ata(this.quoteMint),
-        userAtaQuote: user.quoteAta,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([user.key.payer])
-      .rpc();
-  }
+  // async update({
+  //   symbol,
+  //   ltvFactor,
+  //   isActive,
+  //   overrideAuthority, // Add this parameter
+  // }: {
+  //   symbol: SupportedCollateral;
+  //   ltvFactor: anchor.BN;
+  //   isActive: boolean;
+  //   overrideAuthority?: UserFixture; // Optional parameter for testing
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(symbol);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${symbol} not found`);
+  //   }
 
-  async depositCollateral({
-    user,
-    symbol,
-    amount,
-  }: {
-    user: UserFixture;
-    symbol: string;
-    amount: anchor.BN;
-  }): Promise<void> {
-    const collateral = this.getCollateral(symbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${symbol} not found`);
-    }
+  //   await this.program.methods
+  //   .updateCollateral({
+  //     ltvFactor,
+  //     isActive,
+  //   })
+  //   .accounts({
+  //     authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
+  //     controller: this.controller.controllerAcc.key,
+  //     market: this.marketAcc.key,
+  //     quoteMint: this.quoteMint,
+  //     collateralMint: collateral.collateralMint,
+  //     vaultAtaQuote: this.get_ata(this.quoteMint),
+  //     vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+  //     associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //     tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //     systemProgram: anchor.web3.SystemProgram.programId,
+  //   })
+  //   .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
+  //   .rpc();
+  // }
 
-    await this.program.methods
-      .depositCollateral({
-        amount,
-      })
-      .accounts({
-        user: user.key.publicKey,
-        market: this.marketAcc.key,
-        collateral: collateral.collateralAcc.key,
-        userShares: this.get_user_shares(user.key.publicKey).key,
-        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
-        collateralMint: collateral.collateralMint,
-        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
-        userAtaCollateral: user.get_ata(collateral.collateralMint),
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([user.key.payer])
-      .rpc();
-  }
+  // async deposit({
+  //   user,
+  //   amount,
+  //   shares,
+  // }: {
+  //   user: UserFixture;
+  //   amount: anchor.BN;
+  //   shares: anchor.BN;
+  // }): Promise<void> {
+  //   await this.program.methods
+  //     .deposit({
+  //       amount,
+  //       shares,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       userShares: this.get_user_shares(user.key.publicKey).key,
+  //       quoteMint: this.quoteMint,
+  //       vaultAtaQuote: this.get_ata(this.quoteMint),
+  //       userAtaQuote: user.quoteAta,
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
 
-  async withdrawCollateral({
-    user,
-    symbol,
-    amount,
-  }: {
-    user: UserFixture;
-    symbol: string;
-    amount: anchor.BN;
-  }): Promise<void> {
-    const collateral = this.getCollateral(symbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${symbol} not found`);
-    }
+  // async withdraw({
+  //   user,
+  //   amount,
+  //   shares,
+  // }: {
+  //   user: UserFixture;
+  //   amount: anchor.BN;
+  //   shares: anchor.BN;
+  // }): Promise<void> {
+  //   await this.program.methods
+  //     .withdraw({
+  //       amount,
+  //       shares,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       userShares: this.get_user_shares(user.key.publicKey).key,
+  //       quoteMint: this.quoteMint,
+  //       vaultAtaQuote: this.get_ata(this.quoteMint),
+  //       userAtaQuote: user.quoteAta,
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
 
-    await this.program.methods
-      .withdrawCollateral({
-        amount,
-      })
-      .accounts({
-        user: user.key.publicKey,
-        market: this.marketAcc.key,
-        collateral: collateral.collateralAcc.key,
-        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
-        collateralMint: collateral.collateralMint,
-        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
-        userAtaCollateral: user.get_ata(collateral.collateralMint),
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: collateral.getOracleAccount(),
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([user.key.payer])
-      .rpc();
-  }
+  // async depositCollateral({
+  //   user,
+  //   symbol,
+  //   amount,
+  // }: {
+  //   user: UserFixture;
+  //   symbol: string;
+  //   amount: anchor.BN;
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(symbol);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${symbol} not found`);
+  //   }
 
-  async borrow({
-    user,
-    symbol,
-    amount,
-    shares,
-  }: {
-    user: UserFixture;
-    symbol: string;
-    amount: anchor.BN;
-    shares: anchor.BN;
-  }): Promise<void> {
-    const collateral = this.getCollateral(symbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${symbol} not found`);
-    }
+  //   await this.program.methods
+  //     .depositCollateral({
+  //       amount,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       collateral: collateral.collateralAcc.key,
+  //       userShares: this.get_user_shares(user.key.publicKey).key,
+  //       borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
+  //       collateralMint: collateral.collateralMint,
+  //       vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+  //       userAtaCollateral: user.get_ata(collateral.collateralMint),
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
 
-    await this.program.methods
-      .borrow({
-        amount,
-        shares,
-      })
-      .accounts({
-        user: user.key.publicKey,
-        market: this.marketAcc.key,
-        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
-        quoteMint: this.quoteMint,
-        vaultAtaQuote: this.get_ata(this.quoteMint),
-        userAtaQuote: user.quoteAta,
-        collateral: collateral.collateralAcc.key,
-        collateralMint: collateral.collateralMint,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: collateral.getOracleAccount(),
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([user.key.payer])
-      .rpc();
-  }
+  // async withdrawCollateral({
+  //   user,
+  //   symbol,
+  //   amount,
+  // }: {
+  //   user: UserFixture;
+  //   symbol: string;
+  //   amount: anchor.BN;
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(symbol);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${symbol} not found`);
+  //   }
 
-  async repay({
-    user,
-    symbol,
-    amount,
-    shares,
-  }: {
-    user: UserFixture;
-    symbol: string;
-    amount: anchor.BN;
-    shares: anchor.BN;
-  }): Promise<void> {
-    const collateral = this.getCollateral(symbol);
+  //   await this.program.methods
+  //     .withdrawCollateral({
+  //       amount,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       collateral: collateral.collateralAcc.key,
+  //       borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
+  //       collateralMint: collateral.collateralMint,
+  //       vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+  //       userAtaCollateral: user.get_ata(collateral.collateralMint),
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       priceUpdate: collateral.getOracleAccount(),
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
 
-    if (!collateral) {
-      throw new Error(`Collateral ${symbol} not found`);
-    }
+  // async borrow({
+  //   user,
+  //   symbol,
+  //   amount,
+  //   shares,
+  // }: {
+  //   user: UserFixture;
+  //   symbol: string;
+  //   amount: anchor.BN;
+  //   shares: anchor.BN;
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(symbol);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${symbol} not found`);
+  //   }
 
-    await this.program.methods
-      .repay({
-        amount,
-        shares,
-      })
-      .accounts({
-        user: user.key.publicKey,
-        market: this.marketAcc.key,
-        borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
-        quoteMint: this.quoteMint,
-        vaultAtaQuote: this.get_ata(this.quoteMint),
-        userAtaQuote: user.quoteAta,
-        collateral: collateral.collateralAcc.key,
-        collateralMint: collateral.collateralMint,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([user.key.payer])
-      .rpc();
-  }
+  //   await this.program.methods
+  //     .borrow({
+  //       amount,
+  //       shares,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
+  //       quoteMint: this.quoteMint,
+  //       vaultAtaQuote: this.get_ata(this.quoteMint),
+  //       userAtaQuote: user.quoteAta,
+  //       collateral: collateral.collateralAcc.key,
+  //       collateralMint: collateral.collateralMint,
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       priceUpdate: collateral.getOracleAccount(),
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
 
-  async liquidate({
-    user,
-    symbol,
-    borrower,
-    collateralAmount,
-    repayShares,
-  }: {
-    user: UserFixture;
-    symbol: string;
-    borrower: PublicKey;
-    collateralAmount: anchor.BN;
-    repayShares: anchor.BN;
-  }): Promise<void> {
-    const collateral = this.getCollateral(symbol);
-    if (!collateral) {
-      throw new Error(`Collateral ${symbol} not found`);
-    }
+  // async repay({
+  //   user,
+  //   symbol,
+  //   amount,
+  //   shares,
+  // }: {
+  //   user: UserFixture;
+  //   symbol: string;
+  //   amount: anchor.BN;
+  //   shares: anchor.BN;
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(symbol);
 
-    console.log("borrower_shares", collateral.get_borrower_shares(borrower).key);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${symbol} not found`);
+  //   }
 
-    const tx = await this.program.methods
-      .liquidate({
-        borrower,
-        collateralAmount,
-        repayShares,
-      })
-      .accounts({
-        user: user.key.publicKey,
-        market: this.marketAcc.key,
-        borrowerShares: collateral.get_borrower_shares(borrower).key,
-        quoteMint: this.quoteMint,
-        vaultAtaQuote: this.get_ata(this.quoteMint),
-        userAtaQuote: user.quoteAta,
-        collateral: collateral.collateralAcc.key,
-        collateralMint: collateral.collateralMint,
-        vaultAtaCollateral: this.get_ata(collateral.collateralMint),
-        userAtaCollateral: user.get_ata(collateral.collateralMint),
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: collateral.getOracleAccount(),
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([user.key.payer])
-      .rpc();
-  }
+  //   await this.program.methods
+  //     .repay({
+  //       amount,
+  //       shares,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       borrowerShares: collateral.get_borrower_shares(user.key.publicKey).key,
+  //       quoteMint: this.quoteMint,
+  //       vaultAtaQuote: this.get_ata(this.quoteMint),
+  //       userAtaQuote: user.quoteAta,
+  //       collateral: collateral.collateralAcc.key,
+  //       collateralMint: collateral.collateralMint,
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
+
+  // async liquidate({
+  //   user,
+  //   symbol,
+  //   borrower,
+  //   collateralAmount,
+  //   repayShares,
+  // }: {
+  //   user: UserFixture;
+  //   symbol: string;
+  //   borrower: PublicKey;
+  //   collateralAmount: anchor.BN;
+  //   repayShares: anchor.BN;
+  // }): Promise<void> {
+  //   const collateral = this.getCollateral(symbol);
+  //   if (!collateral) {
+  //     throw new Error(`Collateral ${symbol} not found`);
+  //   }
+
+  //   console.log("borrower_shares", collateral.get_borrower_shares(borrower).key);
+
+  //   const tx = await this.program.methods
+  //     .liquidate({
+  //       borrower,
+  //       collateralAmount,
+  //       repayShares,
+  //     })
+  //     .accounts({
+  //       user: user.key.publicKey,
+  //       market: this.marketAcc.key,
+  //       borrowerShares: collateral.get_borrower_shares(borrower).key,
+  //       quoteMint: this.quoteMint,
+  //       vaultAtaQuote: this.get_ata(this.quoteMint),
+  //       userAtaQuote: user.quoteAta,
+  //       collateral: collateral.collateralAcc.key,
+  //       collateralMint: collateral.collateralMint,
+  //       vaultAtaCollateral: this.get_ata(collateral.collateralMint),
+  //       userAtaCollateral: user.get_ata(collateral.collateralMint),
+  //       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+  //       priceUpdate: collateral.getOracleAccount(),
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([user.key.payer])
+  //     .rpc();
+  // }
 
   async accrueInterest(): Promise<void> {
     await this.program.methods
@@ -453,19 +470,19 @@ export class MarketFixture {
     });
   }
 
-  public get_user_shares(userKey: PublicKey): AccountFixture {
-    let userSharesKey = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("market_shares"),
-        this.marketAcc.key.toBuffer(),
-        userKey.toBuffer(),
-      ],
-      this.program.programId
-    )[0];
-    return new AccountFixture(
-      "userShares",
-      userSharesKey,
-      this.program
-    );
-  }
+  // public get_user_shares(userKey: PublicKey): AccountFixture {
+  //   let userSharesKey = PublicKey.findProgramAddressSync(
+  //     [
+  //       Buffer.from("market_shares"),
+  //       this.marketAcc.key.toBuffer(),
+  //       userKey.toBuffer(),
+  //     ],
+  //     this.program.programId
+  //   )[0];
+  //   return new AccountFixture(
+  //     "userShares",
+  //     userSharesKey,
+  //     this.program
+  //   );
+  // }
 }

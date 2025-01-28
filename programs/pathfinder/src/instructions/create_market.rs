@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
+use anchor_lang::{prelude::*, solana_program::hash::hash};
 
 use crate::state::*;
 
@@ -12,30 +12,29 @@ pub struct CreateMarketArgs {
     pub ltv_factor: u64,
 } 
 
+fn hash_feed_id(feed_id: &str) -> [u8; 32] {
+    let value = hash(feed_id.as_ref()).to_bytes();
+    msg!("hash_feed_id: {:?}", value);
+    value
+}
+
 #[derive(Accounts)]
 #[instruction(args: CreateMarketArgs)]
 pub struct CreateMarket<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(mut,
-        seeds = [CONTROLLER_SEED_PREFIX],
-        bump = controller.bump,
-        constraint = controller.authority == authority.key()
-    )]
-    pub controller: Box<Account<'info, Controller>>,
+    pub user: Signer<'info>,
 
     // market
     #[account(
         init,
-        payer = authority,
+        payer = user,
         space = 8 + std::mem::size_of::<Market>(),
         seeds = [
             MARKET_SEED_PREFIX,
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &args.ltv_factor.to_le_bytes(),
-            args.feed_id.as_bytes(),
+            &hash_feed_id(&args.feed_id),
         ],
         bump,
     )]
@@ -50,7 +49,7 @@ pub struct CreateMarket<'info> {
 
     #[account(
         init_if_needed,
-        payer = authority,
+        payer = user,
         associated_token::authority = market,
         associated_token::mint = quote_mint
     )]
@@ -64,7 +63,7 @@ pub struct CreateMarket<'info> {
 
     #[account(
         init_if_needed,
-        payer = authority,
+        payer = user,
         associated_token::authority = market,
         associated_token::mint = collateral_mint
     )]
