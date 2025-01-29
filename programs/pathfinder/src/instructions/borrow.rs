@@ -64,7 +64,7 @@ pub struct Borrow<'info> {
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
     // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
     pub collateral_mint: Box<Account<'info, Mint>>,
 
     pub token_program: Program<'info, Token>,
