@@ -1,6 +1,4 @@
 use anchor_lang::prelude::*;
-
-use crate::error::MarketError;
 use crate::math::*;
 
 // Calculates the value of `assets` quoted in shares, rounding down.

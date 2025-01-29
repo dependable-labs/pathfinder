@@ -41,4 +41,7 @@ pub enum MarketError {
     BorrowerIsSolvent,
     #[msg("Collateral is not active")]
     CollateralNotActive,
+
+    #[msg("Unauthorized delegate")]
+    UnauthorizedDelegate,
 }

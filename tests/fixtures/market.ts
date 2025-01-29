@@ -191,21 +191,24 @@ export class MarketFixture {
     user,
     amount,
     shares,
+    owner,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
+    owner?: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
       .deposit({
         amount,
         shares,
+        owner: owner ? owner.key.publicKey : user.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(user.key.publicKey).key,
+        userShares: this.get_user_shares(owner ? owner.key.publicKey : user.key.publicKey).key,
         quoteMint: this.quoteMint,
         collateralMint: this.collateral.collateralMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -217,29 +220,36 @@ export class MarketFixture {
       .signers([user.key.payer])
       .rpc();
   }
-
   async withdraw({
     user,
     amount,
     shares,
+    owner,
+    recipient,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
+    owner: UserFixture;
+    recipient: UserFixture;
   }): Promise<void> {
     await this.program.methods
       .withdraw({
         amount,
         shares,
+        owner: owner.key.publicKey,
+        recipient: recipient.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
+        recipient: recipient.key.publicKey,
+        positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(user.key.publicKey).key,
+        userShares: this.get_user_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
         collateralMint: this.collateral.collateralMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
-        userAtaQuote: user.quoteAta,
+        recipientAtaQuote: recipient.get_ata(this.quoteMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -411,6 +421,24 @@ export class MarketFixture {
       .rpc();
   }
 
+  async updateDelegate({
+    user,
+    new_delegate,
+  }: {
+    user: UserFixture;
+    new_delegate: UserFixture;
+  }): Promise<void> {
+    await this.program.methods
+      .updateDelegate({
+        newDelegate: new_delegate.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
   async accrueInterest(): Promise<void> {
     await this.program.methods
       .accrueInterest()
@@ -460,6 +488,22 @@ export class MarketFixture {
     return new AccountFixture(
       "borrowerShares",
       borrowerSharesKey,
+      this.program
+    );
+  }
+
+
+  public get_position_delegate(userKey: PublicKey): AccountFixture {
+    let positionDelegateKey = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("delegate"),
+        userKey.toBuffer(),
+      ],
+      this.program.programId
+    )[0];
+    return new AccountFixture(
+      "positionDelegate",
+      positionDelegateKey,
       this.program
     );
   }

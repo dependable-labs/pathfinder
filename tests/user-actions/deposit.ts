@@ -130,4 +130,51 @@ describe("Deposit", () => {
 
     assert.equal(await larry.get_quo_balance(), BigInt(995 * 1e9));
   });
+
+  it("On behalf of another owner", async () => {
+    const priorMarketAccountData = await market.marketAcc.get_data();
+    assert.equal(priorMarketAccountData.totalShares.toNumber(), 0);
+    assert.equal(await market.quoteAta.getTokenBalance(), 0);
+    let priorDeposits = await market.marketAcc.getTotalDeposits();
+    assert.equal(priorDeposits.toNumber(), 0);
+
+    // account not initialized
+    const priorlarryData = await market
+      .get_user_shares(larry.key.publicKey)
+      .get_data();
+    assert.equal(priorlarryData, undefined);
+    assert.equal(await larry.get_quo_balance(), BigInt(1000 * 1e5));
+
+    // account not initialized
+    const priorlizzData = await market
+      .get_user_shares(lizz.key.publicKey)
+      .get_data();
+    assert.equal(priorlizzData, undefined);
+    assert.equal(await lizz.get_quo_balance(), BigInt(1000 * 1e5));
+
+    await market.deposit({
+      user: larry,
+      owner: lizz,
+      amount: new anchor.BN(1 * 1e5),
+      shares: new anchor.BN(0)
+    });
+
+    const marketAccountData = await market.marketAcc.get_data();
+    assert.equal(marketAccountData.totalShares.toNumber(), 1 * 1e5);
+    assert.equal(await market.quoteAta.getTokenBalance(), 1 * 1e5);
+    let deposits = await market.marketAcc.getTotalDeposits();
+    assert.equal(deposits.toNumber(), 1 * 1e5);
+
+    const postLarryData = await market
+    .get_user_shares(larry.key.publicKey)
+    .get_data();
+    assert.equal(postLarryData, undefined);
+    assert.equal(await larry.get_quo_balance(), BigInt(999 * 1e5));
+
+    const userSharesAccountData2 = await market
+      .get_user_shares(lizz.key.publicKey)
+      .get_data();
+    assert.equal(userSharesAccountData2.shares.toNumber(), 1 * 1e5);
+    assert.equal(await lizz.get_quo_balance(), BigInt(1000 * 1e5));
+  });
 });

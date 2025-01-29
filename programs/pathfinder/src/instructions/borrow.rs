@@ -170,7 +170,7 @@ pub fn is_solvent(
     let total_borrows = market.total_borrows()?;
 
     // Calculate borrowed amount by converting borrow shares to assets, rounding up
-    let mut borrowed = to_assets_up(
+    let borrowed = to_assets_up(
         borrow_shares,
         total_borrows,
         market.total_borrow_shares,

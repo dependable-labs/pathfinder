@@ -15,8 +15,8 @@ pub mod markets {
     use super::*;
 
     #[access_control(ctx.accounts.validate())]
-    pub fn set_authority(ctx: Context<SetAuthority>, args: SetAuthorityArgs) -> Result<()> {
-        SetAuthority::handle(ctx, args)
+    pub fn update_delegate(ctx: Context<UpdateDelegate>, args: UpdateDelegateArgs) -> Result<()> {
+        UpdateDelegate::handle(ctx, args)
     }
 
     pub fn create_market(ctx: Context<CreateMarket>, args: CreateMarketArgs) -> Result<()> {

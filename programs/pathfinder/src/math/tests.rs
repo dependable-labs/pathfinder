@@ -1,11 +1,10 @@
-use super::*;
+
+
+use crate::math::*;
+use crate::MAX_RATE_AT_TARGET;
 
 #[cfg(test)]
 mod tests {
-    use std::char::MAX;
-
-    use crate::MAX_RATE_AT_TARGET;
-
     use super::*;
 
     #[test]
