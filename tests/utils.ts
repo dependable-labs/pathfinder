@@ -29,6 +29,19 @@ export function fund_w_sol(
   });
 }
 
+function getFeedIdFromHex(input: string): Buffer {
+  // Remove '0x' prefix if present
+  const hexString = input.startsWith('0x') ? input.slice(2) : input;
+  
+  // Validate length
+  if (hexString.length !== 64) {
+    throw new Error('Feed ID must be 32 bytes');
+  }
+
+  // Convert hex to bytes
+  return Buffer.from(hexString, 'hex');
+}
+
 export function deriveMarketAddress(
   quoteMint: PublicKey,
   collateralMint: PublicKey,
@@ -37,9 +50,7 @@ export function deriveMarketAddress(
   programId: PublicKey
 ) {
 
-  const hash = createHash('sha256')
-    .update(oracleId)
-    .digest();
+  const hash = getFeedIdFromHex(oracleId);
 
   return PublicKey.findProgramAddressSync(
     [
@@ -98,12 +109,19 @@ export class TestUtils {
     return instance;
   }
 
-  public createUser() {
-    return new UserFixture(
+  public async createUser(quoteAmount: anchor.BN, collateralAmount: anchor.BN) {
+    let user = new UserFixture(
       this.provider,
       this.quoteMint,
       this.collateralMint
     );
+
+    await user.init_and_fund_accounts(
+      quoteAmount,
+      collateralAmount
+    );
+
+    return user;
   }
 
   public async createMarket(

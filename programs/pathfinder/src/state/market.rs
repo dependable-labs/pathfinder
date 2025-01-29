@@ -1,10 +1,13 @@
 use anchor_lang::prelude::*;
 
+use anchor_lang::solana_program::hash::hash;
 use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
 use crate::state::MAX_PRICE_AGE;
 use crate::math::w_mul_down;
+
+
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
 pub struct PythOracle {
@@ -43,6 +46,13 @@ impl PythOracle {
 
         Ok((adjusted_price, price_precision))
     }
+
+    pub fn hash_feed_id(feed_id: &str) -> [u8; 32] {
+        let value = hash(feed_id.as_bytes()).to_bytes();
+        msg!("on init hash feed_id: {:?}", value);
+        value
+    }
+    
 }
 
 #[account]
@@ -98,19 +108,22 @@ macro_rules! generate_market_seeds {
         &[
             MARKET_SEED_PREFIX,
             $market.quote_mint.as_ref(),
+            $market.collateral_mint.as_ref(),
+            &$market.ltv_factor.to_le_bytes(),
+            &$market.oracle.feed_id,
             &[$market.bump],
         ]
     }};
 }
 
-#[macro_export]
-macro_rules! generate_collateral_seeds {
-    ($market:expr) => {{
-        &[
-            MARKET_COLLATERAL_SEED_PREFIX,
-            $market.quote_mint.as_ref(),
-            $collateral.mint.as_ref(),
-            &[$collateral.bump],
-        ]
-    }};
-}
+// #[macro_export]
+// macro_rules! generate_collateral_seeds {
+//     ($market:expr) => {{
+//         &[
+//             MARKET_COLLATERAL_SEED_PREFIX,
+//             $market.quote_mint.as_ref(),
+//             $collateral.mint.as_ref(),
+//             &[$collateral.bump],
+//         ]
+//     }};
+// }

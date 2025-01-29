@@ -1,478 +1,337 @@
-// import { setupTest, TimeUtils } from "../utils";
-// import { MarketFixture, UserFixture, ControllerFixture } from "../fixtures";
-// import * as anchor from "@coral-xyz/anchor";
-// import { Program } from "@coral-xyz/anchor";
-// import { Markets } from "../../target/types/markets";
-// import assert from "assert";
-// import { BankrunProvider, startAnchor } from "anchor-bankrun";
-// import { ProgramTestContext } from "solana-bankrun";
-// import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-// import buffer from 'buffer';
+import { TestUtils } from "../utils";
+import { MarketFixture, UserFixture } from "../fixtures";
+import * as anchor from "@coral-xyz/anchor";
+import assert from "assert";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-// describe("Accrue Interest", () => {
-//   let program: Program<Markets>;
-//   let provider: BankrunProvider;
-//   let context: ProgramTestContext;
-//   let controller: ControllerFixture;
-//   let accounts: any;
-//   let market: MarketFixture;
-//   let larry: UserFixture; // Lender
-//   let bob: UserFixture;   // Borrower
+describe("Accrue Interest", () => {
+  let test: TestUtils;
+  let market: MarketFixture;
+  let larry: UserFixture; // Lender
+  let bob: UserFixture;   // Borrower
 
-//   beforeEach(async () => {
-//     context = await startAnchor("", [], []);
-//     provider = new BankrunProvider(context);
+  beforeEach(async () => {
 
-//     ({ program, accounts } = await setupTest({
-//       provider,
-//       banks: context.banksClient,
-//       quoteDecimals: 9,
-//       collateralDecimals: 9,
-//     }));
+    test = await TestUtils.create({
+      quoteDecimals: 5,
+      collateralDecimals: 9,
+    });
 
-//     larry = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
-//     await larry.init_and_fund_accounts(
-//       new anchor.BN(1_000_000 * LAMPORTS_PER_SOL), // Quote tokens for lending
-//       new anchor.BN(0)
-//     );
+    larry = await test.createUser(
+      new anchor.BN(1_000_000 * 1e9),
+      new anchor.BN(0)
+    );
 
-//     bob = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
-//     await bob.init_and_fund_accounts(
-//       new anchor.BN(0),
-//       new anchor.BN(1_000_000 * LAMPORTS_PER_SOL)  // Collateral for borrowing
-//     );
+    bob = await test.createUser(
+      new anchor.BN(0),
+      new anchor.BN(1_000_000 * 1e9)
+    );
 
-//     controller = new ControllerFixture(program, provider);
 
-//     market = new MarketFixture(
-//       program,
-//       provider,
-//       accounts.market,
-//       accounts.quoteMint,
-//       controller
-//     );
 
-//     await market.setAuthority();
+    market = await test.createMarket({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9),
+      price: new anchor.BN(100 * 1e9),
+      conf: new anchor.BN(100 / 10 * 1e9),
+      expo: -9
+    });
 
-//     await market.addCollateral({
-//       symbol: "BONK",
-//       collateralAddress: accounts.collateralAcc,
-//       collateralMint: accounts.collateralMint,
-//       price: new anchor.BN(100 * 1e9),
-//       conf: new anchor.BN(100 / 10 * 1e9),
-//       expo: -9
-//     });
+    await market.create({ user: larry });
 
-//     await market.create({
-//       collateralSymbol: "BONK",
-//       ltvFactor: new anchor.BN(0.8 * 1e9),
-//     });
+    // Setup initial state: deposit, collateralize, and borrow
+    await market.deposit({
+      user: larry,
+      amount: new anchor.BN(1_000 * LAMPORTS_PER_SOL),
+      shares: new anchor.BN(0)
+    });
 
-//     // Setup initial state: deposit, collateralize, and borrow
-//     await market.deposit({
-//       user: larry,
-//       amount: new anchor.BN(1_000 * LAMPORTS_PER_SOL),
-//       shares: new anchor.BN(0)
-//     });
+    await market.depositCollateral({
+      user: bob,
+      amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
+    });
 
-//     await market.depositCollateral({
-//       user: bob,
-//       symbol: "BONK",
-//       amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
-//     });
+    await market.borrow({
+      user: bob,
+      amount: new anchor.BN(500 * LAMPORTS_PER_SOL),
+      shares: new anchor.BN(0)
+    });
+  });
 
-//     await market.borrow({
-//       user: bob,
-//       symbol: "BONK",
-//       amount: new anchor.BN(500 * LAMPORTS_PER_SOL),
-//       shares: new anchor.BN(0)
-//     });
-//   });
-
-//   it("correctly for year", async () => {
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+  it("correctly for year", async () => {
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Advance clock by 1 year
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
     
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Convert to BN and calculate difference
-//     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    // Convert to BN and calculate difference
+    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
-//     // Verify interest accrual
-//     assert.equal(
-//       difference.toNumber(),
-//       13_512_691_343 // Expected interest accrual
-//     );
-//   });
+    // Verify interest accrual
+    assert.equal(
+      difference.toNumber(),
+      13_512_691_343 // Expected interest accrual
+    );
+  });
 
-//   it("correctly for year 80% utilization", async () => {
+  it("correctly for year 80% utilization", async () => {
 
-//     await market.borrow({
-//       user: bob,
-//       symbol: "BONK",
-//       amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
-//       shares: new anchor.BN(0)
-//     });
+    await market.borrow({
+      user: bob,
+      amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
+      shares: new anchor.BN(0)
+    });
 
-//     // 800 Debt, 1000 Capacity -> 80% utilization
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    // 800 Debt, 1000 Capacity -> 80% utilization
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Advance clock by 1 year
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
     
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
 
-//     assert.equal(beforeTotalBorrows.toNumber(), 800_000_000_000);
-//     assert.equal(afterTotalBorrows.toNumber(), 829_877_683_931);
+    assert.equal(beforeTotalBorrows.toNumber(), 800_000_000_000);
+    assert.equal(afterTotalBorrows.toNumber(), 829_877_683_931);
     
-//     // Convert to BN and calculate difference
-//     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    // Convert to BN and calculate difference
+    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
-//     assert.equal(
-//       difference.toNumber(),
-//       29_877_683_931 // Expected interest accrual
-//     );
-//   });
+    assert.equal(
+      difference.toNumber(),
+      29_877_683_931 // Expected interest accrual
+    );
+  });
 
-//   it("for multiple periods", async () => {
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+  it("for multiple periods", async () => {
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Advance clock by 2 years  
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 2 * 3600);
+    // Advance clock by 2 years  
+    await test.moveTimeForward(365 * 24 * 2 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
 
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
 
-//     // Convert to BN and calculate difference
-//     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    // Convert to BN and calculate difference
+    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
 
-//     assert.equal(
-//       difference.toNumber(),
-//       27_390_419_723
-//     );
-//   });
+    assert.equal(
+      difference.toNumber(),
+      27_390_419_723
+    );
+  });
 
-//   it("updates last accrual timestamp", async () => {
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+  it("updates last accrual timestamp", async () => {
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
 
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
 
-//     assert.notEqual(
-//       afterTotalBorrows.toNumber(),
-//       beforeTotalBorrows.toNumber()
-//     );
-//   });
+    assert.notEqual(
+      afterTotalBorrows.toNumber(),
+      beforeTotalBorrows.toNumber()
+    );
+  });
   
-//   it("correctly for year with six decimal quote token", async () => {
+  it("correctly for year with six decimal quote token", async () => {
 
-//     // initialize this test with six decimal quote token
-//     ({ program, accounts } = await setupTest({
-//       provider,
-//       banks: context.banksClient,
-//       quoteDecimals: 6,
-//       collateralDecimals: 9,
-//     }));
+    test = await TestUtils.create({
+      quoteDecimals: 6,
+      collateralDecimals: 9,
+    });
 
-//     let lip = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
+    let lip = await test.createUser(
+      new anchor.BN(1_000 * 1e6),
+      new anchor.BN(0)
+    );
 
-//     await lip.init_and_fund_accounts(
-//       new anchor.BN(1_000 * 1e6),
-//       new anchor.BN(0)
-//     );
+    let barry = await test.createUser(
+      new anchor.BN(0),
+      new anchor.BN(1_000 * 1e9)
+    );
 
-//     let barry = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
+    market = await test.createMarket({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e6),
+      price: new anchor.BN(100 * 1e6),
+      conf: new anchor.BN(10 * 1e6),
+      expo: -6
+    });
 
-//     await barry.init_and_fund_accounts(
-//       new anchor.BN(0),
-//       new anchor.BN(1_000 * 1e9)
-//     );
+    await market.create({ user: lip });
 
-//     // let controller = new ControllerFixture(program, provider);
+    // Setup initial state: deposit, collateralize, and borrow
+    await market.deposit({
+      user: lip,
+      amount: new anchor.BN(1_000 * 1e6),
+      shares: new anchor.BN(0)
+    });
 
-//     market = new MarketFixture(
-//       program,
-//       provider,
-//       accounts.market,
-//       accounts.quoteMint,
-//       controller // contains futarchy treasury authority
-//     );
+    await market.depositCollateral({
+      user: barry,
+      amount: new anchor.BN(100 * 1e9)
+    });
 
-//     // add collateral and initialize price
-//     await market.addCollateral({
-//       symbol: "BONK",
-//       collateralAddress: accounts.collateralAcc,
-//       collateralMint: accounts.collateralMint,
-//       price: new anchor.BN(100 * 1e6),
-//       conf: new anchor.BN(10 * 1e6),
-//       expo: -6
-//     });
+    await market.borrow({
+      user: barry,
+      amount: new anchor.BN(500 * 1e6),
+      shares: new anchor.BN(0)
+    });
 
-//     await market.create({
-//       collateralSymbol: "BONK",
-//       ltvFactor: new anchor.BN(0.8 * 1e6),
-//     });
-
-//     // Setup initial state: deposit, collateralize, and borrow
-//     await market.deposit({
-//       user: lip,
-//       amount: new anchor.BN(1_000 * 1e6),
-//       shares: new anchor.BN(0)
-//     });
-
-//     await market.depositCollateral({
-//       user: barry,
-//       symbol: "BONK",
-//       amount: new anchor.BN(100 * 1e9)
-//     });
-
-//     await market.borrow({
-//       user: barry,
-//       symbol: "BONK",
-//       amount: new anchor.BN(500 * 1e6),
-//       shares: new anchor.BN(0)
-//     });
-
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Advance clock by 1 year
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
     
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Convert to BN and calculate difference
-//     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    // Convert to BN and calculate difference
+    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
-//     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
-//     assert.equal(
-//       difference.toNumber(),
-//       13.512_691 * 1e6 // Expected interest accrual
-//     );
-//   });
+    // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
+    assert.equal(
+      difference.toNumber(),
+      13.512_691 * 1e6 // Expected interest accrual
+    );
+  });
 
 
-//   it("correctly for year with nine decimal collateral token", async () => {
+  it("correctly for year with nine decimal collateral token", async () => {
+    test = await TestUtils.create({
+      quoteDecimals: 9,
+      collateralDecimals: 9,
+    });
 
-//     // initialize this test with six decimal quote token
-//     ({ program, accounts } = await setupTest({
-//       provider,
-//       banks: context.banksClient,
-//       quoteDecimals: 9,
-//       collateralDecimals: 9,
-//     }));
+    let lip = await test.createUser(
+      new anchor.BN(1_000 * 1e9),
+      new anchor.BN(0)
+    );
 
-//     let lip = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
+    let barry = await test.createUser(
+      new anchor.BN(0),
+      new anchor.BN(1_000 * 1e9)
+    );
 
-//     await lip.init_and_fund_accounts(
-//       new anchor.BN(1_000 * 1e9),
-//       new anchor.BN(0)
-//     );
+    market = await test.createMarket({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9),
+      price: new anchor.BN(100 * 1e9),
+      conf: new anchor.BN(100 / 10 * 1e9),
+      expo: -9
+    });
 
-//     let barry = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
+    await market.create({ user: lip });
 
+    // Setup initial state: deposit, collateralize, and borrow
+    await market.deposit({
+      user: lip,
+      amount: new anchor.BN(1_000 * 1e9),
+      shares: new anchor.BN(0)
+    });
 
-//     await barry.init_and_fund_accounts(
-//       new anchor.BN(0),
-//       new anchor.BN(1_000 * 1e9)
-//     );
+    await market.depositCollateral({
+      user: barry,
+      amount: new anchor.BN(100 * 1e9)
+    });
 
-//     // let controller = new ControllerFixture(program, provider);
+    await market.borrow({
+      user: barry,
+      amount: new anchor.BN(500 * 1e9),
+      shares: new anchor.BN(0)
+    });
 
-//     market = new MarketFixture(
-//       program,
-//       provider,
-//       accounts.market,
-//       accounts.quoteMint,
-//       controller // contains futarchy treasury authority
-//     );
-
-//     // add collateral and initialize price
-//     await market.addCollateral({
-//       symbol: "BONK",
-//       collateralAddress: accounts.collateralAcc,
-//       collateralMint: accounts.collateralMint,
-//       price: new anchor.BN(100 * 1e9),
-//       conf: new anchor.BN(100 / 10 * 1e9),
-//       expo: -9
-//     });
-
-//     await market.create({
-//       collateralSymbol: "BONK",
-//       ltvFactor: new anchor.BN(0.8 * 1e9),
-//     });
-
-//     // Setup initial state: deposit, collateralize, and borrow
-//     await market.deposit({
-//       user: lip,
-//       amount: new anchor.BN(1_000 * 1e9),
-//       shares: new anchor.BN(0)
-//     });
-
-//     await market.depositCollateral({
-//       user: barry,
-//       symbol: "BONK",
-//       amount: new anchor.BN(100 * 1e9)
-//     });
-
-//     await market.borrow({
-//       user: barry,
-//       symbol: "BONK",
-//       amount: new anchor.BN(500 * 1e9),
-//       shares: new anchor.BN(0)
-//     });
-
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Advance clock by 1 year
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
     
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-
-//     console.log("afterTotalBorrows", afterTotalBorrows.toNumber());
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Convert to BN and calculate difference
-//     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    // Convert to BN and calculate difference
+    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
-//     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
-//     assert.equal(
-//       difference.toNumber(),
-//       13.512_691_343 * 1e9 // Expected interest accrual
-//     );
-//   });
+    // Verify interest accrual
+    assert.equal(
+      difference.toNumber(),
+      13.512_691_343 * 1e9 // Expected interest accrual
+    );
+  });
 
-//   it("correctly for year with six decimal collateral token", async () => {
+  it("correctly for year with six decimal collateral token", async () => {
+    test = await TestUtils.create({
+      quoteDecimals: 9,
+      collateralDecimals: 6,
+    });
 
-//     // initialize this test with six decimal quote token
-//     ({ program, accounts } = await setupTest({
-//       provider,
-//       banks: context.banksClient,
-//       quoteDecimals: 9,
-//       collateralDecimals: 6,
-//     }));
+    let lip = await test.createUser(
+      new anchor.BN(1_000 * 1e9),
+      new anchor.BN(0)
+    );
 
-//     let lip = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
+    let barry = await test.createUser(
+      new anchor.BN(0),
+      new anchor.BN(1_000 * 1e6)
+    );
 
-//     await lip.init_and_fund_accounts(
-//       new anchor.BN(1_000 * 1e9),
-//       new anchor.BN(0)
-//     );
+    market = await test.createMarket({
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9),
+      price: new anchor.BN(100 * 1e6),
+      conf: new anchor.BN(10 * 1e6),
+      expo: -6
+    });
 
-//     let barry = new UserFixture(
-//       provider,
-//       accounts.quoteMint,
-//       accounts.collateralMint
-//     );
+    await market.create({ user: lip });
 
-//     await barry.init_and_fund_accounts(
-//       new anchor.BN(0),
-//       new anchor.BN(1_000 * 1e6)
-//     );
+    // Setup initial state: deposit, collateralize, and borrow
+    await market.deposit({
+      user: lip,
+      amount: new anchor.BN(1_000 * 1e9),
+      shares: new anchor.BN(0)
+    });
 
-//     // let controller = new ControllerFixture(program, provider);
+    await market.depositCollateral({
+      user: barry,
+      amount: new anchor.BN(100 * 1e6)
+    });
 
-//     market = new MarketFixture(
-//       program,
-//       provider,
-//       accounts.market,
-//       accounts.quoteMint,
-//       controller // contains futarchy treasury authority
-//     );
+    await market.borrow({
+      user: barry,
+      amount: new anchor.BN(500 * 1e9),
+      shares: new anchor.BN(0)
+    });
 
-//     // add collateral and initialize price
-//     await market.addCollateral({
-//       symbol: "BONK",
-//       collateralAddress: accounts.collateralAcc,
-//       collateralMint: accounts.collateralMint,
-//       price: new anchor.BN(100 * 1e6),
-//       conf: new anchor.BN(10 * 1e6),
-//       expo: -6
-//     });
-
-//     await market.create({
-//       collateralSymbol: "BONK",
-//       ltvFactor: new anchor.BN(0.8 * 1e9),
-//     });
-
-//     // Setup initial state: deposit, collateralize, and borrow
-//     await market.deposit({
-//       user: lip,
-//       amount: new anchor.BN(1_000 * 1e9),
-//       shares: new anchor.BN(0)
-//     });
-
-//     await market.depositCollateral({
-//       user: barry,
-//       symbol: "BONK",
-//       amount: new anchor.BN(100 * 1e6)
-//     });
-
-//     await market.borrow({
-//       user: barry,
-//       symbol: "BONK",
-//       amount: new anchor.BN(500 * 1e9),
-//       shares: new anchor.BN(0)
-//     });
-
-//     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Advance clock by 1 year
-//     await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
     
-//     await market.accrueInterest();
+    await market.accrueInterest();
     
-//     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-//     // Convert to BN and calculate difference
-//     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    // Convert to BN and calculate difference
+    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
-//     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
-//     assert.equal(
-//       difference.toNumber(),
-//       13.512_691_343 * 1e9 // Expected interest accrual
-//     );
-//   });
-// });
+    // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
+    assert.equal(
+      difference.toNumber(),
+      13.512_691_343 * 1e9 // Expected interest accrual
+    );
+  });
+});
 
 

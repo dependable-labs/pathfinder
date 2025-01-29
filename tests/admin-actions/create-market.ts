@@ -16,8 +16,10 @@ describe("Create Market Operations", () => {
       collateralDecimals: 9,
     });
 
-    larry = test.createUser();
-    await larry.init_and_fund_accounts(new anchor.BN(999999999999), new anchor.BN(0))
+    larry = await test.createUser(
+      new anchor.BN(999999999999),
+      new anchor.BN(0)
+    );
 
     market = await test.createMarket({
       symbol: "BONK",

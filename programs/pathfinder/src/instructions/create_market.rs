@@ -1,6 +1,7 @@
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use anchor_lang::{prelude::*, solana_program::hash::hash};
+use anchor_lang::prelude::*;
+use pyth_solana_receiver_sdk::price_update::get_feed_id_from_hex;
 
 use crate::state::*;
 
@@ -11,12 +12,6 @@ pub struct CreateMarketArgs {
     pub feed_id: String,
     pub ltv_factor: u64,
 } 
-
-fn hash_feed_id(feed_id: &str) -> [u8; 32] {
-    let value = hash(feed_id.as_ref()).to_bytes();
-    msg!("hash_feed_id: {:?}", value);
-    value
-}
 
 #[derive(Accounts)]
 #[instruction(args: CreateMarketArgs)]
@@ -34,7 +29,7 @@ pub struct CreateMarket<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &args.ltv_factor.to_le_bytes(),
-            &hash_feed_id(&args.feed_id),
+            &get_feed_id_from_hex(&args.feed_id)?,
         ],
         bump,
     )]

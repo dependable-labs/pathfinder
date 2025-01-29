@@ -23,37 +23,37 @@ pub mod markets {
         CreateMarket::handle(ctx, args)
     }
     
-    // pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<()> {
-    //     Deposit::handle(ctx, args)
-    // }
+    pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<()> {
+        Deposit::handle(ctx, args)
+    }
 
-    // pub fn withdraw(ctx: Context<Withdraw>, args: WithdrawArgs) -> Result<()> {
-    //     Withdraw::handle(ctx, args)
-    // }
+    #[access_control(ctx.accounts.validate())]
+    pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
+        Borrow::handle(ctx, args)
+    }
 
-    // #[access_control(ctx.accounts.validate(&args))]
-    // pub fn deposit_collateral(ctx: Context<DepositCollateral>, args: DepositCollateralArgs) -> Result<()> {
-    //     DepositCollateral::handle(ctx, args)
-    // }
+    pub fn withdraw(ctx: Context<Withdraw>, args: WithdrawArgs) -> Result<()> {
+        Withdraw::handle(ctx, args)
+    }
 
-    // #[access_control(ctx.accounts.validate())]
-    // pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
-    //     Borrow::handle(ctx, args)
-    // }
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn deposit_collateral(ctx: Context<DepositCollateral>, args: DepositCollateralArgs) -> Result<()> {
+        DepositCollateral::handle(ctx, args)
+    }
 
-    // pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {
-    //     AccrueInterest::handle(ctx)
-    // }
+    pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {
+        AccrueInterest::handle(ctx)
+    }
 
-    // pub fn liquidate(ctx: Context<Liquidate>, args: LiquidateArgs) -> Result<()> {
-    //     Liquidate::handle(ctx, args)
-    // }
+    pub fn liquidate(ctx: Context<Liquidate>, args: LiquidateArgs) -> Result<()> {
+        Liquidate::handle(ctx, args)
+    }
 
-    // pub fn repay(ctx: Context<Repay>, args: RepayArgs) -> Result<()> {
-    //     Repay::handle(ctx, args)
-    // }
+    pub fn repay(ctx: Context<Repay>, args: RepayArgs) -> Result<()> {
+        Repay::handle(ctx, args)
+    }
 
-    // pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, args: WithdrawCollateralArgs) -> Result<()> {
-    //     WithdrawCollateral::handle(ctx, args)
-    // }
+    pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, args: WithdrawCollateralArgs) -> Result<()> {
+        WithdrawCollateral::handle(ctx, args)
+    }
 }

@@ -104,22 +104,5 @@ export class CollateralFixture {
     .rpc();
   }
 
-  public get_borrower_shares(userKey: PublicKey): AccountFixture {
-
-    let borrowerSharesKey = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("borrower_shares"),
-        this.collateralAcc.key.toBuffer(),
-        userKey.toBuffer(),
-      ],
-      this.program.programId
-    )[0];
-
-    return new AccountFixture(
-      "borrowerShares",
-      borrowerSharesKey,
-      this.program
-    );
-  }
 
 }
