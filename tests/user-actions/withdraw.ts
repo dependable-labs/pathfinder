@@ -1,74 +1,40 @@
-import { setupTest } from "../utils";
-import { MarketFixture, UserFixture, ControllerFixture } from "../fixtures";
+import { TestUtils} from "../utils";
+import { MarketFixture, UserFixture } from "../fixtures";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Markets } from "../../target/types/markets";
 import assert from "assert";
-import { BankrunProvider, startAnchor } from "anchor-bankrun";
 
 describe("Withdraw", () => {
-  let program: Program<Markets>;
-  let provider: BankrunProvider;
-  let accounts: any;
+  let test: TestUtils;
   let market: MarketFixture;
   let larry: UserFixture;
   let lizz: UserFixture;
 
   beforeEach(async () => {
-    let context = await startAnchor("", [], []);
-    provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
-      quoteDecimals: 9,
+    test = await TestUtils.create({
+      quoteDecimals: 5,
       collateralDecimals: 9,
-    }));
+    });
 
-    larry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await larry.init_and_fund_accounts(
+    larry = await test.createUser( 
       new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
-    lizz = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await lizz.init_and_fund_accounts(
+    lizz = await test.createUser( 
       new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
-    let controller = new ControllerFixture(program, provider);
+    market = await test.createMarket({
+        symbol: "BONK",
+        ltvFactor: new anchor.BN(0),
+        price: new anchor.BN(100 * 10 ** 9),
+        conf: new anchor.BN(100 / 10 * 10 ** 9),
+        expo: -9
+      });
 
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller
-    );
-
-    await market.setAuthority();
-    await market.addCollateral({
-      symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
-      price: new anchor.BN(100 * 10 ** 9),
-      conf: new anchor.BN(100 / 10 * 10 ** 9),
-      expo: -9
-    });
-
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0),
-    });
+    await market.create({ user: larry });
 
     // Pre-deposit funds for withdrawal tests
     await market.deposit({

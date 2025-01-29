@@ -1,10 +1,13 @@
 use anchor_lang::prelude::*;
 
+use anchor_lang::solana_program::hash::hash;
 use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
 use crate::state::MAX_PRICE_AGE;
 use crate::math::w_mul_down;
+
+
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
 pub struct PythOracle {
@@ -43,19 +46,37 @@ impl PythOracle {
 
         Ok((adjusted_price, price_precision))
     }
+
+    pub fn hash_feed_id(feed_id: &str) -> [u8; 32] {
+        let value = hash(feed_id.as_bytes()).to_bytes();
+        msg!("on init hash feed_id: {:?}", value);
+        value
+    }
+    
 }
 
 #[account]
 pub struct Market {
     pub bump: u8,
+
+    // deposits
+    pub deposit_index: u128,
+    pub total_shares: u64,
     pub quote_mint: Pubkey,
     pub quote_mint_decimals: u8,
-    pub total_shares: u64,
-    pub total_borrow_shares: u64,
-    pub deposit_index: u128,
+
+    // borrows
     pub borrow_index: u128,
-    pub last_accrual_timestamp: u64,
+    pub total_borrow_shares: u64,
+    pub total_collateral: u64,
+    pub collateral_mint: Pubkey,
+    pub collateral_mint_decimals: u8,
+    pub ltv_factor: u64,
+
+    // accounting
+    pub oracle: PythOracle,
     pub rate_at_target: u64,
+    pub last_accrual_timestamp: u64,
 }
 
 impl Market {
@@ -66,17 +87,6 @@ impl Market {
     pub fn total_borrows(&self) -> Result<u64> {
         w_mul_down(self.borrow_index as u64, self.total_borrow_shares)
     }
-}
-
-#[account]
-pub struct Collateral {
-    pub bump: u8,
-    pub total_collateral: u64,
-    pub collateral_mint: Pubkey,
-    pub collateral_mint_decimals: u8,
-    pub ltv_factor: u64,
-    pub oracle: PythOracle,
-    pub last_active_timestamp: u64,
 }
 
 #[account]
@@ -98,19 +108,22 @@ macro_rules! generate_market_seeds {
         &[
             MARKET_SEED_PREFIX,
             $market.quote_mint.as_ref(),
+            $market.collateral_mint.as_ref(),
+            &$market.ltv_factor.to_le_bytes(),
+            &$market.oracle.feed_id,
             &[$market.bump],
         ]
     }};
 }
 
-#[macro_export]
-macro_rules! generate_collateral_seeds {
-    ($market:expr) => {{
-        &[
-            MARKET_COLLATERAL_SEED_PREFIX,
-            $market.quote_mint.as_ref(),
-            $collateral.mint.as_ref(),
-            &[$collateral.bump],
-        ]
-    }};
-}
+// #[macro_export]
+// macro_rules! generate_collateral_seeds {
+//     ($market:expr) => {{
+//         &[
+//             MARKET_COLLATERAL_SEED_PREFIX,
+//             $market.quote_mint.as_ref(),
+//             $collateral.mint.as_ref(),
+//             &[$collateral.bump],
+//         ]
+//     }};
+// }

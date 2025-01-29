@@ -18,15 +18,20 @@ pub struct DepositArgs {
 pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    // market
     #[account(
         mut,
         seeds = [
             MARKET_SEED_PREFIX,
-            market.quote_mint.as_ref(),
+            quote_mint.key().as_ref(),
+            collateral_mint.key().as_ref(),
+            &market.ltv_factor.to_le_bytes(),
+            &market.oracle.feed_id,
         ],
-        bump = market.bump
+        bump = market.bump,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
 
     // user shares
     #[account(
@@ -43,7 +48,7 @@ pub struct Deposit<'info> {
     pub user_shares: Box<Account<'info, UserShares>>,
 
     // quote
-    #[account(constraint = quote_mint.is_initialized == true)]
+    #[account(constraint = quote_mint.key() == market.quote_mint.key())]
     pub quote_mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
@@ -51,6 +56,11 @@ pub struct Deposit<'info> {
         associated_token::authority = market,
     )]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+
+    // collateral
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
+    pub collateral_mint: Box<Account<'info, Mint>>,
+
     #[account(
         mut,
         associated_token::mint = market.quote_mint,

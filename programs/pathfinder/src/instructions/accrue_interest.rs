@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::*;
 
 use crate::state::*;
 use crate::error::MarketError;
@@ -7,15 +8,27 @@ use crate::math::*;
 
 #[derive(Accounts)]
 pub struct AccrueInterest<'info> { 
+    // market
     #[account(
         mut,
         seeds = [
             MARKET_SEED_PREFIX,
-            market.quote_mint.as_ref(),
+            quote_mint.key().as_ref(),
+            collateral_mint.key().as_ref(),
+            &market.ltv_factor.to_le_bytes(),
+            &market.oracle.feed_id,
         ],
-        bump = market.bump
+        bump = market.bump,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
+
+    // quote
+    #[account(constraint = quote_mint.key() == market.quote_mint.key())]
+    pub quote_mint: Box<Account<'info, Mint>>,
+
+    // collateral
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
+    pub collateral_mint: Box<Account<'info, Mint>>,
 }
 
 impl<'info> AccrueInterest<'info> {
@@ -27,6 +40,7 @@ impl<'info> AccrueInterest<'info> {
     pub fn handle(ctx: Context<Self>) -> Result<()> {
         let AccrueInterest {
             market,
+            ..
         } = ctx.accounts;
 
         accrue_interest(

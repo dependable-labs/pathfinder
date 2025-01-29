@@ -1,80 +1,43 @@
-import { setupTest, TimeUtils } from "../utils";
-import { MarketFixture, UserFixture, ControllerFixture } from "../fixtures";
+import { TestUtils } from "../utils";
+import { MarketFixture, UserFixture } from "../fixtures";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Markets } from "../../target/types/markets";
 import assert from "assert";
-import { BankrunProvider, startAnchor } from "anchor-bankrun";
-import { ProgramTestContext } from "solana-bankrun";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import buffer from 'buffer';
 
 describe("Accrue Interest", () => {
-  let program: Program<Markets>;
-  let provider: BankrunProvider;
-  let context: ProgramTestContext;
-  let controller: ControllerFixture;
-  let accounts: any;
+  let test: TestUtils;
   let market: MarketFixture;
   let larry: UserFixture; // Lender
   let bob: UserFixture;   // Borrower
 
   beforeEach(async () => {
-    context = await startAnchor("", [], []);
-    provider = new BankrunProvider(context);
 
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
-      quoteDecimals: 9,
+    test = await TestUtils.create({
+      quoteDecimals: 5,
       collateralDecimals: 9,
-    }));
+    });
 
-    larry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await larry.init_and_fund_accounts(
-      new anchor.BN(1_000_000 * LAMPORTS_PER_SOL), // Quote tokens for lending
+    larry = await test.createUser(
+      new anchor.BN(1_000_000 * 1e9),
       new anchor.BN(0)
     );
 
-    bob = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await bob.init_and_fund_accounts(
+    bob = await test.createUser(
       new anchor.BN(0),
-      new anchor.BN(1_000_000 * LAMPORTS_PER_SOL)  // Collateral for borrowing
+      new anchor.BN(1_000_000 * 1e9)
     );
 
-    controller = new ControllerFixture(program, provider);
 
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller
-    );
 
-    await market.setAuthority();
-
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -9
     });
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0.8 * 1e9),
-    });
+    await market.create({ user: larry });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -85,13 +48,11 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
     });
 
     await market.borrow({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(500 * LAMPORTS_PER_SOL),
       shares: new anchor.BN(0)
     });
@@ -101,7 +62,7 @@ describe("Accrue Interest", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
     // Advance clock by 1 year
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
     await market.accrueInterest();
     
@@ -121,7 +82,6 @@ describe("Accrue Interest", () => {
 
     await market.borrow({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
       shares: new anchor.BN(0)
     });
@@ -130,7 +90,7 @@ describe("Accrue Interest", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
     // Advance clock by 1 year
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
     await market.accrueInterest();
     
@@ -152,7 +112,7 @@ describe("Accrue Interest", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
     // Advance clock by 2 years  
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 2 * 3600);
+    await test.moveTimeForward(365 * 24 * 2 * 3600);
     
     await market.accrueInterest();
 
@@ -170,7 +130,7 @@ describe("Accrue Interest", () => {
   it("updates last accrual timestamp", async () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
     await market.accrueInterest();
 
@@ -184,60 +144,30 @@ describe("Accrue Interest", () => {
   
   it("correctly for year with six decimal quote token", async () => {
 
-    // initialize this test with six decimal quote token
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
+    test = await TestUtils.create({
       quoteDecimals: 6,
       collateralDecimals: 9,
-    }));
+    });
 
-    let lip = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-
-    await lip.init_and_fund_accounts(
+    let lip = await test.createUser(
       new anchor.BN(1_000 * 1e6),
       new anchor.BN(0)
     );
 
-    let barry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-
-    await barry.init_and_fund_accounts(
+    let barry = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e9)
     );
 
-    // let controller = new ControllerFixture(program, provider);
-
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller // contains futarchy treasury authority
-    );
-
-    // add collateral and initialize price
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0.8 * 1e6),
       price: new anchor.BN(100 * 1e6),
       conf: new anchor.BN(10 * 1e6),
       expo: -6
     });
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0.8 * 1e6),
-    });
+    await market.create({ user: lip });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -248,13 +178,11 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: barry,
-      symbol: "BONK",
       amount: new anchor.BN(100 * 1e9)
     });
 
     await market.borrow({
       user: barry,
-      symbol: "BONK",
       amount: new anchor.BN(500 * 1e6),
       shares: new anchor.BN(0)
     });
@@ -262,7 +190,7 @@ describe("Accrue Interest", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
     // Advance clock by 1 year
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
     await market.accrueInterest();
     
@@ -280,62 +208,30 @@ describe("Accrue Interest", () => {
 
 
   it("correctly for year with nine decimal collateral token", async () => {
-
-    // initialize this test with six decimal quote token
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
+    test = await TestUtils.create({
       quoteDecimals: 9,
       collateralDecimals: 9,
-    }));
+    });
 
-    let lip = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-
-    await lip.init_and_fund_accounts(
+    let lip = await test.createUser(
       new anchor.BN(1_000 * 1e9),
       new anchor.BN(0)
     );
 
-    let barry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-
-
-    await barry.init_and_fund_accounts(
+    let barry = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e9)
     );
 
-    // let controller = new ControllerFixture(program, provider);
-
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller // contains futarchy treasury authority
-    );
-
-    // add collateral and initialize price
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -9
     });
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0.8 * 1e9),
-    });
+    await market.create({ user: lip });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -346,13 +242,11 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: barry,
-      symbol: "BONK",
       amount: new anchor.BN(100 * 1e9)
     });
 
     await market.borrow({
       user: barry,
-      symbol: "BONK",
       amount: new anchor.BN(500 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -360,18 +254,16 @@ describe("Accrue Interest", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
     // Advance clock by 1 year
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
     await market.accrueInterest();
     
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-
-    console.log("afterTotalBorrows", afterTotalBorrows.toNumber());
     
     // Convert to BN and calculate difference
     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
     
-    // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
+    // Verify interest accrual
     assert.equal(
       difference.toNumber(),
       13.512_691_343 * 1e9 // Expected interest accrual
@@ -379,61 +271,30 @@ describe("Accrue Interest", () => {
   });
 
   it("correctly for year with six decimal collateral token", async () => {
-
-    // initialize this test with six decimal quote token
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
+    test = await TestUtils.create({
       quoteDecimals: 9,
       collateralDecimals: 6,
-    }));
+    });
 
-    let lip = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-
-    await lip.init_and_fund_accounts(
+    let lip = await test.createUser(
       new anchor.BN(1_000 * 1e9),
       new anchor.BN(0)
     );
 
-    let barry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-
-    await barry.init_and_fund_accounts(
+    let barry = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e6)
     );
 
-    // let controller = new ControllerFixture(program, provider);
-
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller // contains futarchy treasury authority
-    );
-
-    // add collateral and initialize price
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e6),
       conf: new anchor.BN(10 * 1e6),
       expo: -6
     });
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0.8 * 1e9),
-    });
+    await market.create({ user: lip });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -444,13 +305,11 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: barry,
-      symbol: "BONK",
       amount: new anchor.BN(100 * 1e6)
     });
 
     await market.borrow({
       user: barry,
-      symbol: "BONK",
       amount: new anchor.BN(500 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -458,7 +317,7 @@ describe("Accrue Interest", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     
     // Advance clock by 1 year
-    await TimeUtils.moveTimeForward(provider.context, 365 * 24 * 3600);
+    await test.moveTimeForward(365 * 24 * 3600);
     
     await market.accrueInterest();
     

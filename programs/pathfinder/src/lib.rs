@@ -27,6 +27,11 @@ pub mod markets {
         Deposit::handle(ctx, args)
     }
 
+    #[access_control(ctx.accounts.validate())]
+    pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
+        Borrow::handle(ctx, args)
+    }
+
     pub fn withdraw(ctx: Context<Withdraw>, args: WithdrawArgs) -> Result<()> {
         Withdraw::handle(ctx, args)
     }
@@ -34,11 +39,6 @@ pub mod markets {
     #[access_control(ctx.accounts.validate(&args))]
     pub fn deposit_collateral(ctx: Context<DepositCollateral>, args: DepositCollateralArgs) -> Result<()> {
         DepositCollateral::handle(ctx, args)
-    }
-
-    #[access_control(ctx.accounts.validate())]
-    pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
-        Borrow::handle(ctx, args)
     }
 
     pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {

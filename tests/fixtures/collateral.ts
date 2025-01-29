@@ -29,33 +29,29 @@ export class CollateralFixture {
   public mockPythPull: Program<MockPythPull>;
   public program: Program<Markets>;
   public provider: BankrunProvider;
-  public collateralAcc: AccountFixture;
   public collateralMint: PublicKey;
   public symbol: SupportedCollateral;
   public oracleId: PublicKey;
   public oracleAcc: anchor.web3.Keypair;
+  public ltvFactor: anchor.BN;
 
   constructor(
     public _symbol: SupportedCollateral,
     public _program: Program<Markets>,
     public _provider: BankrunProvider,
-    public _collateralAddress: PublicKey,
     public _collateralMint: PublicKey,
+    public _ltvFactor: anchor.BN,
   ) {
     this.symbol = _symbol;
     this.program = _program;
     this.provider = _provider;
-    this.collateralAcc = new AccountFixture(
-      "collateral",
-      _collateralAddress,
-      _program,
-    );
     this.collateralMint = _collateralMint;
     this.mockPythPull = new Program<MockPythPull>(
       PythIDL,
       this.provider,
     );
     this.oracleAcc = new anchor.web3.Keypair();
+    this.ltvFactor = _ltvFactor;
   }
 
   getOracleId(): string {
@@ -108,22 +104,5 @@ export class CollateralFixture {
     .rpc();
   }
 
-  public get_borrower_shares(userKey: PublicKey): AccountFixture {
-
-    let borrowerSharesKey = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("borrower_shares"),
-        this.collateralAcc.key.toBuffer(),
-        userKey.toBuffer(),
-      ],
-      this.program.programId
-    )[0];
-
-    return new AccountFixture(
-      "borrowerShares",
-      borrowerSharesKey,
-      this.program
-    );
-  }
 
 }

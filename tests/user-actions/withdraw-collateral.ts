@@ -1,74 +1,39 @@
-import { setupTest } from "../utils";
-import { MarketFixture, UserFixture, ControllerFixture } from "../fixtures";
+import { TestUtils } from "../utils";
+import { MarketFixture, UserFixture } from "../fixtures";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Markets } from "../../target/types/markets";
 import assert from "assert";
-import { BankrunProvider, startAnchor } from "anchor-bankrun";
 
 describe("Withdraw Collateral", () => {
-  let program: Program<Markets>;
-  let provider: BankrunProvider;
-  let accounts: any;
+  let test: TestUtils;
   let market: MarketFixture;
   let larry: UserFixture;
   let bob: UserFixture;
 
   beforeEach(async () => {
-    let context = await startAnchor("", [], []);
-    provider = new BankrunProvider(context);
-
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
+    test = await TestUtils.create({
       quoteDecimals: 9,
       collateralDecimals: 9,
-    }));
+    });
 
-    larry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await larry.init_and_fund_accounts(
+    larry = await test.createUser(
       new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
-    bob = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await bob.init_and_fund_accounts(
+    bob = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(1000 * 1e9)
     );
 
-    let controller = new ControllerFixture(program, provider);
-
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller
-    );
-
-    await market.setAuthority();
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 10 ** 5),
       conf: new anchor.BN(10 * 1e5),
       expo: -5
     });
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0.8 * 1e9),
-    });
+    await market.create({ user: larry });
 
     await market.deposit({
       user: larry,
@@ -79,7 +44,6 @@ describe("Withdraw Collateral", () => {
     // Pre-deposit collateral for withdrawal tests
     await market.depositCollateral({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(100 * 1e9)  // 100 collateral tokens
     });
   });
@@ -89,15 +53,13 @@ describe("Withdraw Collateral", () => {
 
     await market.withdrawCollateral({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(100 * 1e9)  // Withdraw all 100 tokens
     });
 
-    const collateralData = await market.getCollateral("BONK").collateralAcc.get_data();
+    const collateralData = await market.marketAcc.get_data();
     assert.ok(collateralData.totalCollateral.eq(new anchor.BN(0)), "Total collateral should be zero");
 
     const borrowerShares = await market
-      .getCollateral("BONK")
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
 
@@ -123,28 +85,25 @@ describe("Withdraw Collateral", () => {
     // First, borrow a small amount
     await market.borrow({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(10 * 1e9), // Borrow 10 tokens
       shares: new anchor.BN(0)
     });
 
-    const initialCollateralData = await market.getCollateral("BONK").collateralAcc.get_data();
+    const initialCollateralData = await market.marketAcc.get_data();
 
     // Withdraw half of the collateral
     await market.withdrawCollateral({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(50 * 1e9)  // Withdraw 50 tokens
     });
 
-    const finalCollateralData = await market.getCollateral("BONK").collateralAcc.get_data();
+    const finalCollateralData = await market.marketAcc.get_data();
     assert.ok(
       finalCollateralData.totalCollateral.eq(initialCollateralData.totalCollateral.sub(new anchor.BN(50 * 1e9))),
       "Total collateral should decrease by 50 tokens"
     );
 
     const borrowerShares = await market
-      .getCollateral("BONK")
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
 
@@ -166,7 +125,6 @@ describe("Withdraw Collateral", () => {
     // First, borrow some tokens to create a debt
     await market.borrow({
       user: bob,
-      symbol: "BONK",
       amount: new anchor.BN(50 * 1e9), // Borrow 50 tokens
       shares: new anchor.BN(0)
     });
@@ -176,7 +134,6 @@ describe("Withdraw Collateral", () => {
       async () => {
         await market.withdrawCollateral({
           user: bob,
-          symbol: "BONK",
           amount: new anchor.BN(100 * 1e9) // Attempt to withdraw all 100 tokens
         });
       },

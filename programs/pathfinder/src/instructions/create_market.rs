@@ -1,6 +1,7 @@
-use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
+use anchor_lang::prelude::*;
+use pyth_solana_receiver_sdk::price_update::get_feed_id_from_hex;
 
 use crate::state::*;
 
@@ -16,45 +17,26 @@ pub struct CreateMarketArgs {
 #[instruction(args: CreateMarketArgs)]
 pub struct CreateMarket<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(mut,
-        seeds = [CONTROLLER_SEED_PREFIX],
-        bump = controller.bump,
-        constraint = controller.authority == authority.key()
-    )]
-    pub controller: Box<Account<'info, Controller>>,
+    pub user: Signer<'info>,
 
     // market
     #[account(
-        init_if_needed,
-        payer = authority,
+        init,
+        payer = user,
         space = 8 + std::mem::size_of::<Market>(),
         seeds = [
             MARKET_SEED_PREFIX,
             quote_mint.key().as_ref(),
+            collateral_mint.key().as_ref(),
+            &args.ltv_factor.to_le_bytes(),
+            &get_feed_id_from_hex(&args.feed_id)?,
         ],
         bump,
     )]
     pub market: Box<Account<'info, Market>>,
 
-
-    #[account(
-        init,
-        payer = authority,
-        space = 8 + std::mem::size_of::<Collateral>(),
-        seeds = [
-            MARKET_COLLATERAL_SEED_PREFIX,
-            market.key().as_ref(),
-            collateral_mint.key().as_ref(),
-        ],
-        bump,
-    )]
-    pub collateral: Box<Account<'info, Collateral>>,
-
     // quote
     #[account(constraint = quote_mint.is_initialized == true)]
-
     #[account(
         constraint = quote_mint.is_initialized == true && collateral_mint.key() != quote_mint.key()
     )]
@@ -62,7 +44,7 @@ pub struct CreateMarket<'info> {
 
     #[account(
         init_if_needed,
-        payer = authority,
+        payer = user,
         associated_token::authority = market,
         associated_token::mint = quote_mint
     )]
@@ -76,7 +58,7 @@ pub struct CreateMarket<'info> {
 
     #[account(
         init_if_needed,
-        payer = authority,
+        payer = user,
         associated_token::authority = market,
         associated_token::mint = collateral_mint
     )]
@@ -97,7 +79,6 @@ impl<'info> CreateMarket<'info> {
     pub fn handle(ctx: Context<Self>, args: CreateMarketArgs) -> Result<()> {
          let CreateMarket {
             market,
-            collateral,
             quote_mint,
             vault_ata_quote: _,
             collateral_mint,
@@ -109,39 +90,27 @@ impl<'info> CreateMarket<'info> {
         let current_timestamp = clock.unix_timestamp as u64;
 
         // create market if it doesn't exist
-        if market.quote_mint == Pubkey::default() {
+        market.set_inner(Market {
+            bump: ctx.bumps.market,
 
-            market.set_inner(Market {
-                bump: ctx.bumps.market,
+            // deposit accounting
+            total_shares:0,
+            deposit_index: WAD,
+            quote_mint: quote_mint.key(),
+            quote_mint_decimals: quote_mint.decimals,
 
-                quote_mint: quote_mint.key(),
-                quote_mint_decimals: quote_mint.decimals,
-
-                // lender accounting
-                total_shares:0,
-                deposit_index: WAD,
-
-                // borrower accounting
-                total_borrow_shares: 0,
-                borrow_index: WAD,
-
-                // interest
-                last_accrual_timestamp: current_timestamp,
-                rate_at_target: 0,
-            });
-        }
-
-        collateral.set_inner(Collateral {
-            bump: ctx.bumps.collateral,
-
+            // borrows accounting
+            total_borrow_shares: 0,
+            borrow_index: WAD,
+            total_collateral: 0,
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,
-
-            total_collateral: 0,
             ltv_factor: args.ltv_factor,
-
             oracle: PythOracle::new(&args.feed_id)?,
-            last_active_timestamp: 0,
+
+            // interest
+            last_accrual_timestamp: current_timestamp,
+            rate_at_target: 0,
         });
 
         Ok(())

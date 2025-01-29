@@ -17,24 +17,27 @@ pub struct RepayArgs {
 pub struct Repay<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    // market
     #[account(
         mut,
         seeds = [
             MARKET_SEED_PREFIX,
-            market.quote_mint.as_ref(),
+            quote_mint.key().as_ref(),
+            collateral_mint.key().as_ref(),
+            &market.ltv_factor.to_le_bytes(),
+            &market.oracle.feed_id,
         ],
-        bump = market.bump
+        bump = market.bump,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
 
     // borrower shares
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<BorrowerShares>(),
+        mut,
         seeds = [
             BORROWER_SHARES_SEED_PREFIX,
-            collateral.key().as_ref(),
+            market.key().as_ref(),
             user.key().as_ref()
         ],
         bump
@@ -42,7 +45,7 @@ pub struct Repay<'info> {
     pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
     // quote
-    #[account(constraint = quote_mint.is_initialized == true)]
+    #[account(constraint = quote_mint.key() == market.quote_mint.key())]
     pub quote_mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
@@ -59,18 +62,8 @@ pub struct Repay<'info> {
 
 
     // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
     pub collateral_mint: Box<Account<'info, Mint>>,
-    #[account(
-        mut,
-        seeds = [
-            MARKET_COLLATERAL_SEED_PREFIX,
-            market.key().as_ref(),
-            collateral_mint.key().as_ref()
-        ],
-        bump = collateral.bump
-    )]
-    pub collateral: Box<Account<'info, Collateral>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -86,7 +79,6 @@ impl<'info> Repay<'info> {
         let Repay {
             user,
             market,
-            collateral,
             borrower_shares,
             user_ata_quote,
             vault_ata_quote,

@@ -15,15 +15,20 @@ pub struct DepositCollateralArgs {
 pub struct DepositCollateral<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    // market
     #[account(
         mut,
         seeds = [
             MARKET_SEED_PREFIX,
-            market.quote_mint.as_ref(),
+            quote_mint.key().as_ref(),
+            collateral_mint.key().as_ref(),
+            &market.ltv_factor.to_le_bytes(),
+            &market.oracle.feed_id,
         ],
-        bump = market.bump
+        bump = market.bump,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
 
     // borrower shares
     #[account(
@@ -32,26 +37,17 @@ pub struct DepositCollateral<'info> {
         space = 8 + std::mem::size_of::<BorrowerShares>(),
         seeds = [
             BORROWER_SHARES_SEED_PREFIX,
-            collateral.key().as_ref(),
+            market.key().as_ref(),
             user.key().as_ref()
         ],
         bump
     )]
     pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
-    // collateral
-    #[account(
-        mut,
-        seeds = [
-            MARKET_COLLATERAL_SEED_PREFIX,
-            market.key().as_ref(),
-            collateral_mint.key().as_ref()
-        ],
-        bump = collateral.bump
-    )]
-    pub collateral: Box<Account<'info, Collateral>>,
+    #[account(constraint = quote_mint.key() == market.quote_mint.key())]
+    pub quote_mint: Box<Account<'info, Mint>>,
 
-    #[account(constraint = collateral_mint.is_initialized == true)]
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
     pub collateral_mint: Box<Account<'info, Mint>>,
     #[account(
         init_if_needed,
@@ -79,13 +75,6 @@ impl<'info> DepositCollateral<'info> {
             args.amount != 0,
             MarketError::InvalidDepositCollateralInput
         );
-
-        // Validate that collateral is active
-        require!(
-            self.collateral.last_active_timestamp == 0,
-            MarketError::CollateralNotActive
-        );
-
         Ok(())
     }
 
@@ -94,7 +83,6 @@ impl<'info> DepositCollateral<'info> {
             user,
             market,
             borrower_shares,
-            collateral,
             user_ata_collateral,
             vault_ata_collateral,
             token_program,
@@ -106,7 +94,7 @@ impl<'info> DepositCollateral<'info> {
         accrue_interest(market)?;
 
         // Update market state
-        collateral.total_collateral = collateral.total_collateral
+        market.total_collateral = market.total_collateral
             .checked_add(assets)
             .ok_or(error!(MarketError::MathOverflow))?;
 

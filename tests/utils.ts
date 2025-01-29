@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
+import { createHash } from "crypto";
 import {
   PublicKey,
   Finality,
@@ -8,131 +9,13 @@ import {
 import { createMint } from "spl-token-bankrun";
 
 import { Markets } from "../target/types/markets";
-import { BankrunProvider } from 'anchor-bankrun';
+import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { ProgramTestContext, Clock, BanksClient} from "solana-bankrun";
-
+import { ControllerFixture } from "./fixtures/controller";
+import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral } from "./fixtures";
 const IDL = require("../target/idl/markets.json");
 
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
-
-export interface PDAAccounts {
-  market: PublicKey;
-  collateralCustom: PublicKey;
-  collateralAta: PublicKey;
-  quoteAta: PublicKey;
-  userShares: PublicKey;
-}
-
-export async function getPDAs({
-  programId,
-  collateral,
-  quote,
-}: {
-  programId: PublicKey;
-  collateral: PublicKey;
-  quote: PublicKey;
-}) {
-  const [market] = PublicKey.findProgramAddressSync(
-    [Buffer.from("market"), quote.toBuffer()],
-    programId
-  );
-
-  const [collateralAcc] = PublicKey.findProgramAddressSync(
-    [Buffer.from("market_collateral"), market.toBuffer(), collateral.toBuffer()],
-    programId
-  );
-
-  return {
-    market,
-    collateralAcc,
-  };
-}
-
-export async function setupTest({
-  provider,
-  banks,
-  quoteDecimals,
-  collateralDecimals
-}: {
-  provider: BankrunProvider,
-  banks: BanksClient,
-  quoteDecimals: number,
-  collateralDecimals: number
-}) {
-
-  const program = new Program<Markets>(
-    IDL,
-    provider
-  );
-
-  const owner = provider.wallet.publicKey;
-  const payer = provider.wallet.payer;
-
-  const collateralMint = await createMint(
-    banks,
-    payer,
-    owner,
-    owner,
-    collateralDecimals
-  );
-
-  const quoteMint = await createMint(
-    banks,
-    payer,
-    owner,
-    owner,
-    quoteDecimals
-  );
-
-  const { market, collateralAcc } = await getPDAs({
-    programId: program.programId,
-    collateral: collateralMint,
-    quote: quoteMint,
-  });
-
-  return {
-    program,
-    accounts: {
-      owner,
-      collateralMint,
-      quoteMint,
-      market,
-      collateralAcc,
-    },
-  };
-}
-export async function createTokenAndAccounts(provider: BankrunProvider, banks: any) {
-  const owner = provider.wallet.publicKey;
-  const payer = provider.wallet.payer;
-
-  const collateralMint = await createMint(
-    banks,
-    payer,
-    owner,
-    owner,
-    9);
-
-  const quoteMint = await createMint(
-    banks,
-    payer,
-    owner,
-    owner,
-    9);
-
-  const { market, collateralCustom } = await getPDAs({
-    programId: program.programId,
-    collateral: collateralMint,
-    quote: quoteMint,
-  });
-
-  return {
-    collateralMint,
-    quoteMint,
-    market,
-    collateralCustom,
-  };
-}
-
 export function fund_w_sol(
   context: ProgramTestContext,
   pubkey: PublicKey,
@@ -146,20 +29,163 @@ export function fund_w_sol(
   });
 }
 
-export const TimeUtils = {
+function getFeedIdFromHex(input: string): Buffer {
+  // Remove '0x' prefix if present
+  const hexString = input.startsWith('0x') ? input.slice(2) : input;
+  
+  // Validate length
+  if (hexString.length !== 64) {
+    throw new Error('Feed ID must be 32 bytes');
+  }
 
-  async moveTimeForward(context: ProgramTestContext, seconds: number): Promise<void> {
-    const currentClock = await context.banksClient.getClock();
+  // Convert hex to bytes
+  return Buffer.from(hexString, 'hex');
+}
+
+export function deriveMarketAddress(
+  quoteMint: PublicKey,
+  collateralMint: PublicKey,
+  ltvFactor: anchor.BN,
+  oracleId: string,
+  programId: PublicKey
+) {
+
+  const hash = getFeedIdFromHex(oracleId);
+
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("market"),
+      quoteMint.toBuffer(),
+      collateralMint.toBuffer(),
+      Buffer.from(ltvFactor.toArray("le", 8)),
+      hash,
+    ],
+    programId
+  )[0];
+}
+
+
+export class TestUtils {
+  private program: Program<Markets>;
+  private provider: BankrunProvider;
+  private banks: BanksClient;
+  private context: ProgramTestContext;
+  private quoteMint: PublicKey;
+  private collateralMint: PublicKey;
+
+  public static async create({
+    quoteDecimals = 9,
+    collateralDecimals = 9,
+  }: {
+    quoteDecimals?: number,
+    collateralDecimals?: number,
+  }): Promise<TestUtils> {
+    const instance = new TestUtils();
+    
+    instance.context = await startAnchor('', [], []);
+    instance.provider = new BankrunProvider(instance.context);
+    instance.program = new Program<Markets>(IDL, instance.provider);
+    instance.banks = instance.context.banksClient;
+
+    const owner = instance.provider.wallet.publicKey;
+    const payer = instance.provider.wallet.payer;
+
+    instance.quoteMint = await createMint(
+      instance.banks,
+      payer,
+      owner,
+      owner,
+      quoteDecimals
+    );
+
+    instance.collateralMint = await createMint(
+      instance.banks,
+      payer,
+      owner,
+      owner,
+      collateralDecimals
+    );
+
+    return instance;
+  }
+
+  public async createUser(quoteAmount: anchor.BN, collateralAmount: anchor.BN) {
+    let user = new UserFixture(
+      this.provider,
+      this.quoteMint,
+      this.collateralMint
+    );
+
+    await user.init_and_fund_accounts(
+      quoteAmount,
+      collateralAmount
+    );
+
+    return user;
+  }
+
+  public async createMarket(
+    {
+      symbol,
+      ltvFactor,
+      price,
+      conf,
+      expo
+    }: {
+      symbol: string,
+      ltvFactor: anchor.BN,
+      price: anchor.BN,
+      conf: anchor.BN,
+      expo: number
+    }
+  ) {
+
+    const collateral = new CollateralFixture(
+      symbol as SupportedCollateral,
+      this.program,
+      this.provider,
+      this.collateralMint,
+      ltvFactor
+    );
+
+    await collateral.initPrice({
+      price,
+      conf,
+      expo
+    });
+
+    const controller = new ControllerFixture(
+      this.program,
+      this.provider,
+    );
+
+    return new MarketFixture(
+      this.program,
+      this.provider,
+      this.quoteMint,
+      this.collateralMint,
+      symbol as SupportedCollateral,
+      collateral,
+      controller
+    );
+  }
+
+  // time utils
+  public async moveTimeForward(seconds: number): Promise<void> {
+    const currentClock = await this.context.banksClient.getClock();
     const newUnixTimestamp = currentClock.unixTimestamp + BigInt(seconds);
     const newClock = new Clock(
-			currentClock.slot,
-			currentClock.epochStartTimestamp,
-			currentClock.epoch,
-			currentClock.leaderScheduleEpoch,
-			newUnixTimestamp
+      currentClock.slot,
+      currentClock.epochStartTimestamp,
+      currentClock.epoch,
+      currentClock.leaderScheduleEpoch,
+      newUnixTimestamp
     );
-    context.setClock(newClock);
+    this.context.setClock(newClock);
   }
-};
 
-
+  public async getTime(): Promise<number> {
+    const currentClock = await this.context.banksClient.getClock();
+    return Number(currentClock.unixTimestamp);
+  }
+}

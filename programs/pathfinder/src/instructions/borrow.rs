@@ -19,24 +19,27 @@ pub struct BorrowArgs {
 pub struct Borrow<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    // market
     #[account(
         mut,
         seeds = [
             MARKET_SEED_PREFIX,
-            market.quote_mint.as_ref(),
+            quote_mint.key().as_ref(),
+            collateral_mint.key().as_ref(),
+            &market.ltv_factor.to_le_bytes(),
+            &market.oracle.feed_id,
         ],
-        bump = market.bump
+        bump = market.bump,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
 
     // borrower shares
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<BorrowerShares>(),
+        mut,
         seeds = [
             BORROWER_SHARES_SEED_PREFIX,
-            collateral.key().as_ref(),
+            market.key().as_ref(),
             user.key().as_ref()
         ],
         bump
@@ -44,7 +47,7 @@ pub struct Borrow<'info> {
     pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
     // quote
-    #[account(constraint = quote_mint.is_initialized == true)]
+    #[account(constraint = quote_mint.key() == market.quote_mint.key())]
     pub quote_mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
@@ -53,26 +56,16 @@ pub struct Borrow<'info> {
     )]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut,
-        associated_token::mint = market.quote_mint,
+        init_if_needed,
+        payer = user,
+        associated_token::mint = quote_mint,
         associated_token::authority = user,
     )]
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
-
     // collateral
-    #[account(constraint = collateral_mint.is_initialized == true)]
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
     pub collateral_mint: Box<Account<'info, Mint>>,
-    #[account(
-        mut,
-        seeds = [
-            MARKET_COLLATERAL_SEED_PREFIX,
-            market.key().as_ref(),
-            collateral_mint.key().as_ref()
-        ],
-        bump = collateral.bump
-    )]
-    pub collateral: Box<Account<'info, Collateral>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -84,12 +77,6 @@ impl<'info> Borrow<'info> {
 
     pub fn validate(&self) -> Result<()> {
 
-        // Validate that collateral is active
-        require!(
-            self.collateral.last_active_timestamp == 0,
-            MarketError::CollateralNotActive
-        );
-
         Ok(())
     }
 
@@ -99,7 +86,6 @@ impl<'info> Borrow<'info> {
             borrower_shares,
             user_ata_quote,
             vault_ata_quote,
-            collateral,
             collateral_mint,
             token_program,
             price_update,
@@ -131,7 +117,6 @@ impl<'info> Borrow<'info> {
 
         if !is_solvent(
             market,
-            collateral,
             price_update,
             updated_shares,
             borrower_shares.collateral_amount,
@@ -173,7 +158,6 @@ impl<'info> Borrow<'info> {
 
 pub fn is_solvent(
     market: &Account<Market>,
-    collateral: &Account<Collateral>, 
     price_update: &Account<PriceUpdateV2>,
     borrow_shares: u64,
     collateral_amount: u64,
@@ -181,7 +165,7 @@ pub fn is_solvent(
 ) -> Result<bool> {
 
     // price is low end of confidence interval
-    let (price, price_scale) = collateral.oracle.get_price(price_update, false)?;
+    let (price, price_scale) = market.oracle.get_price(price_update, false)?;
 
     let total_borrows = market.total_borrows()?;
 
@@ -198,7 +182,7 @@ pub fn is_solvent(
         .ok_or(MarketError::MathOverflow)?
         .checked_div(price_scale as u128) // Scale down by oracle price scale
         .ok_or(MarketError::MathOverflow)?
-        .checked_mul(collateral.ltv_factor as u128) // Apply LTV factor
+        .checked_mul(market.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?
         .checked_div(10_u128.pow(collateral_decimals as u32)) // Scale by collateral decimals
         .ok_or(MarketError::MathOverflow)?;

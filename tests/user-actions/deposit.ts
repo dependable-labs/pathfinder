@@ -1,78 +1,40 @@
-import { setupTest } from "../utils";
-import { MarketFixture, UserFixture, ControllerFixture } from "../fixtures";
+import { MarketFixture, UserFixture } from "../fixtures";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Markets } from "../../target/types/markets";
 import assert from "assert";
-import { ProgramTestContext } from "solana-bankrun";
-import { BankrunProvider, startAnchor } from "anchor-bankrun";
+import { TestUtils } from "../utils";
 
 describe("Deposit", () => {
-  let context: ProgramTestContext;
-  let program: Program<Markets>;
-  let provider: BankrunProvider;
-  let accounts: any;
-  let controller: ControllerFixture;
+  let test: TestUtils;
   let market: MarketFixture;
   let larry: UserFixture;
   let lizz: UserFixture;
 
   beforeEach(async () => {
-    context = await startAnchor("", [], []);
-    provider = new BankrunProvider(context);
-
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
+    test = await TestUtils.create({
       quoteDecimals: 5,
       collateralDecimals: 9,
-    }));
+    });
 
-    larry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await larry.init_and_fund_accounts(
+    larry = await test.createUser(
       new anchor.BN(1_000 * 1e5),
       new anchor.BN(0)
     );
 
-    lizz = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await lizz.init_and_fund_accounts(
+    lizz = await test.createUser(
       new anchor.BN(1_000 * 1e5),
       new anchor.BN(0)
     );
 
-    controller = new ControllerFixture(program, provider);
-
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller // contains futarchy treasury authority
-    );
-
-    await market.setAuthority();
-    // add collateral and initialize price
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0),
       price: new anchor.BN(100 * 1e5),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -5
-    });
+    });  
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0),
-    });
+    await market.create({ user: larry });
+
   });
 
   it("into a market", async () => {
@@ -124,46 +86,30 @@ describe("Deposit", () => {
   });
 
   it("nine decimal quote Deposit into a market", async () => {
-
-    ({ program, accounts } = await setupTest({
-      provider,
-      banks: context.banksClient,
+    test = await TestUtils.create({
       quoteDecimals: 9,
       collateralDecimals: 9,
-    }));
+    });
 
-    larry = new UserFixture(
-      provider,
-      accounts.quoteMint,
-      accounts.collateralMint
-    );
-    await larry.init_and_fund_accounts(
+    larry = await test.createUser(
       new anchor.BN(1_000 * 1e9),
       new anchor.BN(0)
     );
 
-    market = new MarketFixture(
-      program,
-      provider,
-      accounts.market,
-      accounts.quoteMint,
-      controller // contains futarchy treasury authority
+    lizz = await test.createUser(
+      new anchor.BN(1_000 * 1e5),
+      new anchor.BN(0)
     );
 
-    // // add collateral and initialize price
-    await market.addCollateral({
+    market = await test.createMarket({
       symbol: "BONK",
-      collateralAddress: accounts.collateralAcc,
-      collateralMint: accounts.collateralMint,
+      ltvFactor: new anchor.BN(0),
       price: new anchor.BN(100 * 1e5),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -5
-    });
+    });  
 
-    await market.create({
-      collateralSymbol: "BONK",
-      ltvFactor: new anchor.BN(0),
-    });
+    await market.create({ user: larry });
 
     await market.deposit({
       user: larry,
