@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
+use crate::state::*;
 
-use crate::{math::*, accrue_interest::accrue_interest, generate_market_seeds, state::*};
+use crate::{math::*, accrue_interest::accrue_interest, generate_market_seeds};
 use crate::error::MarketError;
 
 
@@ -10,6 +11,8 @@ use crate::error::MarketError;
 pub struct WithdrawArgs {
     pub amount: u64,
     pub shares: u64,
+    pub owner: Pubkey,
+    pub recipient: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -17,6 +20,24 @@ pub struct WithdrawArgs {
 pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    /// CHECK: needed for token validation
+    #[account(mut)]
+    pub recipient: AccountInfo<'info>,
+
+    // position delegate
+    #[account(
+        init_if_needed,
+        payer = user,
+        constraint = args.owner.key() == user.key() || position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
+        space = 8 + std::mem::size_of::<PositionDelegate>(),
+        seeds = [
+            DELEGATE_SEED_PREFIX,
+            args.owner.key().as_ref(),
+        ],
+        bump
+    )]
+    pub position_delegate: Box<Account<'info, PositionDelegate>>,
 
     // market
     #[account(
@@ -38,7 +59,7 @@ pub struct Withdraw<'info> {
         seeds = [
             MARKET_SHARES_SEED_PREFIX,
             market.key().as_ref(),
-            user.key().as_ref()
+            args.owner.key().as_ref()
         ],
         bump
     )]
@@ -53,12 +74,14 @@ pub struct Withdraw<'info> {
         associated_token::authority = market,
     )]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+
     #[account(
-        mut,
-        associated_token::mint = market.quote_mint,
-        associated_token::authority = user,
+        init_if_needed,
+        payer = user,
+        associated_token::authority = recipient,
+        associated_token::mint = quote_mint,
     )]
-    pub user_ata_quote: Box<Account<'info, TokenAccount>>,
+    pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
 
     // collateral
     #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
@@ -78,7 +101,7 @@ impl<'info> Withdraw<'info> {
          let Withdraw {
             market,
             user_shares,
-            user_ata_quote,
+            recipient_ata_quote,
             vault_ata_quote,
             token_program,
             ..
@@ -130,7 +153,7 @@ impl<'info> Withdraw<'info> {
                 token_program.to_account_info(),
                 Transfer {
                     from: vault_ata_quote.to_account_info(),
-                    to: user_ata_quote.to_account_info(),
+                    to: recipient_ata_quote.to_account_info(),
                     authority: market.to_account_info(),
                 },
                 signer,

@@ -4,10 +4,8 @@ use anchor_lang::solana_program::hash::hash;
 use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
-use crate::state::MAX_PRICE_AGE;
+use crate::state::{MAX_PRICE_AGE, MARKET_SEED_PREFIX};
 use crate::math::w_mul_down;
-
-
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
 pub struct PythOracle {
@@ -102,6 +100,13 @@ pub struct BorrowerShares {
     pub collateral_amount: u64,
 }
 
+#[account]
+pub struct PositionDelegate {
+    pub bump: u8,
+    pub delegate: Pubkey,   // The authorized delegate
+}
+
+
 #[macro_export]
 macro_rules! generate_market_seeds {
     ($market:expr) => {{
@@ -115,15 +120,3 @@ macro_rules! generate_market_seeds {
         ]
     }};
 }
-
-// #[macro_export]
-// macro_rules! generate_collateral_seeds {
-//     ($market:expr) => {{
-//         &[
-//             MARKET_COLLATERAL_SEED_PREFIX,
-//             $market.quote_mint.as_ref(),
-//             $collateral.mint.as_ref(),
-//             &[$collateral.bump],
-//         ]
-//     }};
-// }

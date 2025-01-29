@@ -11,6 +11,7 @@ use crate::error::MarketError;
 pub struct DepositArgs {
     pub amount: u64,
     pub shares: u64,
+    pub owner: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -41,7 +42,7 @@ pub struct Deposit<'info> {
         seeds = [
             MARKET_SHARES_SEED_PREFIX,
             market.key().as_ref(),
-            user.key().as_ref()
+            args.owner.key().as_ref()
         ],
         bump
     )]

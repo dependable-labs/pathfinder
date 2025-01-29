@@ -56,6 +56,8 @@ describe("Withdraw", () => {
 
     await market.withdraw({
       user: larry,
+      owner: larry,
+      recipient: larry,
       amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -89,12 +91,16 @@ describe("Withdraw", () => {
   it("two users withdraw from a market", async () => {
     await market.withdraw({
       user: larry,
+      owner: larry,
+      recipient: larry,
       amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
 
     await market.withdraw({
       user: lizz,
+      owner: lizz,
+      recipient: lizz,
       amount: new anchor.BN(0.5 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -136,6 +142,8 @@ describe("Withdraw", () => {
       async () => {
         await market.withdraw({
           user: larry,
+          owner: larry,
+          recipient: larry,
           amount: new anchor.BN(2 * 1e9), // More than deposited
           shares: new anchor.BN(0)
         });
@@ -147,4 +155,80 @@ describe("Withdraw", () => {
       }
     );
   });
+
+
+  it("from a market on behalf of another owner", async () => {
+    const initialBalance: BigInt = await larry.get_quo_balance();
+
+    await assert.rejects(
+      async () => {
+        await market.withdraw({
+          user: larry,
+          owner: lizz,
+          recipient: larry,
+          amount: new anchor.BN(0.5 * 1e9),
+          shares: new anchor.BN(0)
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorCode.number, 6014);
+        assert.strictEqual(err.error.errorMessage, 'Unauthorized delegate');
+        return true;
+      }
+    );
+
+    // lizz updates her delegate to larry
+    await market.updateDelegate({
+      user: lizz,
+      new_delegate: larry
+    });
+
+    await market.withdraw({
+      user: larry,
+      owner: lizz,
+      recipient: larry,
+      amount: new anchor.BN(0.5 * 1e9),
+      shares: new anchor.BN(0)
+    });
+
+    const marketAccountData = await market.marketAcc.get_data();
+    const totalDeposits = await market.marketAcc.getTotalDeposits();
+    assert.equal(
+      marketAccountData.totalShares.toNumber(), 
+      1.5 * 1e9 // Original 2000000000000000 - 500000000000000
+    );
+    assert.equal(
+      totalDeposits.toNumber(),
+      1.5 * 1e9  // Original 2000000000 - 500000000
+    );
+
+    const lizzShares = await market
+      .get_user_shares(lizz.key.publicKey)
+      .get_data();
+    assert.equal(
+      lizzShares.shares.toNumber(), 
+      0.5 * 1e9 // Original 1000000000000000 - 500000000000000
+    );
+
+    // larry withdraws from the market to himself
+    const finalBalance: BigInt = await larry.get_quo_balance();
+    assert.equal(
+      finalBalance - initialBalance, 
+      BigInt(0.5 * 1e9)
+    );
+
+    const larryShares = await market
+      .get_user_shares(larry.key.publicKey)
+      .get_data();
+    assert.equal(
+      larryShares.shares.toNumber(), 
+      1.0 * 1e9 // Original 1000000000000000 - 500000000000000
+    );
+
+    assert.equal(
+      await larry.get_quo_balance(), 
+      BigInt(999.5 * 1e9)
+    );
+  });
+
 });

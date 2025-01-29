@@ -81,7 +81,6 @@ impl<'info> WithdrawCollateral<'info> {
 
     pub fn handle(ctx: Context<Self>, args: WithdrawCollateralArgs) -> Result<()> {
         let WithdrawCollateral {
-            user,
             market,
             borrower_shares,
             collateral_mint,

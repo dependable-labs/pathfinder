@@ -240,23 +240,35 @@ describe("Repay", () => {
   });
 
   it("fails to repay when no debt", async () => {
-    // First borrow against the collateral
-    await market.borrow({
+
+    // Repay all debt
+    await market.repay({
       user: bob,
       amount: new anchor.BN(50 * 1e9),
       shares: new anchor.BN(0)
     });
 
-    // Try to withdraw collateral
+    const borrowerShares = await market
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    assert.equal(
+      borrowerShares.borrowShares.toNumber(),
+      0,
+      "Bob's borrow shares should be 0 after full repayment"
+    );
+
+    // Try to repay debt
     await assert.rejects(
       async () => {
-        await market.withdrawCollateral({
+        await market.repay({
           user: bob,
-          amount: new anchor.BN(100 * 1e9)
+          amount: new anchor.BN(0),
+          shares: new anchor.BN(100 * 1e9)
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorMessage, "User is not solvent");
+        assert.strictEqual(err.error.errorMessage, "Math Underflow");
         return true;
       }
     );
