@@ -19,7 +19,7 @@ describe("Repay", () => {
     });
 
     larry = await test.createUser( 
-      new anchor.BN(1000 * 1e9),
+      new anchor.BN(1100 * 1e9),
       new anchor.BN(0)
     );
 
@@ -47,12 +47,15 @@ describe("Repay", () => {
     // Bob deposits 100 collateral tokens
     await market.depositCollateral({
       user: bob,
+      owner: bob,
       amount: new anchor.BN(100 * 1e9)
     });
 
     // Bob borrows 50 quote tokens against his collateral
     await market.borrow({
       user: bob,
+      owner: bob,
+      recipient: bob,
       amount: new anchor.BN(50 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -68,11 +71,10 @@ describe("Repay", () => {
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
 
-    console.log(initialBorrowerShares.borrowShares.toNumber());
-
     // Repay the full 50 tokens that were borrowed
     await market.repay({
       user: bob,
+      owner: bob,
       amount: new anchor.BN(50 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -140,6 +142,7 @@ describe("Repay", () => {
     // Repay the full 50 tokens that were borrowed
     await market.repay({
       user: bob,
+      owner: bob,
       amount: new anchor.BN(0),
       shares: new anchor.BN(50 * 1e9)
     });
@@ -191,6 +194,8 @@ describe("Repay", () => {
     // Setup initial state
     await market.borrow({
       user: bob,
+      owner: bob,
+      recipient: bob,
       amount: new anchor.BN(50 * 1e9), // Borrow additional 50 tokens
       shares: new anchor.BN(0)
     });
@@ -205,6 +210,7 @@ describe("Repay", () => {
     // Repay half of the borrowed amount
     await market.repay({
       user: bob,
+      owner: bob,
       amount: new anchor.BN(25 * 1e9), // Repay 25 tokens
       shares: new anchor.BN(0)
     });
@@ -244,6 +250,7 @@ describe("Repay", () => {
     // Repay all debt
     await market.repay({
       user: bob,
+      owner: bob,
       amount: new anchor.BN(50 * 1e9),
       shares: new anchor.BN(0)
     });
@@ -263,6 +270,7 @@ describe("Repay", () => {
       async () => {
         await market.repay({
           user: bob,
+          owner: bob,
           amount: new anchor.BN(0),
           shares: new anchor.BN(100 * 1e9)
         });
@@ -273,4 +281,88 @@ describe("Repay", () => {
       }
     );
   });
+
+  it("repays all debt with a delegate", async () => {
+    // Get initial balances and state
+    const priorBobQuoteBalance = await bob.get_quo_balance();
+    const priorLarryQuoteBalance = await larry.get_quo_balance();
+    const initialMarketData = await market.marketAcc.get_data();
+    const initialBorrows = await market.marketAcc.getTotalBorrows();
+
+    assert.equal(priorBobQuoteBalance, BigInt(150 * 1e9));
+    assert.equal(priorLarryQuoteBalance, BigInt(100 * 1e9));
+
+    const priorBobBorrowerShares = await market
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    // Repay the full 50 tokens that were borrowed
+    await market.repay({
+      user: larry,
+      owner: bob,
+      amount: new anchor.BN(50 * 1e9),
+      shares: new anchor.BN(0)
+    });
+
+    // Get final state
+    const finalBobQuoteBalance = await bob.get_quo_balance();
+    const finalLarryQuoteBalance = await larry.get_quo_balance();
+    const finalMarketData = await market.marketAcc.get_data();
+    const finalBorrows = await market.marketAcc.getTotalBorrows();
+    const finalBobBorrowerShares = await market
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    const finalLarryBorrowerShares = await market
+      .get_borrower_shares(larry.key.publicKey)
+      .get_data();
+
+    // Verify quote token balance decreased by repayment amount
+    assert.equal(
+      priorBobQuoteBalance - finalBobQuoteBalance,
+      BigInt(0),
+      "Quote balance should not change"
+    );
+
+    assert.equal(
+      priorLarryQuoteBalance - finalLarryQuoteBalance,
+      BigInt(50 * 1e9),
+      "Larry's quote balance should decrease by 50 tokens"
+    );
+
+    // Verify market total borrow assets decreased
+    assert.ok(
+      finalBorrows.eq(
+        initialBorrows.sub(new anchor.BN(50 * 1e9))
+      ),
+      "Market total borrow assets should decrease by 50"
+    );
+
+    // Verify market total borrow shares decreased
+    assert.ok(
+      finalMarketData.totalBorrowShares.eq(new anchor.BN(0)),
+      "Market total borrow shares should decrease by user's shares"
+    );
+
+    // Verify user has no remaining borrow shares
+    assert.ok(
+      finalBobBorrowerShares.borrowShares.eq(new anchor.BN(0)),
+      "Bob should have no remaining borrow shares"
+    );
+
+    // Verify bob's final quote balance is correct
+    assert.equal(
+      finalBobQuoteBalance,
+      BigInt(150 * 1e9), // Started with 100, borrowed 50
+      "Bob's final quote balance should be 150 tokens"
+    );
+
+    // Verify larry's final quote balance is correct
+    assert.equal(
+      finalLarryQuoteBalance,
+      BigInt(50 * 1e9), // Started with 100, repaid 50
+      "Larry's final quote balance should be 50 tokens"
+    );
+  });
+  
 });

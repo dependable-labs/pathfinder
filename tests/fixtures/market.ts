@@ -261,19 +261,22 @@ export class MarketFixture {
   async depositCollateral({
     user,
     amount,
+    owner,
   }: {
     user: UserFixture;
     amount: anchor.BN;
+    owner: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
       .depositCollateral({
         amount,
+        owner: owner.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
         market: this.marketAcc.key,
-        borrowerShares: this.get_borrower_shares(user.key.publicKey).key,
+        borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
         collateralMint: this.collateral.collateralMint,
         vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
@@ -289,19 +292,26 @@ export class MarketFixture {
   async withdrawCollateral({
     user,
     amount,
+    owner,
+    recipient,
   }: {
     user: UserFixture;
     amount: anchor.BN;
+    owner: UserFixture;
+    recipient: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
       .withdrawCollateral({
         amount,
+        owner: owner.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
+        recipient: recipient.key.publicKey,
+        positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
-        borrowerShares: this.get_borrower_shares(user.key.publicKey).key,
+        borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         collateralMint: this.collateral.collateralMint,
         quoteMint: this.quoteMint,
         vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
@@ -319,23 +329,28 @@ export class MarketFixture {
     user,
     amount,
     shares,
+    owner,
+    recipient,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
+    owner: UserFixture;
+    recipient: UserFixture;
   }): Promise<void> {
-    console.log("inborrow");
-    console.log("Borrower Shares:", this.get_borrower_shares(user.key.publicKey).key.toString());
 
     await this.program.methods
       .borrow({
         amount,
         shares,
+        owner: owner.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
+        recipient: recipient.key.publicKey,
+        positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
-        borrowerShares: this.get_borrower_shares(user.key.publicKey).key,
+        borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
         userAtaQuote: user.quoteAta,
@@ -355,21 +370,24 @@ export class MarketFixture {
     user,
     amount,
     shares,
+    owner,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
+    owner: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
       .repay({
         amount,
         shares,
+        owner: owner.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
         market: this.marketAcc.key,
-        borrowerShares: this.get_borrower_shares(user.key.publicKey).key,
+        borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
         collateralMint: this.collateral.collateralMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -423,14 +441,14 @@ export class MarketFixture {
 
   async updateDelegate({
     user,
-    new_delegate,
+    newDelegate,
   }: {
     user: UserFixture;
-    new_delegate: UserFixture;
+    newDelegate: UserFixture;
   }): Promise<void> {
     await this.program.methods
       .updateDelegate({
-        newDelegate: new_delegate.key.publicKey,
+        newDelegate: newDelegate.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,

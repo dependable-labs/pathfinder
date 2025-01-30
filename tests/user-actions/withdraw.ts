@@ -180,7 +180,7 @@ describe("Withdraw", () => {
     // lizz updates her delegate to larry
     await market.updateDelegate({
       user: lizz,
-      new_delegate: larry
+      newDelegate: larry
     });
 
     await market.withdraw({

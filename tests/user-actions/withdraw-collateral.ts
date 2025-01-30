@@ -44,6 +44,7 @@ describe("Withdraw Collateral", () => {
     // Pre-deposit collateral for withdrawal tests
     await market.depositCollateral({
       user: bob,
+      owner: bob,
       amount: new anchor.BN(100 * 1e9)  // 100 collateral tokens
     });
   });
@@ -53,6 +54,8 @@ describe("Withdraw Collateral", () => {
 
     await market.withdrawCollateral({
       user: bob,
+      owner: bob,
+      recipient: bob,
       amount: new anchor.BN(100 * 1e9)  // Withdraw all 100 tokens
     });
 
@@ -86,7 +89,9 @@ describe("Withdraw Collateral", () => {
     await market.borrow({
       user: bob,
       amount: new anchor.BN(10 * 1e9), // Borrow 10 tokens
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: bob,
+      recipient: bob,
     });
 
     const initialCollateralData = await market.marketAcc.get_data();
@@ -94,6 +99,8 @@ describe("Withdraw Collateral", () => {
     // Withdraw half of the collateral
     await market.withdrawCollateral({
       user: bob,
+      owner: bob,
+      recipient: bob,
       amount: new anchor.BN(50 * 1e9)  // Withdraw 50 tokens
     });
 
@@ -126,7 +133,9 @@ describe("Withdraw Collateral", () => {
     await market.borrow({
       user: bob,
       amount: new anchor.BN(50 * 1e9), // Borrow 50 tokens
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: bob,
+      recipient: bob,
     });
 
     // Attempt to withdraw all collateral, which would make the borrower insolvent
@@ -134,6 +143,8 @@ describe("Withdraw Collateral", () => {
       async () => {
         await market.withdrawCollateral({
           user: bob,
+          owner: bob,
+          recipient: bob,
           amount: new anchor.BN(100 * 1e9) // Attempt to withdraw all 100 tokens
         });
       },
@@ -152,5 +163,51 @@ describe("Withdraw Collateral", () => {
       BigInt(900 * 1e9),
       "Collateral balance should remain unchanged"
     );
+  });
+
+  it("delegate should withdraw collateral on behalf of owner", async () => {
+    const initialLarryBalance = await larry.get_col_balance();
+    const initialBobBalance = await bob.get_col_balance();
+    assert.equal(initialLarryBalance, BigInt(0), "Larry should have 0 collateral tokens");
+    assert.equal(initialBobBalance, BigInt(900 * 1e9), "Bob should have 100 collateral tokens");
+
+    await market.updateDelegate({
+      user: bob,
+      newDelegate: larry,
+    });
+
+    await market.withdrawCollateral({
+      user: larry,
+      owner: bob,
+      recipient: larry,
+      amount: new anchor.BN(100 * 1e9)  // Withdraw all 100 tokens
+    });
+
+    const collateralData = await market.marketAcc.get_data();
+    assert.ok(collateralData.totalCollateral.eq(new anchor.BN(0)), "Total collateral should be zero");
+
+    const borrowerShares = await market
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+
+    // user has no collateral after withdrawal
+    assert.ok(borrowerShares.collateralAmount.eq(new anchor.BN(0)), "User should have no collateral");
+
+    const finalBobBalance = await bob.get_col_balance();
+
+    assert.equal(
+      finalBobBalance - initialBobBalance,
+      BigInt(0),
+      "User should have withdrawn 100 collateral tokens"
+    );
+    
+    assert.equal(
+      finalBobBalance,
+      BigInt(900 * 1e9),
+      "Bobs balance should not have changed"
+    );
+
+    const finalLarryBalance = await larry.get_col_balance();
+    assert.equal(finalLarryBalance, BigInt(100 * 1e9), "Larry should have 100 collateral tokens");
   });
 });
