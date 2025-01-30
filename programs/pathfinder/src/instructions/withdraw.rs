@@ -12,7 +12,6 @@ pub struct WithdrawArgs {
     pub amount: u64,
     pub shares: u64,
     pub owner: Pubkey,
-    pub recipient: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -21,7 +20,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    /// CHECK: needed for token validation
+    /// CHECK: needed for associated token constraint
     #[account(mut)]
     pub recipient: AccountInfo<'info>,
 

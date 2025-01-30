@@ -27,8 +27,6 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000_000 * 1e9)
     );
 
-
-
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
@@ -48,13 +46,16 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: bob,
-      amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
+      amount: new anchor.BN(100 * LAMPORTS_PER_SOL),
+      owner: bob,
     });
 
     await market.borrow({
       user: bob,
       amount: new anchor.BN(500 * LAMPORTS_PER_SOL),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: bob,
+      recipient: bob,
     });
   });
 
@@ -83,7 +84,9 @@ describe("Accrue Interest", () => {
     await market.borrow({
       user: bob,
       amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: bob,
+      recipient: bob,
     });
 
     // 800 Debt, 1000 Capacity -> 80% utilization
@@ -178,13 +181,16 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: barry,
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
+      owner: barry,
     });
 
     await market.borrow({
       user: barry,
       amount: new anchor.BN(500 * 1e6),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: barry,
+      recipient: barry,
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
@@ -242,13 +248,16 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: barry,
-      amount: new anchor.BN(100 * 1e9)
+      amount: new anchor.BN(100 * 1e9),
+      owner: barry,
     });
 
     await market.borrow({
       user: barry,
       amount: new anchor.BN(500 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: barry,
+      recipient: barry,
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
@@ -305,13 +314,16 @@ describe("Accrue Interest", () => {
 
     await market.depositCollateral({
       user: barry,
-      amount: new anchor.BN(100 * 1e6)
+      amount: new anchor.BN(100 * 1e6),
+      owner: barry,
     });
 
     await market.borrow({
       user: barry,
       amount: new anchor.BN(500 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: barry,
+      recipient: barry,
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();

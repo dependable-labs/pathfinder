@@ -54,14 +54,18 @@ describe("Liquidate", () => {
     // Borrower deposits collateral
     await market.depositCollateral({
       user: borrower,
-      amount: new anchor.BN(100 * 1e9) // 100 collateral tokens
+      amount: new anchor.BN(100 * 1e9), // 100 collateral tokens
+      owner: borrower,
+      recipient: borrower,
     });
 
     // Borrower takes out a loan
     await market.borrow({
       user: borrower,
       amount: new anchor.BN(70 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: borrower,
+      recipient: borrower,
     });
   });
 

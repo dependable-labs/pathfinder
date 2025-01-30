@@ -9,6 +9,7 @@ use crate::error::MarketError;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct WithdrawCollateralArgs {
     pub amount: u64,
+    pub owner: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -16,6 +17,24 @@ pub struct WithdrawCollateralArgs {
 pub struct WithdrawCollateral<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    /// CHECK: needed for associated token constraint
+    #[account(mut)]
+    pub recipient: AccountInfo<'info>,
+
+    // position delegate
+    #[account(
+        init_if_needed,
+        payer = user,
+        constraint = args.owner.key() == user.key() || position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
+        space = 8 + std::mem::size_of::<PositionDelegate>(),
+        seeds = [
+            DELEGATE_SEED_PREFIX,
+            args.owner.key().as_ref(),
+        ],
+        bump
+    )]
+    pub position_delegate: Box<Account<'info, PositionDelegate>>,
 
     // market
     #[account(
@@ -37,7 +56,7 @@ pub struct WithdrawCollateral<'info> {
         seeds = [
             BORROWER_SHARES_SEED_PREFIX,
             market.key().as_ref(),
-            user.key().as_ref()
+            args.owner.key().as_ref()
         ],
         bump
     )]
@@ -57,11 +76,12 @@ pub struct WithdrawCollateral<'info> {
     )]
     pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut,
+        init_if_needed,
+        payer = user,
+        associated_token::authority = recipient,
         associated_token::mint = collateral_mint,
-        associated_token::authority = user,
     )]
-    pub user_ata_collateral: Box<Account<'info, TokenAccount>>,
+    pub recipient_ata_collateral: Box<Account<'info, TokenAccount>>,
 
     // system programs
     pub token_program: Program<'info, Token>,
@@ -84,7 +104,7 @@ impl<'info> WithdrawCollateral<'info> {
             market,
             borrower_shares,
             collateral_mint,
-            user_ata_collateral,
+            recipient_ata_collateral,
             vault_ata_collateral,
             token_program,
             price_update,
@@ -130,7 +150,7 @@ impl<'info> WithdrawCollateral<'info> {
                 token_program.to_account_info(),
                 Transfer {
                     from: vault_ata_collateral.to_account_info(),
-                    to: user_ata_collateral.to_account_info(),
+                    to: recipient_ata_collateral.to_account_info(),
                     authority: market.to_account_info(),
                 },
                 signer,
