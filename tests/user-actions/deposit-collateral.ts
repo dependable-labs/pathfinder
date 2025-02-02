@@ -26,6 +26,11 @@ describe("Deposit Collateral", () => {
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e9),
     );
+    
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
   
     market = await test.createMarket({
       symbol: "BONK",
@@ -33,6 +38,8 @@ describe("Deposit Collateral", () => {
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9), // upperbound: 110 * 1e9, lowerbound: 90 * 1e9
       expo: -9,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });  
 
     await market.create({user: larry});

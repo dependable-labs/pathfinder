@@ -75,7 +75,7 @@ This command will execute all the tests defined in the `tests` directory, verify
   - Controls liquidation parameters
 
 - Shares: 
-  - UserShares: Represents lender's share of the quote token pool
+  - LenderShares: Represents lender's share of the quote token pool
   - BorrowerShares: Tracks borrower's debt and collateral positions
 
 - Controller:

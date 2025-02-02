@@ -1,6 +1,7 @@
-mod controller;
 mod market;
 mod constants;
-pub use controller::*;
+mod config;
+
+pub use config::*;
 pub use market::*;
 pub use constants::*;

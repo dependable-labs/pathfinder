@@ -26,6 +26,11 @@ describe("User Borrow", () => {
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e9),
     );
+
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
   
     market = await test.createMarket({
       symbol: "BONK",
@@ -33,6 +38,8 @@ describe("User Borrow", () => {
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9), // upperbound: 110 * 1e9, lowerbound: 90 * 1e9
       expo: -9,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });  
 
     await market.create({user: larry});
@@ -49,7 +56,6 @@ describe("User Borrow", () => {
       amount: new anchor.BN(1 * 1e9),
       owner: bob,
     });
-
   });
 
   it("borrows from a market", async () => {
@@ -72,11 +78,11 @@ describe("User Borrow", () => {
     );
     assert.equal(totalBorrows.toNumber(), 500000000);
 
-    const userSharesAccountData = await market
+    const lenderSharesAccountData = await market
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
     assert.equal(
-      userSharesAccountData.borrowShares.toNumber(),
+      lenderSharesAccountData.borrowShares.toNumber(),
       500000000
     );
 

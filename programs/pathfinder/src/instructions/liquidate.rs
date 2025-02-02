@@ -22,7 +22,15 @@ pub struct LiquidateArgs {
 pub struct Liquidate<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-        // market
+
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+
+    // market
     #[account(
       mut,
       seeds = [
@@ -97,6 +105,7 @@ impl<'info> Liquidate<'info> {
     pub fn handle(ctx: Context<Self>, args: LiquidateArgs) -> Result<()> {
          let Liquidate {
             user,
+            config,
             market,
             borrower_shares,
             collateral_mint,
@@ -116,8 +125,6 @@ impl<'info> Liquidate<'info> {
         if (repay_shares == 0 && collateral_amount == 0) || (repay_shares != 0 && collateral_amount != 0) {
             return err!(MarketError::AssetShareValueMismatch);
         }
-
-        accrue_interest(market)?;
 
         if is_solvent(
             market,

@@ -26,12 +26,19 @@ describe("Withdraw", () => {
       new anchor.BN(0)
     );
 
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
+
     market = await test.createMarket({
         symbol: "BONK",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 10 ** 9),
         conf: new anchor.BN(100 / 10 * 10 ** 9),
-        expo: -9
+        expo: -9,
+        feeRecipient: futarchy,
+        authority: futarchy,
       });
 
     await market.create({ user: larry });
@@ -40,13 +47,15 @@ describe("Withdraw", () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: larry,
     });
 
     await market.deposit({
       user: lizz,
       amount: new anchor.BN(1 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: lizz,
     });
   });
 
@@ -74,7 +83,7 @@ describe("Withdraw", () => {
     );
 
     const larryShares = await market
-      .get_user_shares(larry.key.publicKey)
+      .get_lender_shares(larry.key.publicKey)
       .get_data();
     assert.equal(
       larryShares.shares.toNumber(), 
@@ -118,10 +127,10 @@ describe("Withdraw", () => {
     );
 
     const larrySharesData = await market
-      .get_user_shares(larry.key.publicKey)
+      .get_lender_shares(larry.key.publicKey)
       .get_data();
     const lizzSharesData = await market
-      .get_user_shares(lizz.key.publicKey)
+      .get_lender_shares(lizz.key.publicKey)
       .get_data();
 
     assert.equal(larrySharesData.shares.toNumber(), 0.5 * 1e9);
@@ -149,8 +158,8 @@ describe("Withdraw", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6003);
-        assert.strictEqual(err.error.errorMessage, 'Insufficient balance');
+        assert.strictEqual(err.error.errorCode.number, 6010);
+        assert.strictEqual(err.error.errorMessage, 'Math Underflow');
         return true;
       }
     );
@@ -203,7 +212,7 @@ describe("Withdraw", () => {
     );
 
     const lizzShares = await market
-      .get_user_shares(lizz.key.publicKey)
+      .get_lender_shares(lizz.key.publicKey)
       .get_data();
     assert.equal(
       lizzShares.shares.toNumber(), 
@@ -218,7 +227,7 @@ describe("Withdraw", () => {
     );
 
     const larryShares = await market
-      .get_user_shares(larry.key.publicKey)
+      .get_lender_shares(larry.key.publicKey)
       .get_data();
     assert.equal(
       larryShares.shares.toNumber(), 

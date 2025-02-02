@@ -4,7 +4,7 @@ use anchor_lang::solana_program::hash::hash;
 use pyth_solana_receiver_sdk::price_update::{PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
-use crate::state::{MAX_PRICE_AGE, MARKET_SEED_PREFIX};
+use crate::state::MAX_PRICE_AGE;
 use crate::math::w_mul_down;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
@@ -75,6 +75,7 @@ pub struct Market {
     pub oracle: PythOracle,
     pub rate_at_target: u64,
     pub last_accrual_timestamp: u64,
+    pub fee_shares: u64,
 }
 
 impl Market {
@@ -88,7 +89,7 @@ impl Market {
 }
 
 #[account]
-pub struct UserShares {
+pub struct LenderShares {
     pub bump: u8,
     pub shares: u64,
 }
@@ -105,7 +106,6 @@ pub struct PositionDelegate {
     pub bump: u8,
     pub delegate: Pubkey,   // The authorized delegate
 }
-
 
 #[macro_export]
 macro_rules! generate_market_seeds {

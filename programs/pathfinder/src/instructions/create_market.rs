@@ -19,6 +19,13 @@ pub struct CreateMarket<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+
     // market
     #[account(
         init,
@@ -60,7 +67,7 @@ pub struct CreateMarket<'info> {
         init_if_needed,
         payer = user,
         associated_token::authority = market,
-        associated_token::mint = collateral_mint
+        associated_token::mint = collateral_mint,
     )]
     pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
 
@@ -111,6 +118,7 @@ impl<'info> CreateMarket<'info> {
             // interest
             last_accrual_timestamp: current_timestamp,
             rate_at_target: 0,
+            fee_shares: 0,
         });
 
         Ok(())

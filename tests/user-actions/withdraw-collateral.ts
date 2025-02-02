@@ -25,12 +25,19 @@ describe("Withdraw Collateral", () => {
       new anchor.BN(1000 * 1e9)
     );
 
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 10 ** 5),
       conf: new anchor.BN(10 * 1e5),
-      expo: -5
+      expo: -5,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });
 
     await market.create({ user: larry });
@@ -38,7 +45,8 @@ describe("Withdraw Collateral", () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1000 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: larry,
     });
 
     // Pre-deposit collateral for withdrawal tests

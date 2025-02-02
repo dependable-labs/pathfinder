@@ -18,6 +18,13 @@ pub struct WithdrawCollateral<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+
     /// CHECK: needed for associated token constraint
     #[account(mut)]
     pub recipient: AccountInfo<'info>,
@@ -101,6 +108,7 @@ impl<'info> WithdrawCollateral<'info> {
 
     pub fn handle(ctx: Context<Self>, args: WithdrawCollateralArgs) -> Result<()> {
         let WithdrawCollateral {
+            config,
             market,
             borrower_shares,
             collateral_mint,
@@ -113,7 +121,7 @@ impl<'info> WithdrawCollateral<'info> {
 
         let assets = args.amount;
 
-        accrue_interest(market)?;
+        accrue_interest(market, &config)?;
 
         // check if user is solvent after withdrawing collateral
         let updated_collateral_amount = borrower_shares.collateral_amount.checked_sub(assets).unwrap();
