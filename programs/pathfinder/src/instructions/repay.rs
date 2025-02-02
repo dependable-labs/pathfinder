@@ -3,6 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
+use crate::traits::authority;
 use crate::{state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
@@ -18,6 +19,13 @@ pub struct RepayArgs {
 pub struct Repay<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
 
     // market
     #[account(
@@ -79,6 +87,7 @@ impl<'info> Repay<'info> {
     pub fn handle(ctx: Context<Self>, args: RepayArgs) -> Result<()> {
         let Repay {
             user,
+            config,
             market,
             borrower_shares,
             user_ata_quote,
@@ -97,7 +106,7 @@ impl<'info> Repay<'info> {
 
         msg!("repaying {}", assets);
 
-        accrue_interest(market)?;
+        accrue_interest(market, config)?;
 
         let total_borrows = market.total_borrows()?;
 

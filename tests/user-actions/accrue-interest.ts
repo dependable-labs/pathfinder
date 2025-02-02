@@ -9,11 +9,12 @@ describe("Accrue Interest", () => {
   let market: MarketFixture;
   let larry: UserFixture; // Lender
   let bob: UserFixture;   // Borrower
+  let futarchy: UserFixture; // protocol fee recipient
 
   beforeEach(async () => {
 
     test = await TestUtils.create({
-      quoteDecimals: 5,
+      quoteDecimals: 9,
       collateralDecimals: 9,
     });
 
@@ -23,8 +24,13 @@ describe("Accrue Interest", () => {
     );
 
     bob = await test.createUser(
-      new anchor.BN(0),
+      new anchor.BN(1_000_000 * 1e9),
       new anchor.BN(1_000_000 * 1e9)
+    );
+
+    futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
     );
 
     market = await test.createMarket({
@@ -32,7 +38,9 @@ describe("Accrue Interest", () => {
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
-      expo: -9
+      expo: -9,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });
 
     await market.create({ user: larry });
@@ -41,7 +49,8 @@ describe("Accrue Interest", () => {
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1_000 * LAMPORTS_PER_SOL),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: larry,
     });
 
     await market.depositCollateral({
@@ -61,6 +70,7 @@ describe("Accrue Interest", () => {
 
   it("correctly for year", async () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const beforeTotalDeposits = await market.marketAcc.getTotalDeposits();
     
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
@@ -68,14 +78,56 @@ describe("Accrue Interest", () => {
     await market.accrueInterest();
     
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+    const afterTotalDeposits = await market.marketAcc.getTotalDeposits();
+
     // Convert to BN and calculate difference
-    const difference = afterTotalBorrows.sub(beforeTotalBorrows);
+    const borrowDifference = afterTotalBorrows.sub(beforeTotalBorrows);
+    const depositDifference = afterTotalDeposits.sub(beforeTotalDeposits);
+ 
+    // Verify interest accrual
+    assert.equal(
+      borrowDifference.toNumber(),
+      13_512_691_343 // Expected interest accrual
+    );
+
+    assert.equal(
+      depositDifference.toNumber(),
+      27_025_382_686 // Expected interest accrual
+    );
+  });
+
+  it("correctly for a year with protocol fee", async () => {
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const beforeTotalDeposits = await market.marketAcc.getTotalDeposits();
+
+    // Set protocol fee to 1%
+    await market.updateFee({
+      user: futarchy,
+      feeFactor: new anchor.BN("10000000000000000")
+    });
+    
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
+    
+    await market.accrueInterest();
+
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalDeposits = await market.marketAcc.getTotalDeposits();
+
+    // Convert to BN and calculate difference
+    const borrowDifference = afterTotalBorrows.sub(beforeTotalBorrows);
+    const depositDifference = afterTotalDeposits.sub(beforeTotalDeposits);
     
     // Verify interest accrual
     assert.equal(
-      difference.toNumber(),
+      borrowDifference.toNumber(),
       13_512_691_343 // Expected interest accrual
+    );
+ 
+    // Verify fee accrual
+    assert.equal(
+      depositDifference.toNumber(),
+      27_032_613_361 // Same total interest
     );
   });
 
@@ -162,12 +214,19 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000 * 1e9)
     );
 
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e6),
       price: new anchor.BN(100 * 1e6),
       conf: new anchor.BN(10 * 1e6),
-      expo: -6
+      expo: -6,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });
 
     await market.create({ user: lip });
@@ -176,7 +235,8 @@ describe("Accrue Interest", () => {
     await market.deposit({
       user: lip,
       amount: new anchor.BN(1_000 * 1e6),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: lip,
     });
 
     await market.depositCollateral({
@@ -229,12 +289,19 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000 * 1e9)
     );
 
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
-      expo: -9
+      expo: -9,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });
 
     await market.create({ user: lip });
@@ -243,7 +310,8 @@ describe("Accrue Interest", () => {
     await market.deposit({
       user: lip,
       amount: new anchor.BN(1_000 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: lip,
     });
 
     await market.depositCollateral({
@@ -295,12 +363,19 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000 * 1e6)
     );
 
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e6),
       conf: new anchor.BN(10 * 1e6),
-      expo: -6
+      expo: -6,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });
 
     await market.create({ user: lip });
@@ -309,7 +384,8 @@ describe("Accrue Interest", () => {
     await market.deposit({
       user: lip,
       amount: new anchor.BN(1_000 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: lip,
     });
 
     await market.depositCollateral({
@@ -345,5 +421,3 @@ describe("Accrue Interest", () => {
     );
   });
 });
-
-

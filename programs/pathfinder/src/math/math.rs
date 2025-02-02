@@ -94,7 +94,5 @@ pub fn w_taylor_compounded(x: u128, n: u128) -> Result<u128> {
     .checked_add(second_term)
     .ok_or(error!(MarketError::MathOverflow))?
     .checked_add(third_term)
-    .ok_or(error!(MarketError::MathOverflow))?
-    .checked_add(WAD)
     .ok_or(error!(MarketError::MathOverflow))?)
 }

@@ -17,6 +17,13 @@ pub struct DepositCollateral<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+
     // market
     #[account(
         mut,
@@ -45,14 +52,15 @@ pub struct DepositCollateral<'info> {
     )]
     pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
+    // quote
     #[account(constraint = quote_mint.key() == market.quote_mint.key())]
     pub quote_mint: Box<Account<'info, Mint>>,
 
+    // collateral
     #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
     pub collateral_mint: Box<Account<'info, Mint>>,
     #[account(
-        init_if_needed,
-        payer = user,
+        mut,
         associated_token::mint = collateral_mint,
         associated_token::authority = market,
     )]
@@ -82,6 +90,7 @@ impl<'info> DepositCollateral<'info> {
     pub fn handle(ctx: Context<Self>, args: DepositCollateralArgs) -> Result<()> {
         let DepositCollateral {
             user,
+            config,
             market,
             borrower_shares,
             user_ata_collateral,
@@ -92,7 +101,7 @@ impl<'info> DepositCollateral<'info> {
 
         let assets = args.amount;
 
-        accrue_interest(market)?;
+        accrue_interest(market, config)?;
 
         // Update market state
         market.total_collateral = market.total_collateral

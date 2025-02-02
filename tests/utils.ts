@@ -130,13 +130,17 @@ export class TestUtils {
       ltvFactor,
       price,
       conf,
-      expo
+      expo,
+      feeRecipient,
+      authority
     }: {
       symbol: string,
       ltvFactor: anchor.BN,
       price: anchor.BN,
       conf: anchor.BN,
-      expo: number
+      expo: number,
+      feeRecipient: UserFixture,
+      authority: UserFixture
     }
   ) {
 
@@ -154,11 +158,6 @@ export class TestUtils {
       expo
     });
 
-    const controller = new ControllerFixture(
-      this.program,
-      this.provider,
-    );
-
     return new MarketFixture(
       this.program,
       this.provider,
@@ -166,7 +165,8 @@ export class TestUtils {
       this.collateralMint,
       symbol as SupportedCollateral,
       collateral,
-      controller
+      feeRecipient,
+      authority
     );
   }
 

@@ -34,12 +34,19 @@ describe("Liquidate", () => {
       new anchor.BN(0)
     );
 
+    let futarchy = await test.createUser( 
+      new anchor.BN(0),
+      new anchor.BN(0)
+    );
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(8 * 1e8), // 80% LTV
       price: new anchor.BN(1e5), // $1.00
       conf: new anchor.BN(1 * 10 ** 4), // $0.01 confidence interval
-      expo: -5
+      expo: -5,
+      feeRecipient: futarchy,
+      authority: futarchy,
     });
 
     await market.create({ user: lender });
@@ -48,15 +55,15 @@ describe("Liquidate", () => {
     await market.deposit({
       user: lender,
       amount: new anchor.BN(1000 * 1e9), // 1000 quote tokens
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      owner: lender,
     });
 
     // Borrower deposits collateral
     await market.depositCollateral({
       user: borrower,
       amount: new anchor.BN(100 * 1e9), // 100 collateral tokens
-      owner: borrower,
-      recipient: borrower,
+      owner: borrower
     });
 
     // Borrower takes out a loan

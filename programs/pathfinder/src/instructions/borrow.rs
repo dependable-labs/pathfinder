@@ -21,6 +21,13 @@ pub struct Borrow<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+
     /// CHECK: needed for associated token constraint
     #[account(mut)]
     pub recipient: AccountInfo<'info>,
@@ -101,6 +108,7 @@ impl<'info> Borrow<'info> {
 
     pub fn handle(ctx: Context<Self>, args: BorrowArgs) -> Result<()> {
         let Borrow {
+            config,
             market,
             borrower_shares,
             recipient_ata_quote,
@@ -121,7 +129,7 @@ impl<'info> Borrow<'info> {
 
         msg!("borrowing {}", assets);
 
-        accrue_interest(market)?;
+        accrue_interest(market, config)?;
 
         let total_borrows = market.total_borrows()?;
  

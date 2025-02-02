@@ -20,6 +20,13 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    #[account(
+        mut,
+        seeds = [CONFIG_SEED_PREFIX],
+        bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+
     // market
     #[account(
         mut,
@@ -38,7 +45,7 @@ pub struct Deposit<'info> {
     #[account(
         init_if_needed,
         payer = user,
-        space = 8 + std::mem::size_of::<UserShares>(),
+        space = 8 + std::mem::size_of::<LenderShares>(),
         seeds = [
             MARKET_SHARES_SEED_PREFIX,
             market.key().as_ref(),
@@ -46,7 +53,7 @@ pub struct Deposit<'info> {
         ],
         bump
     )]
-    pub user_shares: Box<Account<'info, UserShares>>,
+    pub lender_shares: Box<Account<'info, LenderShares>>,
 
     // quote
     #[account(constraint = quote_mint.key() == market.quote_mint.key())]
@@ -57,17 +64,16 @@ pub struct Deposit<'info> {
         associated_token::authority = market,
     )]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
-
-    // collateral
-    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
-    pub collateral_mint: Box<Account<'info, Mint>>,
-
     #[account(
         mut,
         associated_token::mint = market.quote_mint,
         associated_token::authority = user,
     )]
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
+
+    // collateral
+    #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
+    pub collateral_mint: Box<Account<'info, Mint>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -82,8 +88,9 @@ impl<'info> Deposit<'info> {
     pub fn handle(ctx: Context<Self>, args: DepositArgs) -> Result<()> {
          let Deposit {
             user,
+            config,
             market,
-            user_shares,
+            lender_shares,
             user_ata_quote,
             vault_ata_quote,
             token_program,
@@ -93,6 +100,8 @@ impl<'info> Deposit<'info> {
         let mut shares = args.shares;
         let mut assets = args.amount;
 
+        msg!("shares: {}", shares);
+
         // Validate that either shares or assets must be specified, but not both
         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
             return err!(MarketError::AssetShareValueMismatch);
@@ -100,7 +109,7 @@ impl<'info> Deposit<'info> {
 
         msg!("depositing {}", assets);
 
-        accrue_interest(market)?;
+        accrue_interest(market, config)?;
         
         let total_deposits = market.total_deposits()?;
 
@@ -117,7 +126,7 @@ impl<'info> Deposit<'info> {
 
 
         // Update user shares
-        user_shares.shares = user_shares.shares
+        lender_shares.shares = lender_shares.shares
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 

@@ -3,8 +3,8 @@ use anchor_lang::prelude::*;
 #[error_code]
 pub enum MarketError {
     // Authority Errors
-    #[msg("Authority already set")]
-    AuthorityAlreadySet,
+    #[msg("Unauthorized authority")]
+    UnauthorizedAuthority,
 
     // Market Configuration Errors 
     #[msg("You can't create a market with two of the same token mints")]
@@ -44,4 +44,13 @@ pub enum MarketError {
 
     #[msg("Unauthorized delegate")]
     UnauthorizedDelegate,
+
+    #[msg("Fee factor exceeds max")]
+    FeeExceedsMax,
+    #[msg("Fee factor already set")]
+    FeeAlreadySet,
+    #[msg("Invalid recipient")]
+    InvalidRecipient,
+    #[msg("Invalid authority")]
+    InvalidAuthority,
 }

@@ -6,6 +6,7 @@ pub mod instructions;
 pub mod state;
 pub mod error;
 pub mod math;
+pub mod traits;
 
 use crate::instructions::*;
 
@@ -36,6 +37,10 @@ pub mod markets {
         Withdraw::handle(ctx, args)
     }
 
+    pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, args: WithdrawCollateralArgs) -> Result<()> {
+        WithdrawCollateral::handle(ctx, args)
+    }
+
     #[access_control(ctx.accounts.validate(&args))]
     pub fn deposit_collateral(ctx: Context<DepositCollateral>, args: DepositCollateralArgs) -> Result<()> {
         DepositCollateral::handle(ctx, args)
@@ -53,7 +58,23 @@ pub mod markets {
         Repay::handle(ctx, args)
     }
 
-    pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, args: WithdrawCollateralArgs) -> Result<()> {
-        WithdrawCollateral::handle(ctx, args)
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn update_fee(ctx: Context<UpdateFee>, args: UpdateFeeArgs) -> Result<()> {
+        UpdateFee::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn update_authority(ctx: Context<UpdateAuthority>, args: UpdateAuthorityArgs) -> Result<()> {
+        UpdateAuthority::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn update_recipient(ctx: Context<UpdateRecipient>, args: UpdateRecipientArgs) -> Result<()> {
+        UpdateRecipient::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn withdraw_fee(ctx: Context<WithdrawFee>, args: WithdrawFeeArgs) -> Result<()> {
+        WithdrawFee::handle(ctx, args)
     }
 }

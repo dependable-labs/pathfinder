@@ -15,6 +15,8 @@ export class MarketFixture {
   public quoteAta: splAccountFixture;
   public controller: ControllerFixture;
   public collateral: CollateralFixture;
+  public configFeeRecipient: UserFixture;
+  public configAuthority: UserFixture;
 
   public constructor(
     public _program: Program<Markets>,
@@ -23,7 +25,8 @@ export class MarketFixture {
     public _collateralMint: PublicKey,
     public _collateralSymbol: SupportedCollateral,
     public _collateral: CollateralFixture,
-    public _controller: ControllerFixture,
+    public _configFeeRecipient: UserFixture,
+    public _configAuthority: UserFixture,
   ) {
     this.collateral = _collateral;
 
@@ -34,62 +37,15 @@ export class MarketFixture {
     );
     this.program = _program;
     this.provider = _provider;
-    this.controller = _controller;
     this.quoteMint = _quoteMint;
     this.quoteAta = new splAccountFixture(
       "quoteAta",
       this.get_ata(this.quoteMint),
       _program,
     );
+    this.configFeeRecipient = _configFeeRecipient;
+    this.configAuthority = _configAuthority;
 
-  }
-
-  // public async addCollateral({
-  //   symbol,
-  //   collateralAddress,
-  //   collateralMint,
-  //   price,
-  //   conf,
-  //   expo
-  // } : {
-  //   symbol: SupportedCollateral,
-  //   collateralAddress: PublicKey,
-  //   collateralMint: PublicKey,
-  //   price: anchor.BN,
-  //   conf: anchor.BN,
-  //   expo: number
-  // }): Promise<void> {
-  //   const collateral = new CollateralFixture(
-  //     symbol,
-  //     this.program,
-  //     this.provider,
-  //     collateralAddress,
-  //     collateralMint
-  //   );
-  //   await collateral.initPrice({
-  //     price,
-  //     conf,
-  //     expo
-  //   });
-  //   // this.collaterals.set(symbol, collateral);
-  // }
-
-  // public getCollateral(symbol: string): CollateralFixture | undefined {
-  //   return this.collaterals.get(symbol);
-  // }
-
-  async setAuthority(): Promise<void> {
-
-    // Futarchy authority is set
-    await this.program.methods
-      .setAuthority({
-        newAuthority: this.controller.authority.publicKey,
-      })
-      .accounts({
-        user: this.provider.wallet.publicKey,
-      })
-      .signers([this.provider.wallet.payer])
-      .rpc();
   }
 
   async create({
@@ -97,6 +53,14 @@ export class MarketFixture {
   }: {
     user: UserFixture;
   }): Promise<void> {
+    await this.updateRecipient({
+      user: this.configAuthority,
+      new_recipient: this.configFeeRecipient,
+    });
+    await this.updateAuthority({
+      user: this.configAuthority,
+      new_authority: this.configAuthority,
+    });
     await this.createCustom({
       user,
       collateralSymbol: this.collateral.symbol,
@@ -106,11 +70,11 @@ export class MarketFixture {
       collateralMint: this.collateral.collateralMint,
       vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
     });
+
   }
 
   async createCustom({
     user,
-    collateralSymbol,
     ltvFactor,
     quoteMint,
     vaultAtaQuote,
@@ -132,6 +96,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         market: this.marketAcc.key,
         quoteMint,
         collateralMint,
@@ -150,43 +115,6 @@ export class MarketFixture {
     assert.equal(marketAccountData.ltvFactor.toString(), ltvFactor.toString());
   }
 
-  // async update({
-  //   symbol,
-  //   ltvFactor,
-  //   isActive,
-  //   overrideAuthority, // Add this parameter
-  // }: {
-  //   symbol: SupportedCollateral;
-  //   ltvFactor: anchor.BN;
-  //   isActive: boolean;
-  //   overrideAuthority?: UserFixture; // Optional parameter for testing
-  // }): Promise<void> {
-  //   const collateral = this.getCollateral(symbol);
-  //   if (!collateral) {
-  //     throw new Error(`Collateral ${symbol} not found`);
-  //   }
-
-  //   await this.program.methods
-  //   .updateCollateral({
-  //     ltvFactor,
-  //     isActive,
-  //   })
-  //   .accounts({
-  //     authority: overrideAuthority?.key.publicKey || this.controller.authority.publicKey,
-  //     controller: this.controller.controllerAcc.key,
-  //     market: this.marketAcc.key,
-  //     quoteMint: this.quoteMint,
-  //     collateralMint: collateral.collateralMint,
-  //     vaultAtaQuote: this.get_ata(this.quoteMint),
-  //     vaultAtaCollateral: this.get_ata(collateral.collateralMint),
-  //     associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-  //     tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   })
-  //   .signers([overrideAuthority?.key.payer || this.controller.authority.payer])
-  //   .rpc();
-  // }
-
   async deposit({
     user,
     amount,
@@ -196,19 +124,20 @@ export class MarketFixture {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
-    owner?: UserFixture;
+    owner: UserFixture;
   }): Promise<void> {
 
-    await this.program.methods
+    const instruction = await this.program.methods
       .deposit({
         amount,
         shares,
-        owner: owner ? owner.key.publicKey : user.key.publicKey,
+        owner: owner.key.publicKey,
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(owner ? owner.key.publicKey : user.key.publicKey).key,
+        lenderShares: this.get_lender_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
         collateralMint: this.collateral.collateralMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -233,6 +162,7 @@ export class MarketFixture {
     owner: UserFixture;
     recipient: UserFixture;
   }): Promise<void> {
+
     await this.program.methods
       .withdraw({
         amount,
@@ -242,10 +172,11 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         recipient: recipient.key.publicKey,
         positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
-        userShares: this.get_user_shares(owner.key.publicKey).key,
+        lenderShares: this.get_lender_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
         collateralMint: this.collateral.collateralMint,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -275,6 +206,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         market: this.marketAcc.key,
         borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
@@ -308,6 +240,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         recipient: recipient.key.publicKey,
         positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
@@ -347,6 +280,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         recipient: recipient.key.publicKey,
         positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
@@ -386,6 +320,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         market: this.marketAcc.key,
         borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         quoteMint: this.quoteMint,
@@ -422,6 +357,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+        config: this.get_config().key,
         market: this.marketAcc.key,
         borrowerShares: this.get_borrower_shares(borrower).key,
         quoteMint: this.quoteMint,
@@ -439,6 +375,44 @@ export class MarketFixture {
       .rpc();
   }
 
+  async withdrawFee({
+    user,
+    amount,
+    shares,
+    recipient,
+  }: {
+    user: UserFixture;
+    amount: anchor.BN;
+    shares: anchor.BN;
+    recipient: UserFixture;
+  }): Promise<void> {
+
+    console.log("amount", amount.toString());
+    console.log("shares", shares.toString());
+
+    await this.program.methods
+      .withdrawFee({
+        amount,
+        shares,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.get_config().key,
+        recipient: recipient.key.publicKey,
+        market: this.marketAcc.key,
+        quoteMint: this.quoteMint,
+        collateralMint: this.collateral.collateralMint,
+        vaultAtaQuote: this.get_ata(this.quoteMint),
+        recipientAtaQuote: recipient.get_ata(this.quoteMint),
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
+
   async updateDelegate({
     user,
     newDelegate,
@@ -452,6 +426,66 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
+  async updateFee({
+    user,
+    feeFactor,
+  }: {
+    user: UserFixture;
+    feeFactor: anchor.BN;
+  }): Promise<void> {
+    await this.program.methods
+      .updateFee({
+        newFeeFactor: feeFactor,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.get_config().key,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
+  async updateRecipient({
+    user,
+    new_recipient,
+  }: {
+    user: UserFixture;
+    new_recipient: UserFixture;
+  }): Promise<void> {
+    await this.program.methods
+      .updateRecipient({
+        newRecipient: new_recipient.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.get_config().key,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
+
+  async updateAuthority({
+    user,
+    new_authority,
+  }: {
+    user: UserFixture;
+    new_authority: UserFixture;
+  }): Promise<void> {
+    await this.program.methods
+      .updateAuthority({
+        newAuthority: new_authority.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.get_config().key,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
       .rpc();
@@ -476,18 +510,18 @@ export class MarketFixture {
     });
   }
 
-  public get_user_shares(userKey: PublicKey): AccountFixture {
-    let userSharesKey = PublicKey.findProgramAddressSync(
+  public get_lender_shares(userKey: PublicKey): AccountFixture {
+    let lenderSharesKey = PublicKey.findProgramAddressSync(
       [
-        Buffer.from("market_shares"),
+        Buffer.from("lender_shares"),
         this.marketAcc.key.toBuffer(),
         userKey.toBuffer(),
       ],
       this.program.programId
     )[0];
     return new AccountFixture(
-      "userShares",
-      userSharesKey,
+      "lenderShares",
+      lenderSharesKey,
       this.program
     );
   }
@@ -522,6 +556,20 @@ export class MarketFixture {
     return new AccountFixture(
       "positionDelegate",
       positionDelegateKey,
+      this.program
+    );
+  }
+
+  public get_config(): AccountFixture {
+    let configKey = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("config"),
+      ],
+      this.program.programId
+    )[0];
+    return new AccountFixture(
+      "config",
+      configKey,
       this.program
     );
   }
