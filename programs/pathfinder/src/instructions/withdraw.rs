@@ -69,7 +69,7 @@ pub struct Withdraw<'info> {
         ],
         bump
     )]
-    pub user_shares: Box<Account<'info, LenderShares>>,
+    pub lender_shares: Box<Account<'info, LenderShares>>,
 
     // quote
     #[account(constraint = quote_mint.key() == market.quote_mint.key())]
@@ -98,78 +98,6 @@ pub struct Withdraw<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// impl<'info> Withdraw<'info> {
-//     pub fn validate(&self) -> Result<()> {
-//         Ok(())
-//     }
-
-//     pub fn handle(ctx: Context<Self>, args: WithdrawArgs) -> Result<()> {
-//          let Withdraw {
-//             user,
-//             config,
-//             market,
-//             user_shares,
-//             recipient_ata_quote,
-//             vault_ata_quote,
-//             token_program,
-//             ..
-//         } = ctx.accounts;
-
-//         let mut shares = args.shares;
-//         let mut assets = args.amount;
-
-//         // Validate that either shares or amount is zero, but not both
-//         if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-//             return err!(MarketError::AssetShareValueMismatch);
-//         }
-
-//         accrue_interest(market, config)?;
-
-//         let total_deposits = market.total_deposits()?;
-
-//         if assets > 0 {
-//             shares = to_shares_up(assets, total_deposits, market.total_shares)?;
-//         } else {
-//             assets = to_assets_down(shares, total_deposits, market.total_shares)?;
-//         }
-
-//         // Update accumulators
-//         market.total_shares = market.total_shares
-//                 .checked_sub(shares)
-//                 .ok_or(error!(MarketError::MathUnderflow))?;
-
-//         if user.key() == config.fee_recipient {
-//             market.fee_shares = market.fee_shares
-//                 .checked_sub(shares)
-//                 .ok_or(error!(MarketError::MathOverflow))?;
-//         } else {
-//             // Update user shares
-//             user_shares.shares = user_shares.shares
-//                     .checked_sub(shares)
-//                     .ok_or(error!(MarketError::MathUnderflow))?;
-//         }
-
-//         // transfer tokens to depositor
-//         let seeds = generate_market_seeds!(market);
-//         let signer = &[&seeds[..]];
-
-//         transfer(
-//             CpiContext::new_with_signer(
-//                 token_program.to_account_info(),
-//                 Transfer {
-//                     from: vault_ata_quote.to_account_info(),
-//                     to: recipient_ata_quote.to_account_info(),
-//                     authority: market.to_account_info(),
-//                 },
-//                 signer,
-//             ),
-//             assets,
-//         )?;
-        
-//         Ok(())
-
-//     }
-
 impl<'info> Withdraw<'info> {
     pub fn validate(&self) -> Result<()> {
         Ok(())
@@ -177,10 +105,9 @@ impl<'info> Withdraw<'info> {
 
     pub fn handle(ctx: Context<Self>, args: WithdrawArgs) -> Result<()> {
          let Withdraw {
-            user,
             config,
             market,
-            user_shares,
+            lender_shares,
             recipient_ata_quote,
             vault_ata_quote,
             token_program,
@@ -196,7 +123,7 @@ impl<'info> Withdraw<'info> {
             &mut shares,
             &mut assets,
             false,
-            Some(user_shares),
+            Some(lender_shares),
             vault_ata_quote,
             recipient_ata_quote,
             token_program,
@@ -213,7 +140,7 @@ pub fn process_withdrawal_and_transfer<'info>(
     shares: &mut u64,
     assets: &mut u64,
     is_fee_recipient: bool,
-    user_shares: Option<&mut Account<'info, LenderShares>>,
+    lender_shares: Option<&mut Account<'info, LenderShares>>,
     vault_ata_quote: &Account<'info, TokenAccount>,
     recipient_ata_quote: &Account<'info, TokenAccount>,
     token_program: &Program<'info, Token>,
@@ -247,7 +174,7 @@ pub fn process_withdrawal_and_transfer<'info>(
         market.fee_shares = market.fee_shares
             .checked_sub(*shares)
             .ok_or(error!(MarketError::MathOverflow))?;
-    } else if let Some(shares_account) = user_shares {
+    } else if let Some(shares_account) = lender_shares {
         // Update user shares
         shares_account.shares = shares_account.shares
             .checked_sub(*shares)

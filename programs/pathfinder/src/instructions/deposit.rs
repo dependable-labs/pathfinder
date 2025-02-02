@@ -53,7 +53,7 @@ pub struct Deposit<'info> {
         ],
         bump
     )]
-    pub user_shares: Box<Account<'info, LenderShares>>,
+    pub lender_shares: Box<Account<'info, LenderShares>>,
 
     // quote
     #[account(constraint = quote_mint.key() == market.quote_mint.key())]
@@ -90,7 +90,7 @@ impl<'info> Deposit<'info> {
             user,
             config,
             market,
-            user_shares,
+            lender_shares,
             user_ata_quote,
             vault_ata_quote,
             token_program,
@@ -126,7 +126,7 @@ impl<'info> Deposit<'info> {
 
 
         // Update user shares
-        user_shares.shares = user_shares.shares
+        lender_shares.shares = lender_shares.shares
                 .checked_add(shares)
                 .ok_or(MarketError::MathOverflow)?;
 
