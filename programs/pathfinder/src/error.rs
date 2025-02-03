@@ -53,4 +53,7 @@ pub enum MarketError {
     InvalidRecipient,
     #[msg("Invalid authority")]
     InvalidAuthority,
+
+    #[msg("Unsupported oracle")]
+    UnsupportedOracle,
 }

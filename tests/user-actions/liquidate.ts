@@ -49,7 +49,7 @@ describe("Liquidate", () => {
       authority: futarchy,
     });
 
-    await market.create({ user: lender });
+    await market.createAndSetAuthority({ user: lender });
 
     // Lender deposits quote tokens
     await market.deposit({

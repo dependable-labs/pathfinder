@@ -5,10 +5,9 @@ use anchor_spl::token::*;
 use crate::math::*;
 use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent};
 use crate::error::MarketError;
+use crate::oracle::oracle_get_price;
 use crate::generate_market_seeds;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
-
-
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct LiquidateArgs {
@@ -150,12 +149,12 @@ impl<'info> Liquidate<'info> {
             )?
         );
 
-        let (collateral_price, price_scale) = market.oracle.get_price(price_update, true)?;
+        let colalteral_price = oracle_get_price(&market.oracle, price_update, true)?;
 
         let total_borrows = market.total_borrows()?;
 
         if collateral_amount > 0 {
-          let collateral_quoted = mul_div_up(collateral_amount as u128, collateral_price as u128, price_scale as u128)?;
+          let collateral_quoted = mul_div_up(collateral_amount as u128, colalteral_price.price as u128, colalteral_price.scale as u128)?;
 
           repay_shares = to_shares_up(
               w_div_up(collateral_quoted, liquidation_incentive_factor)?,
@@ -173,7 +172,7 @@ impl<'info> Liquidate<'info> {
 
           let collateral_with_incentive = w_mul_down(shares_to_collateral, liquidation_incentive_factor)?;
           
-          collateral_amount = mul_div_down(collateral_with_incentive as u128, price_scale as u128, collateral_price as u128)?;
+          collateral_amount = mul_div_down(collateral_with_incentive as u128, colalteral_price.scale as u128, colalteral_price.price as u128)?;
         }
 
         let repaid_quote = to_assets_up(

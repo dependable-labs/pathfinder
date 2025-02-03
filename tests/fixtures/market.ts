@@ -48,7 +48,7 @@ export class MarketFixture {
 
   }
 
-  async create({
+  async createAndSetAuthority({
     user,
   }: {
     user: UserFixture;
@@ -61,6 +61,7 @@ export class MarketFixture {
       user: this.configAuthority,
       new_authority: this.configAuthority,
     });
+
     await this.createCustom({
       user,
       collateralSymbol: this.collateral.symbol,
@@ -70,7 +71,22 @@ export class MarketFixture {
       collateralMint: this.collateral.collateralMint,
       vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
     });
+  }
 
+  async create({
+    user,
+  }: {
+    user: UserFixture;
+  }): Promise<void> {
+    await this.createCustom({
+      user,
+      collateralSymbol: this.collateral.symbol,
+      ltvFactor: this.collateral._ltvFactor,
+      quoteMint: this.quoteMint,
+      vaultAtaQuote: this.get_ata(this.quoteMint),
+      collateralMint: this.collateral.collateralMint,
+      vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
+    });
   }
 
   async createCustom({
@@ -89,10 +105,13 @@ export class MarketFixture {
     collateralMint: PublicKey;
     vaultAtaCollateral: PublicKey;
   }): Promise<void> {
+
+
     await this.program.methods
       .createMarket({
         feedId: this.collateral.getOracleId(),
         ltvFactor,
+        oracleSource: {pythPull: {}},
       })
       .accounts({
         user: user.key.publicKey,

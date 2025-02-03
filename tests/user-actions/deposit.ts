@@ -40,7 +40,7 @@ describe("Deposit", () => {
       authority: futarchy,
     });  
 
-    await market.create({ user: larry });
+    await market.createAndSetAuthority({ user: larry });
 
   });
 
@@ -126,7 +126,7 @@ describe("Deposit", () => {
       authority: futarchy,
     });  
 
-    await market.create({ user: larry });
+    await market.createAndSetAuthority({ user: larry });
 
     await market.deposit({
       user: larry,

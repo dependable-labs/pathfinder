@@ -7,6 +7,7 @@ use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 use crate::math::*;
 use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
+use crate::oracle::oracle_get_price;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct BorrowArgs {
@@ -192,7 +193,7 @@ pub fn is_solvent(
 ) -> Result<bool> {
 
     // price is low end of confidence interval
-    let (price, price_scale) = market.oracle.get_price(price_update, false)?;
+    let price = oracle_get_price(&market.oracle, price_update, false)?;
 
     let total_borrows = market.total_borrows()?;
 
@@ -205,9 +206,9 @@ pub fn is_solvent(
 
     // Calculate max borrow amount based on collateral value and LTV factor
     let max_borrow = (collateral_amount as u128)
-        .checked_mul(price as u128) // Multiply collateral amount by price
+        .checked_mul(price.price as u128) // Multiply collateral amount by price
         .ok_or(MarketError::MathOverflow)?
-        .checked_div(price_scale as u128) // Scale down by oracle price scale
+        .checked_div(price.scale as u128) // Scale down by oracle price scale
         .ok_or(MarketError::MathOverflow)?
         .checked_mul(market.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?

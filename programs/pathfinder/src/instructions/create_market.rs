@@ -4,12 +4,13 @@ use anchor_lang::prelude::*;
 use pyth_solana_receiver_sdk::price_update::get_feed_id_from_hex;
 
 use crate::state::*;
-
+use crate::oracle::oracle_init;
 use crate::math::WAD;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
     pub feed_id: String,
+    pub oracle_source: OracleSource,
     pub ltv_factor: u64,
 } 
 
@@ -113,7 +114,8 @@ impl<'info> CreateMarket<'info> {
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,
             ltv_factor: args.ltv_factor,
-            oracle: PythOracle::new(&args.feed_id)?,
+            oracle: oracle_init(&args.oracle_source, &args.feed_id)?,
+            // oracle: oracle_init(&OracleSource::PythPull, &args.feed_id)?,
 
             // interest
             last_accrual_timestamp: current_timestamp,
