@@ -9,7 +9,7 @@ use crate::math::WAD;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMarketArgs {
-    pub feed_id: String,
+    pub oracle_id: Pubkey,
     pub oracle_source: OracleSource,
     pub ltv_factor: u64,
 } 
@@ -37,7 +37,7 @@ pub struct CreateMarket<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &args.ltv_factor.to_le_bytes(),
-            &get_feed_id_from_hex(&args.feed_id)?,
+            &args.oracle_id.to_bytes(),
         ],
         bump,
     )]
@@ -114,7 +114,7 @@ impl<'info> CreateMarket<'info> {
             collateral_mint: collateral_mint.key(),
             collateral_mint_decimals: collateral_mint.decimals,
             ltv_factor: args.ltv_factor,
-            oracle: oracle_init(&args.oracle_source, &args.feed_id)?,
+            oracle: oracle_init(&args.oracle_source, &args.oracle_id)?,
             // oracle: oracle_init(&OracleSource::PythPull, &args.feed_id)?,
 
             // interest

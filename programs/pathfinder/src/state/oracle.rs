@@ -18,6 +18,6 @@ pub struct Price {
 // Base struct that contains common data
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
 pub struct Oracle {
-    pub feed_id: [u8; 32],
+    pub id: Pubkey,
     pub source: OracleSource,
 }

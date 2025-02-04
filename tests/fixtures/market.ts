@@ -106,10 +106,9 @@ export class MarketFixture {
     vaultAtaCollateral: PublicKey;
   }): Promise<void> {
 
-
     await this.program.methods
       .createMarket({
-        feedId: this.collateral.getOracleId(),
+        oracleId: this.collateral.getOracleId(),
         ltvFactor,
         oracleSource: {pythPull: {}},
       })
@@ -270,7 +269,7 @@ export class MarketFixture {
         userAtaCollateral: user.get_ata(this.collateral.collateralMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: this.collateral.getOracleAccount(),
+        oracleAi: this.collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -312,7 +311,7 @@ export class MarketFixture {
         userAtaCollateral: user.get_ata(this.collateral.collateralMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: this.collateral.getOracleAccount(),
+        oracleAi: this.collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -387,7 +386,7 @@ export class MarketFixture {
         userAtaCollateral: user.get_ata(this.collateral.collateralMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: this.collateral.getOracleAccount(),
+        oracleAi: this.collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])

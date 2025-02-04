@@ -67,7 +67,7 @@ macro_rules! generate_market_seeds {
             $market.quote_mint.as_ref(),
             $market.collateral_mint.as_ref(),
             &$market.ltv_factor.to_le_bytes(),
-            &$market.oracle.feed_id,
+            &$market.oracle.id.to_bytes(),
             &[$market.bump],
         ]
     }};

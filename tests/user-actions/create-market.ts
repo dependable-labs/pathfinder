@@ -56,7 +56,6 @@ describe("Create Market Operations", () => {
     assert.equal(await market.quoteAta.getTokenBalance(), 0);
     let deposits = await market.marketAcc.getTotalDeposits();
     assert.equal(deposits.toNumber(), 0);
-
   });
 
   it("fails to create a duplicate market", async () => {
@@ -72,7 +71,6 @@ describe("Create Market Operations", () => {
     });
 
     await market.createAndSetAuthority({ user: larry });
-
 
     await assert.rejects(
       async () => {

@@ -55,7 +55,7 @@ pub struct Borrow<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &market.ltv_factor.to_le_bytes(),
-            &market.oracle.feed_id,
+            &market.oracle.id.to_bytes(),
         ],
         bump = market.bump,
     )]
@@ -96,7 +96,8 @@ pub struct Borrow<'info> {
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: needed for dynamic oracle account
+    pub oracle_ai: AccountInfo<'info>, // oracle account
     pub system_program: Program<'info, System>,
 }
 
@@ -112,11 +113,11 @@ impl<'info> Borrow<'info> {
             config,
             market,
             borrower_shares,
+            collateral_mint,
             recipient_ata_quote,
             vault_ata_quote,
-            collateral_mint,
             token_program,
-            price_update,
+            oracle_ai,
             ..
         } = ctx.accounts;
 
@@ -145,7 +146,7 @@ impl<'info> Borrow<'info> {
 
         if !is_solvent(
             market,
-            price_update,
+            &oracle_ai,
             updated_shares,
             borrower_shares.collateral_amount,
             collateral_mint.decimals
@@ -186,14 +187,14 @@ impl<'info> Borrow<'info> {
 
 pub fn is_solvent(
     market: &Account<Market>,
-    price_update: &Account<PriceUpdateV2>,
+    oracle_ai: &AccountInfo,
     borrow_shares: u64,
     collateral_amount: u64,
     collateral_decimals: u8
 ) -> Result<bool> {
 
     // price is low end of confidence interval
-    let price = oracle_get_price(&market.oracle, price_update, false)?;
+    let price = oracle_get_price(&market.oracle, &oracle_ai, false)?;
 
     let total_borrows = market.total_borrows()?;
 

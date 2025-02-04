@@ -54,8 +54,11 @@ export class CollateralFixture {
     this.ltvFactor = _ltvFactor;
   }
 
-  getOracleId(): string {
-    return ORACLE_CONFIG[this.symbol].id;
+  getOracleId(): PublicKey {
+    const hexString = ORACLE_CONFIG[this.symbol].id;
+    // Remove '0x' prefix if present and convert to Buffer
+    const bytes = Buffer.from(hexString.replace('0x', ''), 'hex');
+    return new PublicKey(bytes);
   }
 
   getOracleAccount(): PublicKey {

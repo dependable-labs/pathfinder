@@ -37,7 +37,7 @@ pub struct Liquidate<'info> {
           quote_mint.key().as_ref(),
           collateral_mint.key().as_ref(),
           &market.ltv_factor.to_le_bytes(),
-          &market.oracle.feed_id,
+          &market.oracle.id.to_bytes(),
       ],
       bump = market.bump,
     )]
@@ -89,7 +89,8 @@ pub struct Liquidate<'info> {
     )]
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
-     pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: needed for dynamic oracle account
+    pub oracle_ai: AccountInfo<'info>, // oracle account
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -112,7 +113,7 @@ impl<'info> Liquidate<'info> {
             user_ata_collateral,
             vault_ata_quote,
             user_ata_quote,
-            price_update,
+            oracle_ai,
             token_program,
             ..
         } = ctx.accounts;
@@ -127,7 +128,7 @@ impl<'info> Liquidate<'info> {
 
         if is_solvent(
             market,
-            price_update,
+            oracle_ai,
             borrower_shares.borrow_shares,
             borrower_shares.collateral_amount,
             collateral_mint.decimals
@@ -149,7 +150,7 @@ impl<'info> Liquidate<'info> {
             )?
         );
 
-        let colalteral_price = oracle_get_price(&market.oracle, price_update, true)?;
+        let colalteral_price = oracle_get_price(&market.oracle, &oracle_ai, true)?;
 
         let total_borrows = market.total_borrows()?;
 

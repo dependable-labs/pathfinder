@@ -35,7 +35,7 @@ pub struct Repay<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &market.ltv_factor.to_le_bytes(),
-            &market.oracle.feed_id,
+            &market.oracle.id.to_bytes(),
         ],
         bump = market.bump,
     )]

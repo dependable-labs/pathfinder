@@ -46,11 +46,10 @@ export function deriveMarketAddress(
   quoteMint: PublicKey,
   collateralMint: PublicKey,
   ltvFactor: anchor.BN,
-  oracleId: string,
+  oracleId: PublicKey,
   programId: PublicKey
 ) {
 
-  const hash = getFeedIdFromHex(oracleId);
 
   return PublicKey.findProgramAddressSync(
     [
@@ -58,7 +57,7 @@ export function deriveMarketAddress(
       quoteMint.toBuffer(),
       collateralMint.toBuffer(),
       Buffer.from(ltvFactor.toArray("le", 8)),
-      hash,
+      oracleId.toBuffer(),
     ],
     programId
   )[0];
