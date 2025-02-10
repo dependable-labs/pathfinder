@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use pyth_solana_receiver_sdk::price_update::{FeedId, PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::error::MarketError;
-use crate::state::MAX_PRICE_AGE;
+use crate::state::HR_SECONDS;
 
 use crate::oracle::OracleSource;
 use crate::state::oracle::{Oracle, Price};
@@ -48,7 +48,7 @@ pub fn oracle_pyth_get_price(
   let price_update = load_price_update_v2_checked(ai)?;
 
   let clock = Clock::get()?;
-  let price_feed = price_update.get_price_no_older_than(&clock, MAX_PRICE_AGE, &feed_id)?;
+  let price_feed = price_update.get_price_no_older_than(&clock, HR_SECONDS, &feed_id)?;
   
   let price_precision = 10_u64
       .checked_pow(price_feed.exponent.unsigned_abs())

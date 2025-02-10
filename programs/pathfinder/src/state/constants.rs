@@ -10,6 +10,10 @@ pub const LIQUIDATION_CURSOR: u64 = 300_000_000_000_000_000;
 // 1.15 * 1e18
 pub const MAX_LIQUIDATION_INCENTIVE_FACTOR: u64 = 1_150_000_000_000_000_000;
 
-pub const MAX_PRICE_AGE: u64 = 3600; // 1 hour
+pub const HR_SECONDS: u64 = 3600; // 1 hour
+pub const HR_MILLISECONDS: u64 = 3_600_000;
+pub const SLOT_IN_MILLISECONDS: u64 = 400;
 
 pub const MAX_FEE_FACTOR: u128 = 100_000_000_000_000_000; // 10% in WAD (0.1 * 1e18)
+
+pub const PRICE_PRECISION: u128 = 1_000_000_000; //expo = -9;

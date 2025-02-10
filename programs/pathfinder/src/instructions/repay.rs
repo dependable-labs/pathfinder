@@ -3,7 +3,6 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::traits::authority;
 use crate::{state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 

@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 pub enum OracleSource {
   #[default]
   PythPull,
-  Switchboard,
+  SwitchboardPull,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]

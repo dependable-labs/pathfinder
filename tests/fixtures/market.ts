@@ -3,7 +3,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { BankrunProvider } from "anchor-bankrun";
-import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture } from "./index";
+import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture, OracleSource } from "./index";
 import { deriveMarketAddress } from "../utils";
 import { assert } from "chai";
 
@@ -106,11 +106,15 @@ export class MarketFixture {
     vaultAtaCollateral: PublicKey;
   }): Promise<void> {
 
+    let source = this.collateral.getOracleSource() === OracleSource.PythPull ? { pythPull: {} } : { switchboardPull: {} }
+
+    console.log("source", source);
+
     await this.program.methods
       .createMarket({
         oracleId: this.collateral.getOracleId(),
         ltvFactor,
-        oracleSource: {pythPull: {}},
+        oracleSource: source,
       })
       .accounts({
         user: user.key.publicKey,

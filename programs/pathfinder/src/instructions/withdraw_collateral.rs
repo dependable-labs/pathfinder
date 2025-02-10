@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent, generate_market_seeds};
 use crate::error::MarketError;

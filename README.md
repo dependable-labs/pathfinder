@@ -22,6 +22,13 @@ Before you begin, ensure you have the following installed:
 - [Anchor](https://project-serum.github.io/anchor/getting-started/installation.html)
 - [Node.js and npm](https://nodejs.org/en/download/)
 
+## Prerequisite local env cli versions
+- Rust: 1.79.0
+- Solana CLI: 2.0.26
+- Anchor: 0.30.1
+
+
+
 ## Installation and Setup
 
 1. Clone the repository:
@@ -96,6 +103,23 @@ Run the rust sharesMath tests using the `cargo test` command.
 ## Devnet deployment
 
 pathfinder program ID: `A19kT1hDurp5ntmD19yA1mYxJPDn3UVZL7Ue6Wo9HaVj`
+
+## Common Issues and Solutions
+
+### Version Mismatch Errors
+If you encounter errors like:
+```
+error: package `solana-program v1.17.14` cannot be built because it requires rustc 1.68.0 or newer
+```
+
+This usually indicates a version mismatch between package dependencies. To resolve:
+
+1. Ensure all packages are using compatible versions:
+```bash
+# cargo update -p solana-program --precise 1.18.11
+cargo update -p solana-program@2.1.13 --precise 1.18.11
+cargo update -p anchor-lang --precise 0.30.1
+```
 
 
 ## Disclaimer

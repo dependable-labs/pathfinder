@@ -1,7 +1,6 @@
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 use anchor_lang::prelude::*;
-use pyth_solana_receiver_sdk::price_update::get_feed_id_from_hex;
 
 use crate::state::*;
 use crate::oracle::oracle_init;
@@ -115,7 +114,6 @@ impl<'info> CreateMarket<'info> {
             collateral_mint_decimals: collateral_mint.decimals,
             ltv_factor: args.ltv_factor,
             oracle: oracle_init(&args.oracle_source, &args.oracle_id)?,
-            // oracle: oracle_init(&OracleSource::PythPull, &args.feed_id)?,
 
             // interest
             last_accrual_timestamp: current_timestamp,

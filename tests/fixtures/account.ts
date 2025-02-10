@@ -27,7 +27,6 @@ export class AccountFixture {
       return undefined;
     }
   }
-
 }
 
 export class splAccountFixture extends AccountFixture {

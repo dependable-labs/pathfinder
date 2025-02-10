@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 
 use crate::math::*;
@@ -192,7 +191,6 @@ pub fn is_solvent(
     collateral_amount: u64,
     collateral_decimals: u8
 ) -> Result<bool> {
-
     // price is low end of confidence interval
     let price = oracle_get_price(&market.oracle, &oracle_ai, false)?;
 

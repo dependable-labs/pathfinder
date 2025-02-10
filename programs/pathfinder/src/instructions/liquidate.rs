@@ -7,7 +7,6 @@ use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent};
 use crate::error::MarketError;
 use crate::oracle::oracle_get_price;
 use crate::generate_market_seeds;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct LiquidateArgs {

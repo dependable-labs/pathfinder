@@ -45,7 +45,7 @@ describe("Create Market Operations", () => {
       expo: -5,
       feeRecipient: futarchy,
       authority: futarchy,
-    });  
+    }); 
 
     await market.createAndSetAuthority({ user: larry });
 
