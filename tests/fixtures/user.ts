@@ -10,7 +10,7 @@ import {
   mintTo,
   getAccount,
 } from "spl-token-bankrun";
-import { fund_w_sol } from "../utils";
+import { create_account_w_sol } from "../utils";
 
 export class UserFixture {
   public key: anchor.Wallet;
@@ -37,7 +37,7 @@ export class UserFixture {
   ): Promise<void> {
     await this.init_accounts();
     await this.fund_accounts(quoteAmount, collateralAmount);
-    fund_w_sol(this.provider.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
+    create_account_w_sol(this.provider.context, this.key.publicKey, 1 * LAMPORTS_PER_SOL);
   }
 
   private async init_accounts(): Promise<void> {

@@ -12,18 +12,20 @@ pub mod mock_pyth_pull {
 
     pub fn initialize(
         ctx: Context<Initialize>,
-        feed_id: String,
+        feed_id: Pubkey,
         price: i64,
         conf: u64,
         expo: i32,
     ) -> Result<()> {
         let clock = Clock::get()?;
 
+        let feed_id_string = feed_id.to_bytes();
+
         *ctx.accounts.price = PriceUpdateV2 {
             write_authority: Pubkey::default(),
             verification_level: VerificationLevel::Full,
             price_message: PriceFeedMessage {
-                feed_id: get_feed_id_from_hex(&feed_id)?,
+                feed_id: feed_id_string,
                 price: price,
                 conf: conf,
                 exponent: expo,

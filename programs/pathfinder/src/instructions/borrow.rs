@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 
 use crate::math::*;
 use crate::{generate_market_seeds, state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
+use crate::oracle::oracle_get_price;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct BorrowArgs {
@@ -54,7 +54,7 @@ pub struct Borrow<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &market.ltv_factor.to_le_bytes(),
-            &market.oracle.feed_id,
+            &market.oracle.id.to_bytes(),
         ],
         bump = market.bump,
     )]
@@ -95,7 +95,8 @@ pub struct Borrow<'info> {
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: needed for dynamic oracle account
+    pub oracle_ai: AccountInfo<'info>, // oracle account
     pub system_program: Program<'info, System>,
 }
 
@@ -111,11 +112,11 @@ impl<'info> Borrow<'info> {
             config,
             market,
             borrower_shares,
+            collateral_mint,
             recipient_ata_quote,
             vault_ata_quote,
-            collateral_mint,
             token_program,
-            price_update,
+            oracle_ai,
             ..
         } = ctx.accounts;
 
@@ -144,7 +145,7 @@ impl<'info> Borrow<'info> {
 
         if !is_solvent(
             market,
-            price_update,
+            &oracle_ai,
             updated_shares,
             borrower_shares.collateral_amount,
             collateral_mint.decimals
@@ -185,14 +186,13 @@ impl<'info> Borrow<'info> {
 
 pub fn is_solvent(
     market: &Account<Market>,
-    price_update: &Account<PriceUpdateV2>,
+    oracle_ai: &AccountInfo,
     borrow_shares: u64,
     collateral_amount: u64,
     collateral_decimals: u8
 ) -> Result<bool> {
-
     // price is low end of confidence interval
-    let (price, price_scale) = market.oracle.get_price(price_update, false)?;
+    let price = oracle_get_price(&market.oracle, &oracle_ai, false)?;
 
     let total_borrows = market.total_borrows()?;
 
@@ -205,9 +205,9 @@ pub fn is_solvent(
 
     // Calculate max borrow amount based on collateral value and LTV factor
     let max_borrow = (collateral_amount as u128)
-        .checked_mul(price as u128) // Multiply collateral amount by price
+        .checked_mul(price.price as u128) // Multiply collateral amount by price
         .ok_or(MarketError::MathOverflow)?
-        .checked_div(price_scale as u128) // Scale down by oracle price scale
+        .checked_div(price.scale as u128) // Scale down by oracle price scale
         .ok_or(MarketError::MathOverflow)?
         .checked_mul(market.ltv_factor as u128) // Apply LTV factor
         .ok_or(MarketError::MathOverflow)?

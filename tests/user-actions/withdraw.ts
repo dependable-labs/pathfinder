@@ -41,7 +41,7 @@ describe("Withdraw", () => {
         authority: futarchy,
       });
 
-    await market.create({ user: larry });
+    await market.createAndSetAuthority({ user: larry });
 
     // Pre-deposit funds for withdrawal tests
     await market.deposit({
@@ -61,7 +61,6 @@ describe("Withdraw", () => {
 
   it("from a market", async () => {
     const initialBalance: BigInt = await larry.get_quo_balance();
-    console.log("initialBalance", initialBalance);
 
     await market.withdraw({
       user: larry,

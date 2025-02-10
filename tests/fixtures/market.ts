@@ -3,7 +3,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { BankrunProvider } from "anchor-bankrun";
-import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture } from "./index";
+import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture, OracleSource } from "./index";
 import { deriveMarketAddress } from "../utils";
 import { assert } from "chai";
 
@@ -48,7 +48,7 @@ export class MarketFixture {
 
   }
 
-  async create({
+  async createAndSetAuthority({
     user,
   }: {
     user: UserFixture;
@@ -61,6 +61,7 @@ export class MarketFixture {
       user: this.configAuthority,
       new_authority: this.configAuthority,
     });
+
     await this.createCustom({
       user,
       collateralSymbol: this.collateral.symbol,
@@ -70,7 +71,22 @@ export class MarketFixture {
       collateralMint: this.collateral.collateralMint,
       vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
     });
+  }
 
+  async create({
+    user,
+  }: {
+    user: UserFixture;
+  }): Promise<void> {
+    await this.createCustom({
+      user,
+      collateralSymbol: this.collateral.symbol,
+      ltvFactor: this.collateral._ltvFactor,
+      quoteMint: this.quoteMint,
+      vaultAtaQuote: this.get_ata(this.quoteMint),
+      collateralMint: this.collateral.collateralMint,
+      vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
+    });
   }
 
   async createCustom({
@@ -89,10 +105,14 @@ export class MarketFixture {
     collateralMint: PublicKey;
     vaultAtaCollateral: PublicKey;
   }): Promise<void> {
+
+    let source = this.collateral.getOracleSource() === OracleSource.PythPull ? { pythPull: {} } : { switchboardPull: {} }
+
     await this.program.methods
       .createMarket({
-        feedId: this.collateral.getOracleId(),
+        oracleId: this.collateral.getOracleId(),
         ltvFactor,
+        oracleSource: source,
       })
       .accounts({
         user: user.key.publicKey,
@@ -251,7 +271,7 @@ export class MarketFixture {
         userAtaCollateral: user.get_ata(this.collateral.collateralMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: this.collateral.getOracleAccount(),
+        oracleAi: this.collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -293,7 +313,7 @@ export class MarketFixture {
         userAtaCollateral: user.get_ata(this.collateral.collateralMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: this.collateral.getOracleAccount(),
+        oracleAi: this.collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -368,7 +388,7 @@ export class MarketFixture {
         userAtaCollateral: user.get_ata(this.collateral.collateralMint),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
-        priceUpdate: this.collateral.getOracleAccount(),
+        oracleAi: this.collateral.getOracleAccount(),
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -386,9 +406,6 @@ export class MarketFixture {
     shares: anchor.BN;
     recipient: UserFixture;
   }): Promise<void> {
-
-    console.log("amount", amount.toString());
-    console.log("shares", shares.toString());
 
     await this.program.methods
       .withdrawFee({

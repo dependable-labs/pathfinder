@@ -1,0 +1,25 @@
+[package]
+name = "switchboard-on-demand"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "switchboard_on_demand"
+
+[features]
+no-entrypoint = []
+cpi = ["no-entrypoint"]
+default = ["mainnet-beta"]
+mainnet-beta=[]
+anchor-test= []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
+bytemuck = { version = "1.4.0", features = ["min_const_generics"]}
+solana-program = "1.18.11"
+
+[dev-dependencies]
+base64 = "0.13.0"
+

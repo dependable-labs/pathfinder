@@ -45,6 +45,7 @@ pub enum MarketError {
     #[msg("Unauthorized delegate")]
     UnauthorizedDelegate,
 
+    // Protocol Authority and Recipient Errors
     #[msg("Fee factor exceeds max")]
     FeeExceedsMax,
     #[msg("Fee factor already set")]
@@ -53,4 +54,11 @@ pub enum MarketError {
     InvalidRecipient,
     #[msg("Invalid authority")]
     InvalidAuthority,
+
+    // Oracle Errors
+    #[msg("Invalid oracle")]
+    InvalidOracle,
+    #[msg("Stale oracle")]
+    StaleOracle,
+
 }

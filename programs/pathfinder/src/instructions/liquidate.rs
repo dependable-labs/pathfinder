@@ -5,10 +5,8 @@ use anchor_spl::token::*;
 use crate::math::*;
 use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent};
 use crate::error::MarketError;
+use crate::oracle::oracle_get_price;
 use crate::generate_market_seeds;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
-
-
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct LiquidateArgs {
@@ -38,7 +36,7 @@ pub struct Liquidate<'info> {
           quote_mint.key().as_ref(),
           collateral_mint.key().as_ref(),
           &market.ltv_factor.to_le_bytes(),
-          &market.oracle.feed_id,
+          &market.oracle.id.to_bytes(),
       ],
       bump = market.bump,
     )]
@@ -90,7 +88,8 @@ pub struct Liquidate<'info> {
     )]
     pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
-     pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: needed for dynamic oracle account
+    pub oracle_ai: AccountInfo<'info>, // oracle account
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -113,7 +112,7 @@ impl<'info> Liquidate<'info> {
             user_ata_collateral,
             vault_ata_quote,
             user_ata_quote,
-            price_update,
+            oracle_ai,
             token_program,
             ..
         } = ctx.accounts;
@@ -128,7 +127,7 @@ impl<'info> Liquidate<'info> {
 
         if is_solvent(
             market,
-            price_update,
+            oracle_ai,
             borrower_shares.borrow_shares,
             borrower_shares.collateral_amount,
             collateral_mint.decimals
@@ -150,12 +149,12 @@ impl<'info> Liquidate<'info> {
             )?
         );
 
-        let (collateral_price, price_scale) = market.oracle.get_price(price_update, true)?;
+        let colalteral_price = oracle_get_price(&market.oracle, &oracle_ai, true)?;
 
         let total_borrows = market.total_borrows()?;
 
         if collateral_amount > 0 {
-          let collateral_quoted = mul_div_up(collateral_amount as u128, collateral_price as u128, price_scale as u128)?;
+          let collateral_quoted = mul_div_up(collateral_amount as u128, colalteral_price.price as u128, colalteral_price.scale as u128)?;
 
           repay_shares = to_shares_up(
               w_div_up(collateral_quoted, liquidation_incentive_factor)?,
@@ -173,7 +172,7 @@ impl<'info> Liquidate<'info> {
 
           let collateral_with_incentive = w_mul_down(shares_to_collateral, liquidation_incentive_factor)?;
           
-          collateral_amount = mul_div_down(collateral_with_incentive as u128, price_scale as u128, collateral_price as u128)?;
+          collateral_amount = mul_div_down(collateral_with_incentive as u128, colalteral_price.scale as u128, colalteral_price.price as u128)?;
         }
 
         let repaid_quote = to_assets_up(

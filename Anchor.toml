@@ -7,6 +7,7 @@ skip-lint = false
 [programs.localnet]
 markets = "7ALFC87zvuPvpp9h5Stq9SSP3kTCUJfhtirEZVJmZYy4"
 mock_pyth_pull = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ"
+switchboard_on_demand = "7GCiue6chgGuk6BvaurQNWD1Ervho8zEdcNWt5ZCYQhu"
 
 [registry]
 url = "https://api.apr.dev"

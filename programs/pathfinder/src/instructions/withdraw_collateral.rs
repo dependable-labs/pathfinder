@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 
 use crate::{state::*, accrue_interest::accrue_interest, borrow::is_solvent, generate_market_seeds};
 use crate::error::MarketError;
@@ -51,7 +50,7 @@ pub struct WithdrawCollateral<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &market.ltv_factor.to_le_bytes(),
-            &market.oracle.feed_id,
+            &market.oracle.id.to_bytes(),
         ],
         bump = market.bump,
     )]
@@ -93,7 +92,8 @@ pub struct WithdrawCollateral<'info> {
     // system programs
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: needed for dynamic oracle account
+    pub oracle_ai: AccountInfo<'info>, // oracle account
     pub system_program: Program<'info, System>,
 }
 
@@ -115,7 +115,7 @@ impl<'info> WithdrawCollateral<'info> {
             recipient_ata_collateral,
             vault_ata_collateral,
             token_program,
-            price_update,
+            oracle_ai,
             ..
         } = ctx.accounts;
 
@@ -128,7 +128,7 @@ impl<'info> WithdrawCollateral<'info> {
 
         if !is_solvent(
             market,
-            price_update,
+            &oracle_ai,
             borrower_shares.borrow_shares,
             updated_collateral_amount,
             collateral_mint.decimals

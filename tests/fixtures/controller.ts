@@ -2,7 +2,7 @@ import { Program } from "@coral-xyz/anchor";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { Markets } from "../../target/types/markets";
 import * as anchor from "@coral-xyz/anchor";
-import { fund_w_sol } from "../utils";
+import { create_account_w_sol } from "../utils";
 import { BankrunProvider } from "anchor-bankrun";
 import { AccountFixture } from "./account";
 
@@ -32,7 +32,7 @@ export class ControllerFixture {
     );
 
     // Fund the controller with SOL
-    fund_w_sol(this.provider.context, this.authority.publicKey, 1);
+    create_account_w_sol(this.provider.context, this.authority.publicKey, 1);
   }
 
 }

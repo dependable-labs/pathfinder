@@ -7,6 +7,7 @@ pub mod state;
 pub mod error;
 pub mod math;
 pub mod traits;
+pub mod oracle;
 
 use crate::instructions::*;
 

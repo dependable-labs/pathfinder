@@ -11,21 +11,40 @@ import { createMint } from "spl-token-bankrun";
 import { Markets } from "../target/types/markets";
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { ProgramTestContext, Clock, BanksClient} from "solana-bankrun";
-import { ControllerFixture } from "./fixtures/controller";
-import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral } from "./fixtures";
+import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral, OracleSource } from "./fixtures";
 const IDL = require("../target/idl/markets.json");
 
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
-export function fund_w_sol(
+
+export function create_account_w_sol(
   context: ProgramTestContext,
   pubkey: PublicKey,
-  sol_amount: number
+  sol_amount: number,
+  data: Buffer = Buffer.alloc(0),
+) {
+  create_custom_account(
+    context,
+    pubkey,
+    anchor.web3.SystemProgram.programId,
+    LAMPORTS_PER_SOL * sol_amount,
+    data
+  );
+}
+
+export function create_custom_account(
+  context: ProgramTestContext,
+  pubkey: PublicKey,
+  owner: PublicKey,
+  lamports: number,
+  data: Buffer,
+  rentEpoch: number,
 ) {
   context.setAccount(pubkey, {
     executable: false,
-    owner: anchor.web3.SystemProgram.programId,
-    lamports: LAMPORTS_PER_SOL * sol_amount,
-    data: Buffer.alloc(0),
+    owner: owner,
+    lamports: lamports,
+    data: data,
+    rentEpoch: rentEpoch,
   });
 }
 
@@ -46,11 +65,10 @@ export function deriveMarketAddress(
   quoteMint: PublicKey,
   collateralMint: PublicKey,
   ltvFactor: anchor.BN,
-  oracleId: string,
+  oracleId: PublicKey,
   programId: PublicKey
 ) {
 
-  const hash = getFeedIdFromHex(oracleId);
 
   return PublicKey.findProgramAddressSync(
     [
@@ -58,7 +76,7 @@ export function deriveMarketAddress(
       quoteMint.toBuffer(),
       collateralMint.toBuffer(),
       Buffer.from(ltvFactor.toArray("le", 8)),
-      hash,
+      oracleId.toBuffer(),
     ],
     programId
   )[0];
@@ -132,7 +150,8 @@ export class TestUtils {
       conf,
       expo,
       feeRecipient,
-      authority
+      authority,
+      oracleSource = OracleSource.PythPull,
     }: {
       symbol: string,
       ltvFactor: anchor.BN,
@@ -140,16 +159,17 @@ export class TestUtils {
       conf: anchor.BN,
       expo: number,
       feeRecipient: UserFixture,
-      authority: UserFixture
+      authority: UserFixture,
+      oracleSource?: OracleSource,
     }
   ) {
-
     const collateral = new CollateralFixture(
       symbol as SupportedCollateral,
       this.program,
       this.provider,
       this.collateralMint,
-      ltvFactor
+      ltvFactor,
+      oracleSource
     );
 
     await collateral.initPrice({

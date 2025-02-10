@@ -3,7 +3,6 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::math::*;
-use crate::traits::authority;
 use crate::{state::*, accrue_interest::accrue_interest};
 use crate::error::MarketError;
 
@@ -35,7 +34,7 @@ pub struct Repay<'info> {
             quote_mint.key().as_ref(),
             collateral_mint.key().as_ref(),
             &market.ltv_factor.to_le_bytes(),
-            &market.oracle.feed_id,
+            &market.oracle.id.to_bytes(),
         ],
         bump = market.bump,
     )]
