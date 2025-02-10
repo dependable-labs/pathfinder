@@ -26,7 +26,6 @@ pub mod mock_pyth_pull {
             verification_level: VerificationLevel::Full,
             price_message: PriceFeedMessage {
                 feed_id: feed_id_string,
-                // feed_id: get_feed_id_from_hex(&feed_id)?,
                 price: price,
                 conf: conf,
                 exponent: expo,

@@ -108,8 +108,6 @@ export class MarketFixture {
 
     let source = this.collateral.getOracleSource() === OracleSource.PythPull ? { pythPull: {} } : { switchboardPull: {} }
 
-    console.log("source", source);
-
     await this.program.methods
       .createMarket({
         oracleId: this.collateral.getOracleId(),
@@ -408,9 +406,6 @@ export class MarketFixture {
     shares: anchor.BN;
     recipient: UserFixture;
   }): Promise<void> {
-
-    console.log("amount", amount.toString());
-    console.log("shares", shares.toString());
 
     await this.program.methods
       .withdrawFee({

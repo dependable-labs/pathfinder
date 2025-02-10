@@ -3,12 +3,10 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { MockPythPull } from "../../target/types/mock_pyth_pull";
-// import { MockSwitchboardPull } from "../../target/types/mock_switchboard_pull";
 import { BankrunProvider } from "anchor-bankrun";
 import { create_custom_account } from "../utils";
 
 const PythIDL = require("../../target/idl/mock_pyth_pull.json");
-// const SwitchboardIDL = require("../../target/idl/mock_switchboard_pull.json");
 
 export const ORACLE_CONFIG = {
   "SOL": { // SOL-USDC
