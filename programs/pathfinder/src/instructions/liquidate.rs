@@ -52,9 +52,6 @@ pub struct Liquidate<'info> {
   )]
   pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
-  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Box<Account<'info, Mint>>,
-
   #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
   pub collateral_mint: Box<Account<'info, Mint>>,
 
@@ -72,6 +69,9 @@ pub struct Liquidate<'info> {
   )]
   pub user_ata_collateral: Box<Account<'info, TokenAccount>>,
 
+  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
+  pub quote_mint: Box<Account<'info, Mint>>,
+
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
@@ -85,11 +85,11 @@ pub struct Liquidate<'info> {
     associated_token::authority = user,
   )]
   pub user_ata_quote: Box<Account<'info, TokenAccount>>,
+  /// CHECK: needed for dynamic oracle account
+  pub oracle_ai: AccountInfo<'info>,
 
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
-  /// CHECK: needed for dynamic oracle account
-  pub oracle_ai: AccountInfo<'info>,
   pub system_program: Program<'info, System>,
 }
 
