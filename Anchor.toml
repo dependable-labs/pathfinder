@@ -34,3 +34,4 @@ test-update-collateral = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/
 test-restrict-collateral = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/restrict-collateral.ts"
 test-oracle = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/oracle.ts"
 test-config = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/config.ts"
+test-balances = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/balances.ts"

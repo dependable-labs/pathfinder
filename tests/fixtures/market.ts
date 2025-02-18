@@ -6,6 +6,7 @@ import { BankrunProvider } from "anchor-bankrun";
 import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture, OracleSource } from "./index";
 import { deriveMarketAddress } from "../utils";
 import { assert } from "chai";
+import { IdlInstruction } from "@coral-xyz/anchor/dist/cjs/idl";
 
 export class MarketFixture {
   public marketAcc: marketAccountFixture;
@@ -519,6 +520,71 @@ export class MarketFixture {
       .rpc();
   }
 
+
+  async viewMarketBalances(): Promise<[anchor.BN, anchor.BN, anchor.BN, anchor.BN]> {
+    const result = await this.program.methods
+      .viewMarketBalances()
+      .accounts({
+        config: this.get_config().key,
+        market: this.marketAcc.key,
+        quoteMint: this.quoteMint,
+        collateralMint: this.collateral.collateralMint,
+      })
+      .signers([this.provider.wallet.payer])
+      .view();
+
+    return [
+      new anchor.BN(result[0].toString()),
+      new anchor.BN(result[1].toString()), 
+      new anchor.BN(result[2].toString()),
+      new anchor.BN(result[3].toString())
+    ];
+  }
+
+  async viewTotalSupplyAssets(): Promise<anchor.BN> {
+    const result = await this.program.methods
+      .viewTotalSupplyAssets()
+      .accounts({
+        config: this.get_config().key,
+        market: this.marketAcc.key,
+        quoteMint: this.quoteMint,
+        collateralMint: this.collateral.collateralMint,
+      })
+      .signers([this.provider.wallet.payer])
+      .view();
+
+    return new anchor.BN(result.toString());
+  }
+
+  async viewTotalBorrowAssets(): Promise<anchor.BN> {
+    const result = await this.program.methods
+      .viewTotalBorrowAssets()
+      .accounts({
+        config: this.get_config().key,
+        market: this.marketAcc.key,
+        quoteMint: this.quoteMint,
+        collateralMint: this.collateral.collateralMint,
+      })
+      .signers([this.provider.wallet.payer])
+      .view();
+
+    return new anchor.BN(result.toString());
+  }
+
+  async viewTotalShares(): Promise<anchor.BN> {
+    const result = await this.program.methods
+      .viewTotalShares()
+      .accounts({
+        config: this.get_config().key,
+        market: this.marketAcc.key,
+        quoteMint: this.quoteMint,
+        collateralMint: this.collateral.collateralMint,
+      })
+      .signers([this.provider.wallet.payer])
+      .view();
+
+    return new anchor.BN(result.toString());
+  }
   // account related methods
   public get_ata(mint: PublicKey): PublicKey {
     return anchor.utils.token.associatedAddress({

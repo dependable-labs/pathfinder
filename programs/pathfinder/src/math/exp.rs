@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::math::WAD_INT;
+use anchor_lang::prelude::*;
 
 /// @dev ln(2).
 /// 0.693_147_180_559_945_309 * WAD_INT;
@@ -28,7 +28,9 @@ pub const WEXP_UPPER_VALUE: i128 = 2_652_147_089_148_298_802_378_047_488;
 /// @dev Returns an approximation of exp.
 pub fn w_exp(x: i128) -> Result<i128> {
   // If x < ln(1e-18) then exp(x) < 1e-18 so it is rounded to zero.
-  if x < LN_WEI_INT { return Ok(0); }
+  if x < LN_WEI_INT {
+    return Ok(0);
+  }
 
   // `wExp` is clipped to avoid overflowing when multiplied with 1 ether.
   // if x >= WEXP_UPPER_BOUND { return Ok(WEXP_UPPER_VALUE); }
