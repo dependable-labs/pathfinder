@@ -1,4 +1,3 @@
-
 pub const MARKET_SEED_PREFIX: &[u8] = b"market";
 pub const DELEGATE_SEED_PREFIX: &[u8] = b"delegate";
 pub const CONFIG_SEED_PREFIX: &[u8] = b"config";

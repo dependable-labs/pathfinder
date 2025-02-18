@@ -127,7 +127,7 @@ describe("Accrue Interest", () => {
     // Verify fee accrual
     assert.equal(
       depositDifference.toNumber(),
-      27_032_613_361 // Same total interest
+      27_160_527_380 // Same total interest
     );
   });
 

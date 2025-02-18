@@ -1,7 +1,7 @@
-mod shares;
-mod math;
-mod tests;
 mod exp;
+mod math;
+mod shares;
+mod tests;
 mod utils;
 
-pub use {self::shares::*, self::math::*, self::exp::*, self::utils::*};
+pub use {self::exp::*, self::math::*, self::shares::*, self::utils::*};

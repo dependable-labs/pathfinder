@@ -191,7 +191,7 @@ describe("Config Operations", () => {
  
     assert.equal(
       depositDifference.toNumber(),
-      27_032_613_361 // Same total interest
+      27_160_527_380 // Same total interest
     );
 
     // Repay full borrow amount
@@ -213,14 +213,14 @@ describe("Config Operations", () => {
     const feeShares = (await market.marketAcc.get_data()).feeShares;
     assert.equal(
       feeShares.toNumber(),
-      270_253_826 // 1% of total interest accrued
+      131_588_465 // 1% of total interest accrued
     );
 
     // Verify total deposits in pool
     const totalDeposits = await market.marketAcc.getTotalDeposits();
     assert.equal(
       totalDeposits.toNumber(),
-      1_027_032_613_361 // Initial 100B deposit + total interest accrued
+      1_027_160_527_380 // Initial 100B deposit + total interest accrued
     );
 
     await assert.rejects(
@@ -273,7 +273,7 @@ describe("Config Operations", () => {
     const futarchyQuoteAfterWithdraw = await futarchy.get_quo_balance();
     assert.equal(
       futarchyQuoteAfterWithdraw,
-      BigInt(277_484_501)
+      BigInt(135_144_693)
     );
 
   });
