@@ -73,18 +73,18 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
   market.rate_at_target = end_rate_at_target;
 
   // Calculate interest factor using taylor series
-  let interest_factor = w_taylor_compounded(avg_rate as u128, time_elapsed as u128).unwrap();
+  let interest_factor = w_taylor_compounded(avg_rate, time_elapsed).unwrap();
   let interest = w_mul_down(total_borrows, interest_factor as u64)?;
 
   // Update indexes with interest
-  market.borrow_index = w_mul_down_u128(
+  market.borrow_index = w_mul_down(
     market.borrow_index,
-    interest_factor.checked_add(WAD).unwrap(),
+    interest_factor.checked_add(WAD as u64).unwrap(),
   )?;
 
-  market.deposit_index = w_mul_down_u128(
+  market.deposit_index = w_mul_down(
     market.deposit_index,
-    interest_factor.checked_add(WAD).unwrap(),
+    interest_factor.checked_add(WAD as u64).unwrap(),
   )?;
 
   // Handle fee if set
@@ -93,7 +93,7 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
 
     // calculate fee shares using total deposits (prior to applying interest)
     let deposits_sub_fee = market.total_deposits().unwrap().checked_sub(fee_amount).unwrap();
-    let fee_shares = to_shares_down(fee_amount as u64, deposits_sub_fee, market.total_shares)?;
+    let fee_shares = to_shares_down(fee_amount, deposits_sub_fee, market.total_shares)?;
 
     // Update fee shares
     market.fee_shares = market

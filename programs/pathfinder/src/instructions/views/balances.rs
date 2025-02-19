@@ -110,18 +110,18 @@ pub fn expected_market_balances(
   // Skip if elapsed == 0 or total borrows == 0
   if elapsed != 0 && market.total_borrow_shares != 0 {
     let (avg_rate, _) = get_rate(&market)?;
-    let interest_factor = w_taylor_compounded(avg_rate as u128, elapsed as u128).unwrap();
+    let interest_factor = w_taylor_compounded(avg_rate, elapsed).unwrap();
     let interest = w_mul_down(total_borrows, interest_factor as u64)?;
 
     // Update indexes with interest
-    market.borrow_index = w_mul_down_u128(
+    market.borrow_index = w_mul_down(
       market.borrow_index,
-      interest_factor.checked_add(WAD).unwrap(),
+      interest_factor.checked_add(WAD as u64).unwrap(),
     )?;
 
-    market.deposit_index = w_mul_down_u128(
+    market.deposit_index = w_mul_down(
       market.deposit_index,
-      interest_factor.checked_add(WAD).unwrap(),
+      interest_factor.checked_add(WAD as u64).unwrap(),
     )?;
 
     // Handle fee if set

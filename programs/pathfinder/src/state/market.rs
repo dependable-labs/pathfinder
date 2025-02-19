@@ -9,13 +9,13 @@ pub struct Market {
   pub bump: u8,
 
   // deposits
-  pub deposit_index: u128,
+  pub deposit_index: u64,
   pub total_shares: u64,
   pub quote_mint: Pubkey,
   pub quote_mint_decimals: u8,
 
   // borrows
-  pub borrow_index: u128,
+  pub borrow_index: u64,
   pub total_borrow_shares: u64,
   pub total_collateral: u64,
   pub collateral_mint: Pubkey,
@@ -31,11 +31,11 @@ pub struct Market {
 
 impl Market {
   pub fn total_deposits(&self) -> Result<u64> {
-    w_mul_down(self.deposit_index as u64, self.total_shares)
+    w_mul_down(self.deposit_index, self.total_shares)
   }
 
   pub fn total_borrows(&self) -> Result<u64> {
-    w_mul_down(self.borrow_index as u64, self.total_borrow_shares)
+    w_mul_down(self.borrow_index, self.total_borrow_shares)
   }
 }
 
