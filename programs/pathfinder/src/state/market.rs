@@ -9,13 +9,13 @@ pub struct Market {
   pub bump: u8,
 
   // deposits
-  pub deposit_index: u128,
+  pub deposit_index: u64,
   pub total_shares: u64,
   pub quote_mint: Pubkey,
   pub quote_mint_decimals: u8,
 
   // borrows
-  pub borrow_index: u128,
+  pub borrow_index: u64,
   pub total_borrow_shares: u64,
   pub total_collateral: u64,
   pub collateral_mint: Pubkey,

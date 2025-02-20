@@ -124,6 +124,8 @@ impl<'info> Liquidate<'info> {
       return err!(MarketError::AssetShareValueMismatch);
     }
 
+    accrue_interest(market, config)?;
+
     if is_solvent(
       market,
       oracle_ai,

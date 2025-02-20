@@ -6,7 +6,7 @@ use crate::traits::authority::AuthorityProtection;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateFeeArgs {
-  pub new_fee_factor: u128,
+  pub new_fee_factor: u64,
 }
 
 #[derive(Accounts)]
