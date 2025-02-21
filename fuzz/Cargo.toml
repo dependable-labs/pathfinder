@@ -1,0 +1,31 @@
+[package]
+name = "pathfinder-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+# libfuzzer-sys = "0.3.0"
+libfuzzer-sys = "0.3.0"
+arbitrary = { version = "0.4.6", features = ["derive"] }
+rand = "0.7"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[dependencies.pathfinder]
+path = "../programs/pathfinder"
+features = ["no-entrypoint"]
+
+[[bin]]
+name = "math"
+path = "fuzz_targets/fuzz_math.rs"
+test = false
+doc = false
