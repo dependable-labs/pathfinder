@@ -27,8 +27,6 @@ Before you begin, ensure you have the following installed:
 - Solana CLI: 2.0.26
 - Anchor: 0.30.1
 
-
-
 ## Installation and Setup
 
 1. Clone the repository:
@@ -97,8 +95,12 @@ This command will execute all the tests defined in the `tests` directory, verify
 
 ## Testing
 
+Anchor and basic cargo tests:
 Run the anchor tests using the `anchor test` command.
 Run the rust sharesMath tests using the `cargo test` command.
+
+Fuzzing:
+Run the fuzz tests using the `cargo +nightly-2024-06-05 fuzz run math -Zbuild-std --strip-dead-code --no-cfg-fuzzing -- -max_total_time=300` command.
 
 ## Devnet deployment
 
