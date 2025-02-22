@@ -89,7 +89,7 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
 
   // Handle fee if set
   if config.fee_factor != 0 {
-    let fee_amount = w_mul_down(interest, config.fee_factor as u64)?;
+    let fee_amount = w_mul_down(interest, config.fee_factor)?;
 
     // calculate fee shares using total deposits (prior to applying interest)
     let deposits_sub_fee = market.total_deposits().unwrap().checked_sub(fee_amount).unwrap();

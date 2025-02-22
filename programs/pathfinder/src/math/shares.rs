@@ -1,6 +1,8 @@
 use crate::math::*;
 use anchor_lang::prelude::*;
 
+// calculations are safe from overflow as u64::MAX * u64::MAX < u128::MAX
+
 // Calculates the value of `assets` quoted in shares, rounding down.
 pub fn to_shares_down(deposits: u64, total_deposits: u64, total_shares: u64) -> Result<u64> {
   if total_deposits == 0 {
