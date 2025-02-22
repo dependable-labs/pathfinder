@@ -27,8 +27,6 @@ Before you begin, ensure you have the following installed:
 - Solana CLI: 2.0.26
 - Anchor: 0.30.1
 
-
-
 ## Installation and Setup
 
 1. Clone the repository:
