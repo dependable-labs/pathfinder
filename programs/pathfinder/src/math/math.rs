@@ -5,15 +5,7 @@ use crate::math::*;
 pub const WAD: u128 = 1_000_000_000_000_000_000; // 1e18
 pub const WAD_INT: i128 = 1_000_000_000_000_000_000; // 1e18
 
-/// Scale of precision
 pub const SCALE: usize = 18;
-
-/// Half of identity
-pub const HALF_WAD: u64 = 500_000_000_000_000_000;
-/// Scale for percentages
-pub const PERCENT_SCALER: u64 = 10_000_000_000_000_000;
-/// Scale for basis points
-pub const BPS_SCALER: u64 = 100_000_000_000_000;
 
 /// Returns (x * y) / WAD rounded down
 pub fn w_mul_down(x: u64, y: u64) -> Result<u64> {
