@@ -136,15 +136,14 @@ impl<'info> Liquidate<'info> {
       return err!(MarketError::BorrowerIsSolvent);
     }
 
-    // The liquidation incentive factor is min(maxLiquidationIncentiveFactor, 1/(1 - cursor*(1 - lltv))).
-    let cursor_factor = w_mul_down(
-      (WAD as u64) - LIQUIDATION_CURSOR as u64,
-      ((WAD as u128) - (market.ltv_factor as u128)) as u64,
-    )?;
+    let cursor_factor = Decimal::one()
+      .try_sub(Decimal::from_raw_u64(LIQUIDATION_CURSOR))?
+      .w_mul_down(Decimal::one().try_sub(Decimal::from_raw_u64(market.ltv_factor))?)?;
 
-    let liquidation_incentive_factor = min_u64(
-      MAX_LIQUIDATION_INCENTIVE_FACTOR,
-      w_div_down(WAD as u64, cursor_factor)?,
+    // The liquidation incentive factor is min(maxLiquidationIncentiveFactor, 1/(1 - cursor*(1 - lltv))).
+    let liquidation_incentive_factor = Decimal::min(
+      Decimal::from_raw_u64(MAX_LIQUIDATION_INCENTIVE_FACTOR),
+      Decimal::one().w_div_down(cursor_factor)?,
     );
 
     let colalteral_price = oracle_get_price(&market.oracle, &oracle_ai, true)?;
@@ -159,7 +158,7 @@ impl<'info> Liquidate<'info> {
       )?;
 
       repay_shares = to_shares_up(
-        w_div_up(collateral_quoted, liquidation_incentive_factor)?,
+        Decimal::from_raw_u64(collateral_quoted).w_div_up(liquidation_incentive_factor)?.to_u64()?,
         total_borrows,
         market.total_borrow_shares,
       )?;
@@ -167,8 +166,9 @@ impl<'info> Liquidate<'info> {
       let shares_to_collateral =
         to_assets_down(repay_shares, total_borrows, market.total_borrow_shares)?;
 
-      let collateral_with_incentive =
-        w_mul_down(shares_to_collateral, liquidation_incentive_factor)?;
+      let collateral_with_incentive = Decimal::from_raw_u64(shares_to_collateral)
+      .w_mul_down(liquidation_incentive_factor)?
+      .to_u64()?;
 
       collateral_amount = mul_div_down(
         collateral_with_incentive as u128,

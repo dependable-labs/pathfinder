@@ -1,5 +1,6 @@
 use crate::error::MarketError;
 use anchor_lang::prelude::*;
+use crate::math::*;
 
 pub const WAD: u128 = 1_000_000_000_000_000_000; // 1e18
 pub const WAD_INT: i128 = 1_000_000_000_000_000_000; // 1e18
@@ -90,19 +91,14 @@ pub fn bound(value: i128, min: i128, max: i128) -> Result<i128> {
 
 /// Returns the sum of the first three non-zero terms of a Taylor expansion of e^(nx) - 1, to approximate a
 /// continuous compound interest rate.
-pub fn w_taylor_compounded(x: u64, n: u64) -> Result<u64> {
-  let first_term = (x as u128)
-    .checked_mul(n as u128)
-    .ok_or(error!(MarketError::MathOverflow))?;
-
-  let second_term = mul_div_down(first_term, first_term, 2 * WAD).unwrap() as u128;
-  let third_term = mul_div_down(second_term, first_term, 3 * WAD).unwrap() as u128;
+pub fn w_taylor_compounded(x: Decimal, n: Decimal) -> Result<Decimal> {
+  let first_term = x.try_mul(n)?;
+  let second_term = first_term.mul_div_down(first_term, Decimal::from(2u64))?;
+  let third_term = second_term.mul_div_down(first_term, Decimal::from(3u64))?;
 
   let sum = first_term
-    .checked_add(second_term)
-    .ok_or(error!(MarketError::MathOverflow))?
-    .checked_add(third_term)
-    .ok_or(error!(MarketError::MathOverflow))?;
+    .try_add(second_term)?
+    .try_add(third_term)?;
 
-  u128_to_u64(sum)
+  Ok(sum)
 }

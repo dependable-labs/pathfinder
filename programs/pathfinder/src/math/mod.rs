@@ -3,7 +3,6 @@ mod math;
 mod shares;
 mod tests;
 mod utils;
-mod types;
-mod common;
+mod decimal;
 
-pub use {self::exp::*, self::math::*, self::shares::*, self::utils::*, self::types::*, self::common::*};
+pub use {self::exp::*, self::math::*, self::shares::*, self::utils::*, self::decimal::*};

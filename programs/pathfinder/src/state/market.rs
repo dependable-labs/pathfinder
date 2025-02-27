@@ -1,21 +1,20 @@
 use anchor_lang::prelude::*;
 
 use crate::state::oracle::Oracle;
-
-use crate::math::w_mul_down;
+use crate::math::*;
 
 #[account]
 pub struct Market {
   pub bump: u8,
 
   // deposits
-  pub deposit_index: u64,
+  pub deposit_index: u128,
   pub total_shares: u64,
   pub quote_mint: Pubkey,
   pub quote_mint_decimals: u8,
 
   // borrows
-  pub borrow_index: u64,
+  pub borrow_index: u128,
   pub total_borrow_shares: u64,
   pub total_collateral: u64,
   pub collateral_mint: Pubkey,
@@ -24,18 +23,22 @@ pub struct Market {
 
   // accounting
   pub oracle: Oracle,
-  pub rate_at_target: u64,
+  pub rate_at_target: u128,
   pub last_accrual_timestamp: u64,
   pub fee_shares: u64,
 }
 
 impl Market {
   pub fn total_deposits(&self) -> Result<u64> {
-    w_mul_down(self.deposit_index, self.total_shares)
+    Decimal::from_raw_u128(self.deposit_index)
+        .w_mul_down(Decimal::from_raw_u64(self.total_shares))?
+        .to_u64()
   }
 
   pub fn total_borrows(&self) -> Result<u64> {
-    w_mul_down(self.borrow_index, self.total_borrow_shares)
+    Decimal::from_raw_u128(self.borrow_index)
+        .w_mul_down(Decimal::from_raw_u64(self.total_borrow_shares))?
+        .to_u64()
   }
 }
 

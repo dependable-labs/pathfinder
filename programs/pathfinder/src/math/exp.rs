@@ -33,7 +33,7 @@ pub fn w_exp(x: i128) -> Result<i128> {
   }
 
   // `wExp` is clipped to avoid overflowing when multiplied with 1 ether.
-  // if x >= WEXP_UPPER_BOUND { return Ok(WEXP_UPPER_VALUE); }
+  if x >= WEXP_UPPER_BOUND { return Ok(WEXP_UPPER_VALUE); }
 
   // Decompose x as x = q * ln(2) + r with q an integer and -ln(2)/2 <= r <= ln(2)/2.
   // q = x / ln(2) rounded half toward zero.

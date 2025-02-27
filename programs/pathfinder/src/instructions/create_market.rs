@@ -97,13 +97,13 @@ impl<'info> CreateMarket<'info> {
 
       // deposit accounting
       total_shares: 0,
-      deposit_index: WAD as u64,
+      deposit_index: WAD,
       quote_mint: quote_mint.key(),
       quote_mint_decimals: quote_mint.decimals,
 
       // borrows accounting
       total_borrow_shares: 0,
-      borrow_index: WAD as u64,
+      borrow_index: WAD,
       total_collateral: 0,
       collateral_mint: collateral_mint.key(),
       collateral_mint_decimals: collateral_mint.decimals,
