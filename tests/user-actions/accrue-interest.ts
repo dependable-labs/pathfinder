@@ -28,7 +28,7 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000_000 * 1e9)
     );
 
-    futarchy = await test.createUser( 
+    futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );

@@ -31,7 +31,7 @@ pub const MIN_RATE_AT_TARGET: i128 = WAD_INT / 1000 / YEAR_SECONDS;
 /// Maximum rate at target = 200% (maximum rate = 800%).
 pub const MAX_RATE_AT_TARGET: i128 = 2 * WAD_INT / YEAR_SECONDS;
 
-pub fn get_rate(market: &Account<Market>) -> Result<(u64, u64)> {
+pub fn get_rate(market: &Account<Market>) -> Result<(Decimal, Decimal)> {
   let total_deposits = market.total_deposits()?;
   let total_borrows = market.total_borrows()?;
 
@@ -44,6 +44,7 @@ pub fn get_rate(market: &Account<Market>) -> Result<(u64, u64)> {
 
   // The normalization factor is used to scale the error and helps in adjusting the interest rate
   // in a way that is proportional to how far the current utilization is from the target utilization.
+  // max value is 0.999999999999999999 * 1e18
   let err_norm_factor: i128 = if utilization > TARGET_UTILIZATION {
     WAD_INT - TARGET_UTILIZATION
   } else {
@@ -51,6 +52,7 @@ pub fn get_rate(market: &Account<Market>) -> Result<(u64, u64)> {
   };
 
   // The error is the difference between the current utilization and the target utilization,
+  // in mul max value is 0.999999999999999999 * 1e18 * 0.999999999999999999 * 1e18
   let err = w_div_to_zero(utilization - TARGET_UTILIZATION, err_norm_factor)?;
 
   let start_rate_at_target: i128 = market.rate_at_target as i128;
@@ -66,13 +68,14 @@ pub fn get_rate(market: &Account<Market>) -> Result<(u64, u64)> {
     // The speed is assumed constant between two updates, but it is in fact not constant because of interest.
     // So the rate is always underestimated.
     // rate of change (how quickly the interest rate should adjust)
+    // max value is 1.58... * 1e12 * 0.999999999999999999 * 1e18
     let speed: i128 = w_mul_to_zero(ADJUSTMENT_SPEED, err)?;
 
     let clock = Clock::get()?;
     let current_timestamp = clock.unix_timestamp as u64;
 
     // market.lastUpdate != 0 because it is not the first interaction with this market.
-    // Safe "unchecked" cast because block.timestamp - market.lastUpdate <= block.timestamp <= type(int256).max.
+    // block.timestamp - market.lastUpdate <= block.timestamp <= type(int256).max.
     let elapsed: i128 = (current_timestamp - market.last_accrual_timestamp) as i128;
     let linear_adaptation: i128 = speed
       .checked_mul(elapsed)
@@ -114,8 +117,8 @@ pub fn get_rate(market: &Account<Market>) -> Result<(u64, u64)> {
 
   // Safe "unchecked" cast because avgRateAtTarget >= 0.
   Ok((
-    _curve(avg_rate_at_target, err)? as u64,
-    end_rate_at_target as u64,
+    Decimal::from_raw_i128(_curve(avg_rate_at_target, err)?),
+    Decimal::from_raw_i128(end_rate_at_target),
   ))
 }
 

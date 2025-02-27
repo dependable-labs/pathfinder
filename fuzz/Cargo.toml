@@ -29,3 +29,9 @@ name = "math"
 path = "fuzz_targets/fuzz_math.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "exp"
+path = "fuzz_targets/fuzz_exp.rs"
+test = false
+doc = false

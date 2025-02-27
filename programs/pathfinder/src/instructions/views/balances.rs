@@ -2,7 +2,6 @@ use crate::error::MarketError;
 use crate::interest_rate::get_rate;
 use crate::math::*;
 use crate::state::*;
-use crate::{accrue_interest::accrue_interest, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
 
@@ -110,25 +109,24 @@ pub fn expected_market_balances(
   // Skip if elapsed == 0 or total borrows == 0
   if elapsed != 0 && market.total_borrow_shares != 0 {
     let (avg_rate, _) = get_rate(&market)?;
-    let interest_factor = w_taylor_compounded(avg_rate, elapsed).unwrap();
-    let interest = w_mul_down(total_borrows, interest_factor)?;
+    let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
+    let interest = Decimal::from_raw_u64(total_borrows).w_mul_down(interest_factor)?.to_u64()?;
 
     // Update indexes with interest
-    market.borrow_index = w_mul_down(
-      market.borrow_index,
-      interest_factor.checked_add(WAD as u64).unwrap(),
-    )?;
+    market.borrow_index = Decimal::from_raw_u128(market.borrow_index)
+        .w_mul_down(interest_factor.try_add(Decimal::one())?)?
+        .to_u128()?;
 
-    market.deposit_index = w_mul_down(
-      market.deposit_index,
-      interest_factor.checked_add(WAD as u64).unwrap(),
-    )?;
+    // Update deposit index with interest
+    market.deposit_index = Decimal::from_raw_u128(market.deposit_index)
+        .w_mul_down(interest_factor.try_add(Decimal::one())?)?
+        .to_u128()?;
 
     // Handle fee if set
     if config.fee_factor != 0 {
-      let fee_amount = w_mul_down(interest, config.fee_factor as u64)?;
-      let deposits_sub_fee = market.total_deposits().unwrap().checked_sub(fee_amount).unwrap();
-      let fee_shares = to_shares_down(fee_amount as u64, deposits_sub_fee, market.total_shares)?;
+      let fee_amount = Decimal::from_raw_u64(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?.to_u64()?;
+      let deposits_sub_fee = market.total_deposits()?.checked_sub(fee_amount).unwrap();
+      let fee_shares = to_shares_down(fee_amount, deposits_sub_fee, market.total_shares)?;
       market.total_shares = market
         .total_shares
         .checked_add(fee_shares)

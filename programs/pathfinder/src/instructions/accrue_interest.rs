@@ -62,7 +62,7 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
   }
 
   // Calculate time elapsed since last accrual
-  let time_elapsed = current_timestamp
+  let elapsed = current_timestamp
     .checked_sub(market.last_accrual_timestamp)
     .ok_or(MarketError::MathUnderflow)?;
 
@@ -70,29 +70,28 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
 
   // Get interest rate from IRM
   let (avg_rate, end_rate_at_target) = get_rate(market)?;
-  market.rate_at_target = end_rate_at_target;
+  market.rate_at_target = end_rate_at_target.to_u128()?;
 
   // Calculate interest factor using taylor series
-  let interest_factor = w_taylor_compounded(avg_rate, time_elapsed).unwrap();
-  let interest = w_mul_down(total_borrows, interest_factor as u64)?;
+  let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
+  let interest = Decimal::from_raw_u64(total_borrows).w_mul_down(interest_factor)?.to_u64()?;
 
   // Update indexes with interest
-  market.borrow_index = w_mul_down(
-    market.borrow_index,
-    interest_factor.checked_add(WAD as u64).unwrap(),
-  )?;
+  market.borrow_index = Decimal::from_raw_u128(market.borrow_index)
+      .w_mul_down(interest_factor.try_add(Decimal::one())?)?
+      .to_u128()?;
 
-  market.deposit_index = w_mul_down(
-    market.deposit_index,
-    interest_factor.checked_add(WAD as u64).unwrap(),
-  )?;
+  // Update deposit index with interest
+  market.deposit_index = Decimal::from_raw_u128(market.deposit_index)
+      .w_mul_down(interest_factor.try_add(Decimal::one())?)?
+      .to_u128()?;
 
   // Handle fee if set
   if config.fee_factor != 0 {
-    let fee_amount = w_mul_down(interest, config.fee_factor)?;
+    let fee_amount = Decimal::from_raw_u64(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?.to_u64()?;
 
     // calculate fee shares using total deposits (prior to applying interest)
-    let deposits_sub_fee = market.total_deposits().unwrap().checked_sub(fee_amount).unwrap();
+    let deposits_sub_fee = market.total_deposits()?.checked_sub(fee_amount).unwrap();
     let fee_shares = to_shares_down(fee_amount, deposits_sub_fee, market.total_shares)?;
 
     // Update fee shares
