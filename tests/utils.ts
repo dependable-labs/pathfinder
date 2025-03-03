@@ -8,11 +8,11 @@ import {
 } from "@solana/web3.js";
 import { createMint } from "spl-token-bankrun";
 
-import { Markets } from "../target/types/markets";
+import { Pathfinder } from "../target/types/pathfinder";
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { ProgramTestContext, Clock, BanksClient} from "solana-bankrun";
 import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral, OracleSource } from "./fixtures";
-const IDL = require("../target/idl/markets.json");
+const IDL = require("../target/idl/pathfinder.json");
 
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
@@ -84,7 +84,7 @@ export function deriveMarketAddress(
 
 
 export class TestUtils {
-  private program: Program<Markets>;
+  private program: Program<Pathfinder>;
   private provider: BankrunProvider;
   private banks: BanksClient;
   private context: ProgramTestContext;
@@ -102,7 +102,7 @@ export class TestUtils {
     
     instance.context = await startAnchor('', [], []);
     instance.provider = new BankrunProvider(instance.context);
-    instance.program = new Program<Markets>(IDL, instance.provider);
+    instance.program = new Program<Pathfinder>(IDL, instance.provider);
     instance.banks = instance.context.banksClient;
 
     const owner = instance.provider.wallet.publicKey;

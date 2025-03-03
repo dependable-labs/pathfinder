@@ -18,22 +18,14 @@ pub struct ViewMarket<'info> {
   #[account(
       seeds = [
         MARKET_SEED_PREFIX,
-        quote_mint.key().as_ref(),
-        collateral_mint.key().as_ref(),
+        &market.quote_mint.key().as_ref(),
+        &market.collateral_mint.key().as_ref(),
         &market.ltv_factor.to_le_bytes(),
         &market.oracle.id.to_bytes(),
       ],
       bump = market.bump,
     )]
   pub market: Account<'info, Market>,
-
-  // quote
-  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Account<'info, Mint>,
-
-  // collateral
-  #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
-  pub collateral_mint: Account<'info, Mint>,
 }
 
 impl<'info> ViewMarket<'info> {

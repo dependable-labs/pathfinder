@@ -12,7 +12,7 @@ pub mod traits;
 use crate::instructions::*;
 
 #[program]
-pub mod markets {
+pub mod pathfinder {
 
   use super::*;
 
