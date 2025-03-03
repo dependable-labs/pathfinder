@@ -527,8 +527,6 @@ export class MarketFixture {
       .accounts({
         config: this.get_config().key,
         market: this.marketAcc.key,
-        quoteMint: this.quoteMint,
-        collateralMint: this.collateral.collateralMint,
       })
       .signers([this.provider.wallet.payer])
       .view();
@@ -547,8 +545,6 @@ export class MarketFixture {
       .accounts({
         config: this.get_config().key,
         market: this.marketAcc.key,
-        quoteMint: this.quoteMint,
-        collateralMint: this.collateral.collateralMint,
       })
       .signers([this.provider.wallet.payer])
       .view();
@@ -562,8 +558,6 @@ export class MarketFixture {
       .accounts({
         config: this.get_config().key,
         market: this.marketAcc.key,
-        quoteMint: this.quoteMint,
-        collateralMint: this.collateral.collateralMint,
       })
       .signers([this.provider.wallet.payer])
       .view();
@@ -577,8 +571,6 @@ export class MarketFixture {
       .accounts({
         config: this.get_config().key,
         market: this.marketAcc.key,
-        quoteMint: this.quoteMint,
-        collateralMint: this.collateral.collateralMint,
       })
       .signers([this.provider.wallet.payer])
       .view();

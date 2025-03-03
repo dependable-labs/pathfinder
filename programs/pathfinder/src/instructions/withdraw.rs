@@ -144,14 +144,9 @@ pub fn process_withdrawal_and_transfer<'info>(
     return err!(MarketError::AssetShareValueMismatch);
   }
 
-  msg!("Withdrawing {} shares", shares);
-  msg!("Market fee shares: {}", market.fee_shares);
-
   accrue_interest(market, config)?;
 
   let total_deposits = market.total_deposits()?;
-
-  msg!("After accruing interest: {}", market.fee_shares);
 
   if *assets > 0 {
     *shares = to_shares_up(*assets, total_deposits, market.total_shares)?;
