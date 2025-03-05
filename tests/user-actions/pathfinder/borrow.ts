@@ -1,5 +1,5 @@
-import { TestUtils } from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 
@@ -13,25 +13,25 @@ describe("User Borrow", () => {
 
   beforeEach(async () => {
     test = await TestUtils.create({
-        quoteDecimals: 9,
-        collateralDecimals: 9,
+      quoteDecimals: 9,
+      collateralDecimals: 9,
     });
-  
+
     larry = await test.createUser(
       new anchor.BN(1_000 * 1e9),
       new anchor.BN(0)
     );
-  
+
     bob = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e9),
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
-  
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
@@ -40,9 +40,9 @@ describe("User Borrow", () => {
       expo: -9,
       feeRecipient: futarchy,
       authority: futarchy,
-    });  
+    });
 
-    await market.createAndSetAuthority({user: larry});
+    await market.createAndSetAuthority({ user: larry });
 
     await market.deposit({
       user: larry,

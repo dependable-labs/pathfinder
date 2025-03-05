@@ -1,5 +1,5 @@
-import { TestUtils } from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 
@@ -34,7 +34,7 @@ describe("Liquidate", () => {
       new anchor.BN(0)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );

@@ -9,11 +9,14 @@ import {
 import { createMint } from "spl-token-bankrun";
 
 import { Pathfinder } from "../target/types/pathfinder";
+import { AssistantToTheRegionalManager } from "../target/types/assistant_to_the_regional_manager";
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { ProgramTestContext, Clock, BanksClient} from "solana-bankrun";
-import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral, OracleSource } from "./fixtures";
-const IDL = require("../target/idl/pathfinder.json");
+import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral, OracleSource, ManagerFixture } from "./fixtures";
+const PATHFINDER_IDL = require("../target/idl/pathfinder.json");
+const MANAGER_IDL = require("../target/idl/assistant_to_the_regional_manager.json");
 
+export const MPL_TOKEN_METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
 export function create_account_w_sol(
@@ -69,7 +72,6 @@ export function deriveMarketAddress(
   programId: PublicKey
 ) {
 
-
   return PublicKey.findProgramAddressSync(
     [
       Buffer.from("market"),
@@ -82,9 +84,88 @@ export function deriveMarketAddress(
   )[0];
 }
 
+export function deriveManagerConfigAccount(
+  quoteMint: PublicKey,
+  symbol: string,
+  name: string,
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("managerconfig"),
+      quoteMint.toBuffer(),
+      Buffer.from(symbol),
+      Buffer.from(name),
+    ],
+    programId
+  )[0];
+}
+
+export function deriveMetadataAccount(
+  shareMint: PublicKey,
+  tokenMetadataProgramId: PublicKey,
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("metadata"),
+      tokenMetadataProgramId.toBuffer(),
+      shareMint.toBuffer(),
+    ],
+    tokenMetadataProgramId
+  )[0];
+}
+
+export function deriveMultiMarketConfigs(
+  managerConfig: PublicKey,
+  marketIds: PublicKey[],
+  programId: PublicKey
+) {
+  return marketIds.map((marketId) => {
+    return {
+      pubkey: deriveMarketConfigAccount(
+        managerConfig,
+        marketId,
+        programId
+      ),
+      isSigner: false,
+      isWritable: false
+    }
+  });
+}
+
+export function deriveMarketConfigAccount(
+  managerConfig: PublicKey,
+  marketId: PublicKey,
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("managermarketconfig"),
+      managerConfig.toBuffer(),
+      marketId.toBuffer(),
+    ],
+    programId
+  )[0];
+}
+
+export function deriveQueueAccount(
+  managerConfig: PublicKey,
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("managerqueue"),
+      managerConfig.toBuffer(),
+    ],
+    programId
+  )[0];
+}
+
 
 export class TestUtils {
   private program: Program<Pathfinder>;
+  private managerProgram: Program<AssistantToTheRegionalManager>;
   private provider: BankrunProvider;
   private banks: BanksClient;
   private context: ProgramTestContext;
@@ -100,9 +181,14 @@ export class TestUtils {
   }): Promise<TestUtils> {
     const instance = new TestUtils();
     
-    instance.context = await startAnchor('', [], []);
+    instance.context = await startAnchor(
+      '',
+      [{ name: "metadata", programId: MPL_TOKEN_METADATA_PROGRAM_ID }],
+      []
+    );
     instance.provider = new BankrunProvider(instance.context);
-    instance.program = new Program<Pathfinder>(IDL, instance.provider);
+    instance.program = new Program<Pathfinder>(PATHFINDER_IDL, instance.provider);
+    instance.managerProgram = new Program<AssistantToTheRegionalManager>(MANAGER_IDL, instance.provider);
     instance.banks = instance.context.banksClient;
 
     const owner = instance.provider.wallet.publicKey;
@@ -187,6 +273,14 @@ export class TestUtils {
       collateral,
       feeRecipient,
       authority
+    );
+  }
+
+  public async initManagerFixture() {
+    return new ManagerFixture(
+      this.managerProgram,
+      this.provider,
+      this.quoteMint,
     );
   }
 

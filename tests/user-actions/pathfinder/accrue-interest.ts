@@ -1,5 +1,5 @@
-import { TestUtils } from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
@@ -71,19 +71,19 @@ describe("Accrue Interest", () => {
   it("correctly for year", async () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     const beforeTotalDeposits = await market.marketAcc.getTotalDeposits();
-    
+
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
-    
+
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
     const afterTotalDeposits = await market.marketAcc.getTotalDeposits();
 
     // Convert to BN and calculate difference
     const borrowDifference = afterTotalBorrows.sub(beforeTotalBorrows);
     const depositDifference = afterTotalDeposits.sub(beforeTotalDeposits);
- 
+
     // Verify interest accrual
     assert.equal(
       borrowDifference.toNumber(),
@@ -105,10 +105,10 @@ describe("Accrue Interest", () => {
       user: futarchy,
       feeFactor: new anchor.BN("10000000000000000")
     });
-    
+
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
 
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
@@ -117,13 +117,13 @@ describe("Accrue Interest", () => {
     // Convert to BN and calculate difference
     const borrowDifference = afterTotalBorrows.sub(beforeTotalBorrows);
     const depositDifference = afterTotalDeposits.sub(beforeTotalDeposits);
-    
+
     // Verify interest accrual
     assert.equal(
       borrowDifference.toNumber(),
       13_512_691_343 // Expected interest accrual
     );
- 
+
     // Verify fee accrual
     assert.equal(
       depositDifference.toNumber(),
@@ -135,7 +135,7 @@ describe("Accrue Interest", () => {
 
     await market.borrow({
       user: bob,
-      amount: new anchor.BN(300 * LAMPORTS_PER_SOL), 
+      amount: new anchor.BN(300 * LAMPORTS_PER_SOL),
       shares: new anchor.BN(0),
       owner: bob,
       recipient: bob,
@@ -143,20 +143,20 @@ describe("Accrue Interest", () => {
 
     // 800 Debt, 1000 Capacity -> 80% utilization
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
-    
+
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
 
     assert.equal(beforeTotalBorrows.toNumber(), 800_000_000_000);
     assert.equal(afterTotalBorrows.toNumber(), 829_877_683_931);
-    
+
     // Convert to BN and calculate difference
     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
-    
+
     assert.equal(
       difference.toNumber(),
       29_877_683_931 // Expected interest accrual
@@ -165,10 +165,10 @@ describe("Accrue Interest", () => {
 
   it("for multiple periods", async () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Advance clock by 2 years  
     await test.moveTimeForward(365 * 24 * 2 * 3600);
-    
+
     await market.accrueInterest();
 
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
@@ -184,9 +184,9 @@ describe("Accrue Interest", () => {
 
   it("updates last accrual timestamp", async () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
 
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
@@ -196,7 +196,7 @@ describe("Accrue Interest", () => {
       beforeTotalBorrows.toNumber()
     );
   });
-  
+
   it("correctly for year with six decimal quote token", async () => {
 
     test = await TestUtils.create({
@@ -214,7 +214,7 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000 * 1e9)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
@@ -254,17 +254,17 @@ describe("Accrue Interest", () => {
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
-    
+
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Convert to BN and calculate difference
     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
-    
+
     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
     assert.equal(
       difference.toNumber(),
@@ -289,7 +289,7 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000 * 1e9)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
@@ -329,17 +329,17 @@ describe("Accrue Interest", () => {
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
-    
+
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Convert to BN and calculate difference
     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
-    
+
     // Verify interest accrual
     assert.equal(
       difference.toNumber(),
@@ -363,7 +363,7 @@ describe("Accrue Interest", () => {
       new anchor.BN(1_000 * 1e6)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
@@ -403,17 +403,17 @@ describe("Accrue Interest", () => {
     });
 
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Advance clock by 1 year
     await test.moveTimeForward(365 * 24 * 3600);
-    
+
     await market.accrueInterest();
-    
+
     const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-    
+
     // Convert to BN and calculate difference
     const difference = afterTotalBorrows.sub(beforeTotalBorrows);
-    
+
     // Verify interest accrual (5% on 500 * 1e6 = 25 * 1e6)
     assert.equal(
       difference.toNumber(),

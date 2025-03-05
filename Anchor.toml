@@ -8,6 +8,7 @@ skip-lint = false
 pathfinder = "7ALFC87zvuPvpp9h5Stq9SSP3kTCUJfhtirEZVJmZYy4"
 mock_pyth_pull = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ"
 switchboard_on_demand = "7GCiue6chgGuk6BvaurQNWD1Ervho8zEdcNWt5ZCYQhu"
+assistant_to_the_regional_manager = "4JpJWm53pKAwsyJ5HxGoXRwFFW8FSr49mYjkRKzn7pyj"
 
 [registry]
 url = "https://api.apr.dev"
@@ -20,7 +21,10 @@ wallet = "/Users/eloqjava/.config/solana/id.json"
 # wallet = "/home/evergreen/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+# run all tests
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 'tests/{*,**/*}.ts'"
+
+# run pathfinder tests
 test-create-market = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/create-market.ts"
 test-borrow = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/borrow.ts"
 test-deposit = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/deposit.ts"
@@ -35,3 +39,8 @@ test-restrict-collateral = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 test
 test-oracle = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/oracle.ts"
 test-config = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/config.ts"
 test-balances = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/balances.ts"
+
+# run all manager tests
+test-manager = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/*.ts"
+test-queue = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/queue.ts"
+test-submit-cap = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/submit_cap.ts"
