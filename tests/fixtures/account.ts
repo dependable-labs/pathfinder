@@ -34,7 +34,6 @@ export class splAccountFixture extends AccountFixture {
     const account = await getAccount(this.program.provider.connection, this.key);
     return account.amount;
   }
-
 }
 
 export class marketAccountFixture extends AccountFixture {
@@ -53,3 +52,14 @@ export class marketAccountFixture extends AccountFixture {
   }
 }
 
+export class queueAccountFixture extends AccountFixture {
+  public async getSupplyQueue(): Promise<PublicKey[]> {
+    const queue = await this.get_data();
+    return queue.supplyQueue;
+  }
+
+  public async getWithdrawQueue(): Promise<PublicKey[]> {
+    const queue = await this.get_data();
+    return queue.withdrawQueue;
+  }
+}

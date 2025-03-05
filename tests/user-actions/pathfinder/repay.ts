@@ -1,5 +1,5 @@
-import { TestUtils } from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 
@@ -15,30 +15,30 @@ describe("Repay", () => {
       collateralDecimals: 9,
     });
 
-    larry = await test.createUser( 
+    larry = await test.createUser(
       new anchor.BN(1100 * 1e9),
       new anchor.BN(0)
     );
 
-    bob = await test.createUser( 
+    bob = await test.createUser(
       new anchor.BN(100 * 1e9),
       new anchor.BN(1000 * 1e9)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
 
     market = await test.createMarket({
-        symbol: "BONK",
-        ltvFactor: new anchor.BN(0.8 * 1e9),
-        price: new anchor.BN(100 * 10 ** 5),
-        conf: new anchor.BN(10 * 1e5),
-        expo: -5,
-        feeRecipient: futarchy,
-        authority: futarchy,
-      });
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0.8 * 1e9),
+      price: new anchor.BN(100 * 10 ** 5),
+      conf: new anchor.BN(10 * 1e5),
+      expo: -5,
+      feeRecipient: futarchy,
+      authority: futarchy,
+    });
 
     await market.createAndSetAuthority({ user: larry });
 
@@ -170,7 +170,7 @@ describe("Repay", () => {
 
     // Verify market total borrow assets is zero
     assert.equal(finalBorrows.toNumber(), new anchor.BN(0));
-    
+
     // Verify market total deposits has increased
     assert.equal(finalDeposits.toNumber(), new anchor.BN(1000.031963981 * 1e9));
 
@@ -189,7 +189,7 @@ describe("Repay", () => {
     // Verify bob's final quote balance is correct
     assert.equal(
       finalQuoteBalance,
-      BigInt(99.998401801 * 1e9 ), // Started with 0, borrowed 50, repaid 50
+      BigInt(99.998401801 * 1e9), // Started with 0, borrowed 50, repaid 50
       "Bob's final quote balance should be 950 tokens"
     );
   });
@@ -369,5 +369,5 @@ describe("Repay", () => {
       "Larry's final quote balance should be 50 tokens"
     );
   });
-  
+
 });

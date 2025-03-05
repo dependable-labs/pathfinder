@@ -1,5 +1,5 @@
-import { TestUtils } from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 
@@ -25,7 +25,7 @@ describe("Withdraw Collateral", () => {
       new anchor.BN(1000 * 1e9)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
@@ -84,7 +84,7 @@ describe("Withdraw Collateral", () => {
       BigInt(100 * 1e9),
       "User should have withdrawn 100 collateral tokens"
     );
-    
+
     assert.equal(
       finalBalance,
       BigInt(1000 * 1e9),
@@ -128,7 +128,7 @@ describe("Withdraw Collateral", () => {
     );
 
     const finalBalance = await bob.get_col_balance();
-    
+
     assert.equal(
       finalBalance,
       BigInt(950 * 1e9),
@@ -208,7 +208,7 @@ describe("Withdraw Collateral", () => {
       BigInt(0),
       "User should have withdrawn 100 collateral tokens"
     );
-    
+
     assert.equal(
       finalBobBalance,
       BigInt(900 * 1e9),

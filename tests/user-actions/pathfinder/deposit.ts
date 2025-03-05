@@ -1,7 +1,7 @@
-import { MarketFixture, UserFixture } from "../fixtures";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
-import { TestUtils } from "../utils";
+import { TestUtils } from "../../utils";
 
 describe("Deposit", () => {
   let test: TestUtils;
@@ -38,7 +38,7 @@ describe("Deposit", () => {
       expo: -5,
       feeRecipient: futarchy,
       authority: futarchy,
-    });  
+    });
 
     await market.createAndSetAuthority({ user: larry });
 
@@ -110,7 +110,7 @@ describe("Deposit", () => {
       new anchor.BN(1_000 * 1e5),
       new anchor.BN(0)
     );
-    
+
     let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
@@ -124,7 +124,7 @@ describe("Deposit", () => {
       expo: -5,
       feeRecipient: futarchy,
       authority: futarchy,
-    });  
+    });
 
     await market.createAndSetAuthority({ user: larry });
 
@@ -184,8 +184,8 @@ describe("Deposit", () => {
     assert.equal(deposits.toNumber(), 1 * 1e5);
 
     const postLarryData = await market
-    .get_lender_shares(larry.key.publicKey)
-    .get_data();
+      .get_lender_shares(larry.key.publicKey)
+      .get_data();
     assert.equal(postLarryData, undefined);
     assert.equal(await larry.get_quo_balance(), BigInt(999 * 1e5));
 

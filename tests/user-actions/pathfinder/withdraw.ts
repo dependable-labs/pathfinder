@@ -1,5 +1,5 @@
-import { TestUtils} from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 
@@ -16,30 +16,30 @@ describe("Withdraw", () => {
       collateralDecimals: 9,
     });
 
-    larry = await test.createUser( 
+    larry = await test.createUser(
       new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
-    lizz = await test.createUser( 
+    lizz = await test.createUser(
       new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
 
-    let futarchy = await test.createUser( 
+    let futarchy = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(0)
     );
 
     market = await test.createMarket({
-        symbol: "BONK",
-        ltvFactor: new anchor.BN(0),
-        price: new anchor.BN(100 * 10 ** 9),
-        conf: new anchor.BN(100 / 10 * 10 ** 9),
-        expo: -9,
-        feeRecipient: futarchy,
-        authority: futarchy,
-      });
+      symbol: "BONK",
+      ltvFactor: new anchor.BN(0),
+      price: new anchor.BN(100 * 10 ** 9),
+      conf: new anchor.BN(100 / 10 * 10 ** 9),
+      expo: -9,
+      feeRecipient: futarchy,
+      authority: futarchy,
+    });
 
     await market.createAndSetAuthority({ user: larry });
 
@@ -73,7 +73,7 @@ describe("Withdraw", () => {
     const marketAccountData = await market.marketAcc.get_data();
     const totalDeposits = await market.marketAcc.getTotalDeposits();
     assert.equal(
-      marketAccountData.totalShares.toNumber(), 
+      marketAccountData.totalShares.toNumber(),
       1.5 * 1e9 // Original 2000000000000000 - 500000000000000
     );
     assert.equal(
@@ -85,17 +85,17 @@ describe("Withdraw", () => {
       .get_lender_shares(larry.key.publicKey)
       .get_data();
     assert.equal(
-      larryShares.shares.toNumber(), 
+      larryShares.shares.toNumber(),
       0.5 * 1e9 // Original 1000000000000000 - 500000000000000
     );
 
     const finalBalance: BigInt = await larry.get_quo_balance();
     assert.equal(
-      finalBalance - initialBalance, 
+      finalBalance - initialBalance,
       BigInt(0.5 * 1e9)
     );
   });
-  
+
   it("two users withdraw from a market", async () => {
     await market.withdraw({
       user: larry,
@@ -117,11 +117,11 @@ describe("Withdraw", () => {
     const totalDeposits = await market.marketAcc.getTotalDeposits();
 
     assert.equal(
-      marketAccountData.totalShares.toNumber(), 
+      marketAccountData.totalShares.toNumber(),
       1 * 1e9 // Original 2000000000000000 - 1000000000000000
     );
     assert.equal(
-      totalDeposits.toNumber(), 
+      totalDeposits.toNumber(),
       1 * 1e9 // Original 2000000000 - 1000000000
     );
 
@@ -136,11 +136,11 @@ describe("Withdraw", () => {
     assert.equal(lizzSharesData.shares.toNumber(), 0.5 * 1e9);
 
     assert.equal(
-      await larry.get_quo_balance(), 
+      await larry.get_quo_balance(),
       BigInt(999.5 * 1e9)
     );
     assert.equal(
-      await lizz.get_quo_balance(), 
+      await lizz.get_quo_balance(),
       BigInt(999.5 * 1e9)
     );
   });
@@ -202,7 +202,7 @@ describe("Withdraw", () => {
     const marketAccountData = await market.marketAcc.get_data();
     const totalDeposits = await market.marketAcc.getTotalDeposits();
     assert.equal(
-      marketAccountData.totalShares.toNumber(), 
+      marketAccountData.totalShares.toNumber(),
       1.5 * 1e9 // Original 2000000000000000 - 500000000000000
     );
     assert.equal(
@@ -214,14 +214,14 @@ describe("Withdraw", () => {
       .get_lender_shares(lizz.key.publicKey)
       .get_data();
     assert.equal(
-      lizzShares.shares.toNumber(), 
+      lizzShares.shares.toNumber(),
       0.5 * 1e9 // Original 1000000000000000 - 500000000000000
     );
 
     // larry withdraws from the market to himself
     const finalBalance: BigInt = await larry.get_quo_balance();
     assert.equal(
-      finalBalance - initialBalance, 
+      finalBalance - initialBalance,
       BigInt(0.5 * 1e9)
     );
 
@@ -229,12 +229,12 @@ describe("Withdraw", () => {
       .get_lender_shares(larry.key.publicKey)
       .get_data();
     assert.equal(
-      larryShares.shares.toNumber(), 
+      larryShares.shares.toNumber(),
       1.0 * 1e9 // Original 1000000000000000 - 500000000000000
     );
 
     assert.equal(
-      await larry.get_quo_balance(), 
+      await larry.get_quo_balance(),
       BigInt(999.5 * 1e9)
     );
   });

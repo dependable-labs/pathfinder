@@ -1,8 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
-import { TestUtils } from '../utils';
-import { MarketFixture} from '../fixtures';
+import { TestUtils } from '../../utils';
+import { MarketFixture } from '../../fixtures';
 import assert from 'assert';
-import { UserFixture } from "../fixtures";
+import { UserFixture } from "../../fixtures";
 
 describe("Create Market Operations", () => {
   let test: TestUtils;
@@ -45,7 +45,7 @@ describe("Create Market Operations", () => {
       expo: -5,
       feeRecipient: futarchy,
       authority: futarchy,
-    }); 
+    });
 
     await market.createAndSetAuthority({ user: larry });
 
@@ -63,7 +63,7 @@ describe("Create Market Operations", () => {
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
-      price: new anchor.BN(100 * 1e5), 
+      price: new anchor.BN(100 * 1e5),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -5,
       feeRecipient: futarchy,
