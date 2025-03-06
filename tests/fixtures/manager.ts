@@ -93,7 +93,7 @@ export class ManagerFixture {
         feeRecipient: feeRecipient.key.publicKey,
         skimRecipient: skimRecipient.key.publicKey,
         curator: curator.key.publicKey,
-        timelock: new anchor.BN(0),
+        timelock: new anchor.BN(60 * 60 * 24),
         decimalsOffset: 0,
       })
       .accounts({
@@ -120,22 +120,33 @@ export class ManagerFixture {
     supplyCap: anchor.BN;
   }): Promise<void> {
 
-    const marketConfig = await this.get_market_config(marketId);
-    if (!marketConfig) {
-      this.marketConfigs.set(
-        deriveMarketConfigAccount(
-          this.managerVaultConfigAcc.key,
-          marketId,
-          this.program.programId
-        ).toString(),
-        {}
-      );
-    }
-
     await this.program.methods
       .submitCap({
         marketId,
         supplyCap,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        queue: deriveQueueAccount(this.managerVaultConfigAcc.key, this.program.programId),
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async acceptCap({
+    user,
+    marketId,
+  }: {
+    user: UserFixture;
+    marketId: PublicKey;
+  }): Promise<void> {
+
+    await this.program.methods
+      .acceptCap({
+        marketId,
       })
       .accounts({
         user: user.key.publicKey,

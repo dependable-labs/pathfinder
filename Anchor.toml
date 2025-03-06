@@ -43,4 +43,4 @@ test-balances = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/balanc
 # run all manager tests
 test-manager = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/*.ts"
 test-queue = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/queue.ts"
-test-submit-cap = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/submit_cap.ts"
+test-cap = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/cap.ts"

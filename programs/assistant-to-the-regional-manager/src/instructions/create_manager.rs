@@ -10,6 +10,7 @@ use anchor_spl::{
 };
 use anchor_lang::prelude::*;
 use crate::{state::*, generate_manager_vault_seeds};
+use crate::instructions::timelock::{check_timelock_bounds, set_timelock};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateManagerArgs {
@@ -88,6 +89,8 @@ impl<'info> CreateManager<'info> {
       ..
     } = ctx.accounts;
 
+    check_timelock_bounds(args.timelock)?;
+
     config.set_inner(ManagerVaultConfig {
         bump: ctx.bumps.config,
         name: args.name,
@@ -98,6 +101,8 @@ impl<'info> CreateManager<'info> {
         fee_recipient: args.fee_recipient,
         skim_recipient: args.skim_recipient,
         timelock: args.timelock,
+        pending_timelock: None,
+        pending_timelock_valid_at: 0,
         fee: 0,
         decimals_offset: args.decimals_offset,
         pathfinder_program: PATHFINDER_PROGRAM_ID,  // The PATHFINDER immutable
