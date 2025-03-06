@@ -18,6 +18,8 @@ pub struct ManagerVaultConfig {
   pub fee_recipient: Pubkey,
   pub skim_recipient: Pubkey,
   pub timelock: u64,
+  pub pending_timelock: Option<u64>,
+  pub pending_timelock_valid_at: u64,
   pub fee: u64,  // Using u64 instead of u96
   pub decimals_offset: u8,
   pub pathfinder_program: Pubkey,  // The PATHFINDER immutable
@@ -43,9 +45,10 @@ pub struct AllocatorState {
 pub struct MarketConfig {
   pub bump: u8,
   pub enabled: bool,
-  pub cap: u64,           // Supply cap for this market
-  pub removable_at: u64,  // Timestamp when market can be removed
-  pub pending_cap: u64,   // Pending cap change
+  pub cap: u64,                  // Supply cap for this market
+  pub removable_at: u64,         // Timestamp when market can be removed
+  pub pending_cap_valid_at: u64, // Timestamp when pending cap is valid
+  pub pending_cap: u64,          // Pending cap change
 }
 
 // Queue Account - Stores supply and withdraw queues

@@ -62,6 +62,7 @@ impl<'info> SubmitCap<'info> {
         let SubmitCap {
             market_config,
             queue,
+            config,
             ..
         } = ctx.accounts;
 
@@ -89,8 +90,13 @@ impl<'info> SubmitCap<'info> {
             market_config.cap = args.supply_cap;
             set_cap(queue, market_config, market_id, args.supply_cap)?;
         } else {
+            let unix_time = Clock::get()?.unix_timestamp as u64;
+
             // Otherwise set as pending cap
             market_config.pending_cap = args.supply_cap;
+            market_config.pending_cap_valid_at = unix_time
+                .checked_add(config.timelock)
+                .ok_or(ManagerError::MathOverflow)?;
         }
 
         Ok(())

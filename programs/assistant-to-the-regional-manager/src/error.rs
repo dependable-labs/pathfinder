@@ -11,6 +11,7 @@ pub enum ManagerError {
     #[msg("Math overflow")]
     MathOverflow,
 
+    // market cap
     #[msg("Unauthorized market")]
     UnauthorizedMarket,
 
@@ -28,4 +29,23 @@ pub enum ManagerError {
 
     #[msg("Market cap is already set")]
     AlreadySet,
+
+    // timelock
+    #[msg("No pending timelock")]
+    NoPendingTimelock,
+
+    #[msg("Timelock not expired")]
+    TimelockNotExpired,
+
+    #[msg("Above max timelock")]
+    AboveMaxTimelock,
+
+    #[msg("Below min timelock")]
+    BelowMinTimelock,
+
+    #[msg("No pending value")]
+    NoPendingValue,
+
+    #[msg("Timelock not elapsed")]
+    TimelockNotElapsed,
 }
