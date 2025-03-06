@@ -10,7 +10,7 @@ use anchor_spl::{
 };
 use anchor_lang::prelude::*;
 use crate::{state::*, generate_manager_vault_seeds};
-use crate::instructions::timelock::{check_timelock_bounds, set_timelock};
+use crate::instructions::timelock::check_timelock_bounds;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateManagerArgs {

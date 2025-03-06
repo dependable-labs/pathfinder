@@ -28,10 +28,6 @@ pub mod assistant_to_the_regional_manager {
         SetSupplyQueue::handle(ctx, args)
     }
 
-    // pub fn update_market_config(ctx: Context<UpdateMarketConfig>, args: UpdateMarketConfigArgs) -> Result<()> {
-    //     UpdateMarketConfig::handle(ctx, args)
-    // }
-
     pub fn submit_timelock(ctx: Context<SubmitTimelock>, args: SubmitTimelockArgs) -> Result<()> {
         SubmitTimelock::handle(ctx, args)
     }
