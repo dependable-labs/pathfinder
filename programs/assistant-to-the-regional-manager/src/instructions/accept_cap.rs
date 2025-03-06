@@ -59,10 +59,10 @@ impl<'info> AcceptCap<'info> {
             ..
         } = ctx.accounts;
 
-        after_timelock(market_config.pending_cap_valid_at, Clock::get()?.unix_timestamp as u64)?;
+        after_timelock(market_config.pending_cap.valid_at)?;
 
         // Set the new cap
-        let pending_cap = market_config.pending_cap.clone();
+        let pending_cap = market_config.pending_cap.value;
         set_cap(queue, market_config, args.market_id, pending_cap)?;
 
         Ok(())

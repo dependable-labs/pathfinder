@@ -302,4 +302,8 @@ export class TestUtils {
     const currentClock = await this.context.banksClient.getClock();
     return Number(currentClock.unixTimestamp);
   }
+
+  public async getTimePlusTimelock(): Promise<number> {
+    return Number(await this.getTime()) + 60 * 60 * 24;
+  }
 }
