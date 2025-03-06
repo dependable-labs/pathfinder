@@ -101,12 +101,14 @@ impl<'info> CreateManager<'info> {
         fee_recipient: args.fee_recipient,
         skim_recipient: args.skim_recipient,
         timelock: args.timelock,
-        pending_timelock: None,
-        pending_timelock_valid_at: 0,
         fee: 0,
         decimals_offset: args.decimals_offset,
         pathfinder_program: PATHFINDER_PROGRAM_ID,  // The PATHFINDER immutable
         last_total_assets: 0,
+        pending_timelock: PendingU64 {
+          value: 0,
+          valid_at: 0,
+        },
     });
 
     // Create the metadata account for the share token

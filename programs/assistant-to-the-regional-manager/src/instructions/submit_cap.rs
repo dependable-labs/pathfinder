@@ -69,7 +69,7 @@ impl<'info> SubmitCap<'info> {
         let market_id: Pubkey = args.market_id;
 
         // Check if there's already a pending cap change
-        if market_config.pending_cap != 0 {
+        if market_config.pending_cap.valid_at != 0 {
             return err!(ManagerError::AlreadyPending);
         }
 
@@ -90,13 +90,8 @@ impl<'info> SubmitCap<'info> {
             market_config.cap = args.supply_cap;
             set_cap(queue, market_config, market_id, args.supply_cap)?;
         } else {
-            let unix_time = Clock::get()?.unix_timestamp as u64;
-
             // Otherwise set as pending cap
-            market_config.pending_cap = args.supply_cap;
-            market_config.pending_cap_valid_at = unix_time
-                .checked_add(config.timelock)
-                .ok_or(ManagerError::MathOverflow)?;
+            market_config.pending_cap.update(args.supply_cap, config.timelock)?;
         }
 
         Ok(())
@@ -130,7 +125,10 @@ pub fn set_cap(
     }
 
     market_config.cap = new_cap;
-    market_config.pending_cap = 0;
+    market_config.pending_cap = PendingU64 {
+        value: 0,
+        valid_at: 0,
+    };
 
     Ok(())
 }
