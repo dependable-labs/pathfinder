@@ -19,6 +19,9 @@ const MANAGER_IDL = require("../target/idl/assistant_to_the_regional_manager.jso
 export const MPL_TOKEN_METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
+export const TWENTY_FIVE_HOUR_TIMELOCK = new anchor.BN(25 * 60 * 60);
+export const ONE_DAY_TIMELOCK = new anchor.BN(24 * 60 * 60);
+
 export function create_account_w_sol(
   context: ProgramTestContext,
   pubkey: PublicKey,
@@ -304,6 +307,6 @@ export class TestUtils {
   }
 
   public async getTimePlusTimelock(): Promise<number> {
-    return Number(await this.getTime()) + 60 * 60 * 24;
+    return Number(await this.getTime()) + Number(ONE_DAY_TIMELOCK);
   }
 }

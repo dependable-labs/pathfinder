@@ -21,13 +21,19 @@ pub enum ManagerError {
     #[msg("Market is not enabled")]
     MarketNotEnabled,
 
-    #[msg("Market cap is already pending")]
+    #[msg("Already pending")]
     AlreadyPending,
 
     #[msg("Market is pending removal")]
     PendingRemoval,
 
-    #[msg("Market cap is already set")]
+    #[msg("Non-zero cap")]
+    NonZeroCap,
+
+    #[msg("Pending cap")]
+    PendingCap,
+
+    #[msg("Already set")]
     AlreadySet,
 
     // timelock
@@ -48,4 +54,7 @@ pub enum ManagerError {
 
     #[msg("Timelock not elapsed")]
     TimelockNotElapsed,
+
+    #[msg("Unauthorized signer")]
+    UnauthorizedSigner,
 }

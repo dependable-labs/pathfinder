@@ -68,14 +68,13 @@ describe("submit_cap", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorMessage, "Market cap is already pending");
+        assert.strictEqual(err.error.errorMessage, "Already pending");
         return true;
       }
     );
   });
 
   it("successfully accepts cap", async () => {
-
     await manager.submitCap({
       user: owen,
       marketId: market.marketAcc.key,
@@ -181,7 +180,7 @@ describe("submit_cap", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorMessage, "Market cap is already set");
+        assert.strictEqual(err.error.errorMessage, "Already set");
         return true;
       }
     );
