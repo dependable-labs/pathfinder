@@ -1,11 +1,56 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::error::ManagerError;
+use crate::traits::{owner::OwnerProtection, guardian::GuardianProtection};
 
 #[derive(Accounts)]
+pub struct RevokePendingTimelock<'info> {
+    pub user: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            CONFIG_SEED_PREFIX,
+            config.quote_mint.as_ref(),
+            config.symbol.as_bytes(),
+            config.name.as_bytes(),
+        ],
+        bump = config.bump,
+    )]
+    pub config: Box<Account<'info, ManagerVaultConfig>>,
+}
+
+impl<'info> GuardianProtection<'info> for RevokePendingTimelock<'info> {}
+
+impl<'info> RevokePendingTimelock<'info> {
+
+    pub fn validate(&self) -> Result<()> {
+        self.is_guardian(&self.user, &self.config)?;
+
+        Ok(())
+    }
+
+    pub fn handle(ctx: Context<RevokePendingTimelock>) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+
+        config.pending_timelock.value = 0;
+        config.pending_timelock.valid_at = 0;
+
+        Ok(())
+    }
+}
+
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct SubmitTimelockArgs {
+  pub new_timelock: u64,
+}
+
+#[derive(Accounts)]
+#[instruction(args: SubmitTimelockArgs)]
 pub struct SubmitTimelock<'info> {
   #[account(mut)]
-  pub admin: Signer<'info>,
+  pub user: Signer<'info>,
 
   #[account(
       mut,
@@ -20,19 +65,28 @@ pub struct SubmitTimelock<'info> {
   pub config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct SubmitTimelockArgs {
-  pub new_timelock: u64,
-}
+
+impl<'info> OwnerProtection<'info> for SubmitTimelock<'info> {}
 
 impl<'info> SubmitTimelock<'info> {
-  pub fn handle(ctx: Context<SubmitTimelock>, args: SubmitTimelockArgs) -> Result<()> {
-    let config = &mut ctx.accounts.config;
-    let current_timelock = config.timelock;
+  pub fn validate(&self, args: &SubmitTimelockArgs) -> Result<()> {
+    self.is_owner(&self.user, &self.config)?;
 
-    if args.new_timelock == current_timelock {
-      return err!(ManagerError::AlreadySet);
-    }
+    require!(
+      args.new_timelock != self.config.timelock,
+      ManagerError::AlreadySet
+    );
+
+    Ok(())
+  }
+
+  pub fn handle(ctx: Context<SubmitTimelock>, args: SubmitTimelockArgs) -> Result<()> {
+    let SubmitTimelock {
+      config,
+      ..
+    } = ctx.accounts;
+
+    let current_timelock = config.timelock;
 
     if config.pending_timelock.valid_at != 0 {
       return err!(ManagerError::AlreadyPending);
@@ -68,6 +122,8 @@ impl<'info> AcceptTimelock<'info> {
   pub fn handle(ctx: Context<AcceptTimelock>) -> Result<()> {
     let config = &mut ctx.accounts.config;
     let pending_timelock = config.pending_timelock.value;
+
+    after_timelock(config.pending_timelock.valid_at)?;
 
     set_timelock(config, pending_timelock)?;
     

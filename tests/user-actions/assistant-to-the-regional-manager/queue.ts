@@ -21,6 +21,7 @@ describe("queue", () => {
       new anchor.BN(1_000 * 1e9),
       new anchor.BN(0)
     );
+    
 
     // futarchy = await test.createUser(
     //   new anchor.BN(0),

@@ -4,7 +4,7 @@ import { Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
 import { BankrunProvider } from "anchor-bankrun";
 import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture} from "./index";
-import { COMMITMENT, deriveManagerConfigAccount, deriveMarketConfigAccount, deriveMetadataAccount, deriveMultiMarketConfigs, deriveQueueAccount, MPL_TOKEN_METADATA_PROGRAM_ID } from "../utils";
+import { COMMITMENT, deriveManagerConfigAccount, deriveMarketConfigAccount, deriveMetadataAccount, deriveMultiMarketConfigs, deriveQueueAccount, MPL_TOKEN_METADATA_PROGRAM_ID, ONE_DAY_TIMELOCK } from "../utils";
 
 export class ManagerFixture {
   public program: Program<AssistantToTheRegionalManager>;
@@ -39,6 +39,8 @@ export class ManagerFixture {
       user,
       name,
       symbol,
+      owner: user,
+      allocator: user,
       curator: user,
       guardian: user,
       feeRecipient: user,
@@ -50,6 +52,8 @@ export class ManagerFixture {
     user,
     symbol,
     name,
+    owner,
+    allocator,
     curator,
     guardian,
     feeRecipient,
@@ -58,6 +62,8 @@ export class ManagerFixture {
     user: UserFixture;
     symbol: string;
     name: string;
+    owner: UserFixture;
+    allocator: UserFixture;
     curator: UserFixture;
     guardian: UserFixture;
     feeRecipient: UserFixture;
@@ -88,12 +94,13 @@ export class ManagerFixture {
       .createManager({
         symbol,
         name,
-        owner: user.key.publicKey,
+        owner: owner.key.publicKey,
         guardian: guardian.key.publicKey,
+        allocator: allocator.key.publicKey,
         feeRecipient: feeRecipient.key.publicKey,
         skimRecipient: skimRecipient.key.publicKey,
         curator: curator.key.publicKey,
-        timelock: new anchor.BN(60 * 60 * 24),
+        timelock: ONE_DAY_TIMELOCK,
         decimalsOffset: 0,
       })
       .accounts({
@@ -159,6 +166,48 @@ export class ManagerFixture {
       .rpc(COMMITMENT);
   }
 
+  async revokePendingCap({
+    user,
+    marketId,
+  }: {
+    user: UserFixture;
+    marketId: PublicKey;
+  }): Promise<void> {
+
+    await this.program.methods
+      .revokePendingCap({
+        marketId,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async submitMarketRemoval({
+    user,
+    marketId,
+  }: {
+    user: UserFixture;
+    marketId: PublicKey;
+  }): Promise<void> {
+
+    await this.program.methods
+      .submitMarketRemoval({
+        marketId,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
   async setSupplyQueue({
     user,
     newSupplyQueue,
@@ -180,6 +229,109 @@ export class ManagerFixture {
         // NOTE: remaining accounts are market configs.
       })
       .remainingAccounts(deriveMultiMarketConfigs(this.managerVaultConfigAcc.key, newSupplyQueue, this.program.programId))
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async submitGuardian({
+    user,
+    newGuardian,
+  }: {
+    user: UserFixture;
+    newGuardian: UserFixture;
+  }): Promise<void> {
+
+    await this.program.methods
+      .submitGuardian({
+        newGuardian: newGuardian.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async acceptGuardian({
+    user,
+  }: {
+    user: UserFixture;
+  }): Promise<void> {
+
+    await this.program.methods
+      .acceptGuardian()
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async revokePendingGuardian({
+    user,
+  }: {
+    user: UserFixture;
+  }): Promise<void> {
+    await this.program.methods
+      .revokePendingGuardian()
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async submitTimelock({
+    user,
+    newTimelock,
+  }: {
+    user: UserFixture;
+    newTimelock: anchor.BN;
+  }): Promise<void> {
+
+    await this.program.methods
+      .submitTimelock({
+        newTimelock,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async acceptTimelock({
+    user,
+  }: {
+    user: UserFixture;
+  }): Promise<void> {
+
+    await this.program.methods
+      .acceptTimelock()
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async revokePendingTimelock({
+    user,
+  }: {
+    user: UserFixture;
+  }): Promise<void> {
+
+    await this.program.methods
+      .revokePendingTimelock()
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }

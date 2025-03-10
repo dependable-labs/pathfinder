@@ -4,6 +4,7 @@ use pathfinder as PATH;
 
 use crate::state::*;
 use crate::error::*;
+use crate::traits::curator::CuratorProtection;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SubmitCapArgs {
@@ -57,7 +58,15 @@ pub struct SubmitCap<'info> {
     pub system_program: Program<'info, System>,
 }
 
+impl<'info> CuratorProtection<'info> for SubmitCap<'info> {}
+
 impl<'info> SubmitCap<'info> {
+
+    pub fn validate(&self, args: &SubmitCapArgs) -> Result<()> {
+        self.is_curator(&self.user, &self.config)?;
+        Ok(())
+    }
+
     pub fn handle(ctx: Context<SubmitCap>, args: SubmitCapArgs) -> Result<()> {
         let SubmitCap {
             market_config,

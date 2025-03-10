@@ -5,6 +5,7 @@ declare_id!("4JpJWm53pKAwsyJ5HxGoXRwFFW8FSr49mYjkRKzn7pyj");
 pub mod instructions;
 pub mod state;
 pub mod error;
+pub mod traits;
 
 use crate::instructions::*;
 
@@ -16,6 +17,7 @@ pub mod assistant_to_the_regional_manager {
         CreateManager::handle(ctx, args)
     }
 
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn submit_cap(ctx: Context<SubmitCap>, args: SubmitCapArgs) -> Result<()> {
         SubmitCap::handle(ctx, args)
     }
@@ -24,10 +26,30 @@ pub mod assistant_to_the_regional_manager {
         AcceptCap::handle(ctx, args)
     }
 
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn revoke_pending_cap(ctx: Context<RevokePendingCap>, args: RevokePendingCapArgs) -> Result<()> {
+        RevokePendingCap::handle(ctx, args)
+    }
+
     pub fn set_supply_queue(ctx: Context<SetSupplyQueue>, args: SetSupplyQueueArgs) -> Result<()> {
         SetSupplyQueue::handle(ctx, args)
     }
 
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn submit_guardian(ctx: Context<SubmitGuardian>, args: SubmitGuardianArgs) -> Result<()> {
+        SubmitGuardian::handle(ctx, args)
+    }
+
+    pub fn accept_guardian(ctx: Context<AcceptGuardian>) -> Result<()> {
+        AcceptGuardian::handle(ctx)
+    }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn revoke_pending_guardian(ctx: Context<RevokePendingGuardian>) -> Result<()> {
+        RevokePendingGuardian::handle(ctx)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn submit_timelock(ctx: Context<SubmitTimelock>, args: SubmitTimelockArgs) -> Result<()> {
         SubmitTimelock::handle(ctx, args)
     }
@@ -35,6 +57,12 @@ pub mod assistant_to_the_regional_manager {
     pub fn accept_timelock(ctx: Context<AcceptTimelock>) -> Result<()> {
         AcceptTimelock::handle(ctx)
     }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn revoke_pending_timelock(ctx: Context<RevokePendingTimelock>) -> Result<()> {
+        RevokePendingTimelock::handle(ctx)
+    }
+
 }
 
 
