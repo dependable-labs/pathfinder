@@ -50,6 +50,16 @@ pub mod assistant_to_the_regional_manager {
     }
 
     #[access_control(ctx.accounts.validate(&args))]
+    pub fn set_curator(ctx: Context<SetCurator>, args: SetCuratorArgs) -> Result<()> {
+        SetCurator::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn set_allocator(ctx: Context<SetAllocator>, args: SetAllocatorArgs) -> Result<()> {
+        SetAllocator::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn submit_timelock(ctx: Context<SubmitTimelock>, args: SubmitTimelockArgs) -> Result<()> {
         SubmitTimelock::handle(ctx, args)
     }

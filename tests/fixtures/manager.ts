@@ -4,7 +4,17 @@ import { Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
 import { BankrunProvider } from "anchor-bankrun";
 import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture} from "./index";
-import { COMMITMENT, deriveManagerConfigAccount, deriveMarketConfigAccount, deriveMetadataAccount, deriveMultiMarketConfigs, deriveQueueAccount, MPL_TOKEN_METADATA_PROGRAM_ID, ONE_DAY_TIMELOCK } from "../utils";
+import {
+  COMMITMENT,
+  deriveManagerConfigAccount,
+  deriveMarketConfigAccount,
+  deriveMetadataAccount,
+  deriveMultiMarketConfigs,
+  deriveQueueAccount,
+  deriveAllocatorAccount,
+  MPL_TOKEN_METADATA_PROGRAM_ID,
+  ONE_DAY_TIMELOCK
+} from "../utils";
 
 export class ManagerFixture {
   public program: Program<AssistantToTheRegionalManager>;
@@ -14,6 +24,7 @@ export class ManagerFixture {
   public shareMint: anchor.Wallet;
   public managerVaultConfigAcc: AccountFixture;
   public queue: AccountFixture;
+  public allocator: AccountFixture;
 
   public constructor(
     public _program: Program<AssistantToTheRegionalManager>,
@@ -283,6 +294,58 @@ export class ManagerFixture {
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }
+
+  async setCurator({
+    user,
+    newCurator,
+  }: {
+    user: UserFixture;
+    newCurator: UserFixture;
+  }): Promise<void> {
+
+    await this.program.methods
+      .setCurator({
+        curator: newCurator.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async setAllocator({
+    user,
+    newAllocator,
+    isAllocator,
+  }: {
+    user: UserFixture;
+    newAllocator: UserFixture;
+    isAllocator: boolean;
+  }): Promise<void> {
+
+    // set manager config account
+    this.allocator = new AccountFixture(
+      "allocatorState",
+      deriveAllocatorAccount(this.managerVaultConfigAcc.key, newAllocator.key.publicKey, this.program.programId),
+      this.program,
+    );
+ 
+    await this.program.methods
+      .setAllocator({
+        allocator: newAllocator.key.publicKey,
+        isAllocator: isAllocator,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        allocator: this.allocator.key,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
 
   async submitTimelock({
     user,

@@ -16,7 +16,6 @@ use crate::instructions::timelock::check_timelock_bounds;
 pub struct CreateManagerArgs {
   pub owner: Pubkey,
   pub guardian: Pubkey,
-  pub allocator: Pubkey,
   pub fee_recipient: Pubkey,
   pub skim_recipient: Pubkey,
   pub curator: Pubkey,
@@ -99,7 +98,6 @@ impl<'info> CreateManager<'info> {
         quote_mint: quote_mint.key(),
         curator: args.curator,
         guardian: args.guardian,
-        allocator: args.allocator,
         owner: args.owner,
         pending_guardian: PendingPubkey {
           value: Pubkey::default(),

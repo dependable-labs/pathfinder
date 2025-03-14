@@ -17,7 +17,6 @@ pub struct ManagerVaultConfig {
   pub quote_mint: Pubkey,
   pub curator: Pubkey,
   pub guardian: Pubkey,
-  pub allocator: Pubkey,
   pub owner: Pubkey,
   pub pending_guardian: PendingPubkey,
   pub fee_recipient: Pubkey,
@@ -38,7 +37,6 @@ pub struct ManagerVaultConfig {
 #[account]
 pub struct AllocatorState {
   pub bump: u8,
-  pub allocator: Pubkey,
   pub is_allocator: bool,
 }
 

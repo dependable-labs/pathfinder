@@ -165,6 +165,21 @@ export function deriveQueueAccount(
   )[0];
 }
 
+export function deriveAllocatorAccount(
+  managerConfig: PublicKey,
+  allocator: PublicKey,
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("managerallocator"),
+      managerConfig.toBuffer(),
+      allocator.toBuffer(),
+    ],
+    programId
+  )[0];
+}
+
 
 export class TestUtils {
   private program: Program<Pathfinder>;

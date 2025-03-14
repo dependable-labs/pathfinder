@@ -16,7 +16,6 @@ pub struct RevokePendingGuardian<'info> {
             config.name.as_bytes(),
         ],
         bump = config.bump,
-        constraint = config.guardian == user.key() @ ManagerError::UnauthorizedCurator,
     )]
     pub config: Box<Account<'info, ManagerVaultConfig>>,
 }
