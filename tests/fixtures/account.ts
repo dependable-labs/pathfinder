@@ -22,8 +22,7 @@ export class AccountFixture {
 
   public async get_data(): Promise<any> {
     try {
-      const data = await this.program.account[this.name].fetch(this.key);
-      return data;
+      return await this.program.account[this.name].fetch(this.key);
     } catch (e) {
       return undefined;
     }
