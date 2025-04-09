@@ -52,7 +52,7 @@ pub struct SubmitCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Account<'info, MarketConfig>,
+    pub market_config: Box<Account<'info, MarketConfig>>,
 
     // errors if market account is not initialized
     #[account(
