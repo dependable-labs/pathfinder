@@ -3,7 +3,6 @@ import { ONE_DAY_TIMELOCK, TestUtils } from "../../utils";
 import { ManagerFixture, MarketFixture, UserFixture } from "../../fixtures";
 import { AssistantToTheRegionalManager } from "../../../target/types/assistant_to_the_regional_manager";
 import assert from "assert";
-import { on } from "events";
 import { Keypair } from "@solana/web3.js";
 
 describe("submit_cap", () => {

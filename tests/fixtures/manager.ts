@@ -267,10 +267,6 @@ export class ManagerFixture {
       marketIds: PublicKey[];
   }): Promise<void> {
 
-    console.log("marketIds", marketIds);
-
-    console.log("deriveMultiMarketConfigs", deriveMultiMarketConfigs(this.managerVaultConfigAcc.key, marketIds, this.program.programId));
-
     await this.program.methods
       .setSupplyQueue({
         marketIds,
