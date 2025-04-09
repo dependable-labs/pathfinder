@@ -157,8 +157,6 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         market: this.market.marketAcc.key,
-        quoteMint: this.quoteMint,
-        collateralMint: this.market._collateralMint,
         marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
         queue: this.queue.key,
         systemProgram: anchor.web3.SystemProgram.programId,
