@@ -3,7 +3,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
 import { BankrunProvider } from "anchor-bankrun";
-import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture} from "./index";
+import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture, MarketFixture} from "./index";
 import {
   COMMITMENT,
   deriveManagerConfigAccount,
@@ -13,27 +13,34 @@ import {
   deriveQueueAccount,
   deriveAllocatorAccount,
   MPL_TOKEN_METADATA_PROGRAM_ID,
-  ONE_DAY_TIMELOCK
+  ONE_DAY_TIMELOCK,
+  deriveMarketAddress
 } from "../utils";
 
 export class ManagerFixture {
   public program: Program<AssistantToTheRegionalManager>;
   public provider: BankrunProvider;
   public quoteMint: PublicKey;
+  public collateralMint: PublicKey;
+  public market: MarketFixture;
   public quoteAta: splAccountFixture;
   public shareMint: anchor.Wallet;
   public managerVaultConfigAcc: AccountFixture;
-  public queue: AccountFixture;
+  public queue: queueAccountFixture;
   public allocator: AccountFixture;
 
   public constructor(
     public _program: Program<AssistantToTheRegionalManager>,
     public _provider: BankrunProvider,
     public _quoteMint: PublicKey,
+    public _market: MarketFixture,
+    public _collateralMint: PublicKey,
   ) {
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
+    this.collateralMint = _collateralMint;
+    this.market = _market;
     this.shareMint = new anchor.Wallet(Keypair.generate());
   }
 
@@ -96,7 +103,7 @@ export class ManagerFixture {
     );
 
     this.queue = new queueAccountFixture(
-      "queue",
+      "queueState",
       deriveQueueAccount(this.managerVaultConfigAcc.key, this.program.programId),
       this.program
     );
@@ -119,6 +126,7 @@ export class ManagerFixture {
         config: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
         shareMint: this.shareMint.publicKey,
+        queue: this.queue.key,
         metadataAccount: deriveMetadataAccount(this.shareMint.publicKey, MPL_TOKEN_METADATA_PROGRAM_ID, this.program.programId),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -138,6 +146,8 @@ export class ManagerFixture {
     supplyCap: anchor.BN;
   }): Promise<void> {
 
+    const marketAccountData = await this.market.marketAcc.get_data();
+
     await this.program.methods
       .submitCap({
         marketId,
@@ -146,8 +156,38 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
+        market: this.market.marketAcc.key,
         marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
-        queue: deriveQueueAccount(this.managerVaultConfigAcc.key, this.program.programId),
+        queue: this.queue.key,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async submitCapCustom({
+    user,
+    marketId,
+    supplyCap,
+    market,
+  }: {
+    user: UserFixture;
+    marketId: PublicKey;
+    supplyCap: anchor.BN;
+    market: PublicKey;
+  }): Promise<void> {
+
+    await this.program.methods
+      .submitCap({
+        marketId,
+        supplyCap,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        market: market,
+        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        queue: this.queue.key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -170,7 +210,7 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
-        queue: deriveQueueAccount(this.managerVaultConfigAcc.key, this.program.programId),
+        queue: this.queue.key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -221,25 +261,26 @@ export class ManagerFixture {
 
   async setSupplyQueue({
     user,
-    newSupplyQueue,
+    marketIds,
   }: {
     user: UserFixture;
-    newSupplyQueue: PublicKey[];
+      marketIds: PublicKey[];
   }): Promise<void> {
 
     await this.program.methods
       .setSupplyQueue({
-        newSupplyQueue,
+        marketIds,
       })
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
+        queue: deriveQueueAccount(this.managerVaultConfigAcc.key, this.program.programId),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
         // NOTE: remaining accounts are market configs.
       })
-      .remainingAccounts(deriveMultiMarketConfigs(this.managerVaultConfigAcc.key, newSupplyQueue, this.program.programId))
+      .remainingAccounts(deriveMultiMarketConfigs(this.managerVaultConfigAcc.key, marketIds, this.program.programId))
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }

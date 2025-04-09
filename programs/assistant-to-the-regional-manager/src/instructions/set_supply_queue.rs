@@ -6,7 +6,7 @@ use crate::error::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetSupplyQueueArgs {
-    pub new_supply_queue: Vec<Pubkey>,
+    pub market_ids: Vec<Pubkey>,
 }
 
 #[derive(Accounts)]
@@ -29,9 +29,7 @@ pub struct SetSupplyQueue<'info> {
 
     // queue are the market accounts from the pathfinder program
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<QueueState>(),
+        mut,
         seeds = [
             QUEUE_SEED_PREFIX,
             config.key().as_ref(),
@@ -59,49 +57,44 @@ impl<'info> SetSupplyQueue<'info> {
         } = ctx.accounts;
 
         // Check queue length doesn't exceed max
-        if args.new_supply_queue.len() > MAX_QUEUE_LENGTH {
+        if args.market_ids.len() > MAX_QUEUE_LENGTH {
           return err!(ManagerError::MaxQueueLengthExceeded);
         }
 
         // Verify all markets in queue are authorized
-        for (i, market_pubkey) in args.new_supply_queue.iter().enumerate() {
-          msg!("market_pubkey: {}", &market_pubkey.to_string());
-          msg!("market_config i : {}", &ctx.remaining_accounts[i].key().to_string());
+        for (i, market_pubkey) in args.market_ids.iter().enumerate() {
 
           // retreive configs for each market account
           let market_config = load_market_config_checked(&ctx.remaining_accounts[i])?;
+
+          let config_key = config.key();
+          
           // Derive the expected market config PDA to check cap
-          // let config_key = config.key();
-          // let seeds = &[
-          //     MARKET_CONFIG_SEED_PREFIX,
-          //     config_key.as_ref(),
-          //     market_pubkey.as_ref(),
-          // ];
-          // // msg!(MARKET_CONFIG_SEED_PREFIX);
-          // msg!("config_key: {}", &config_key.to_string());
-          // msg!("market_pubkey: {}", &market_pubkey.to_string());
+          let seeds = &[
+              MARKET_CONFIG_SEED_PREFIX,
+              config_key.as_ref(),
+              market_pubkey.as_ref(),
+          ];
 
-          // let (expected_market_config_pda, expected_bump) = Pubkey::find_program_address(seeds, ctx.program_id);
-
-          // msg!("expected_market_config_pda: {}", expected_market_config_pda);
+          let (expected_market_config_pda, expected_bump) = Pubkey::find_program_address(seeds, ctx.program_id);
 
           // Verify the account we received matches the expected PDA
-          // if ctx.remaining_accounts[i].key() != expected_market_config_pda {
-          //   return err!(ManagerError::InvalidMarketConfig);
-          // }
+          if ctx.remaining_accounts[i].key() != expected_market_config_pda {
+            return err!(ManagerError::InvalidMarketConfig);
+          }
 
-          // // If you need to verify the bump stored in the account matches
+          // TODO: Inspect these bump values... they were not matching
           // if market_config.bump != expected_bump {
           //   return err!(ManagerError::InvalidMarketConfig);
           // }
           
-          // if market_config.cap == 0 {
-          //   return err!(ManagerError::UnauthorizedMarket); 
-          // }
+          if market_config.cap == 0 {
+            return err!(ManagerError::UnauthorizedMarket); 
+          }
         }
 
-        // // Update supply queue
-        // queue.supply_queue = args.new_supply_queue;
+        // Update supply queue
+        queue.supply_queue = args.market_ids;
 
         Ok(())
 
@@ -110,10 +103,9 @@ impl<'info> SetSupplyQueue<'info> {
 
 
 pub fn load_market_config_checked(ai: &AccountInfo) -> Result<MarketConfig> {
-  // TODO: Is there away to use Account::<MarketConfig>::try_from()?; 
-  // rather then doing these checks manually?
+  // TODO: Should use Account::<MarketConfig>::try_from() instead of manual checks
 
-  // market config acc must be initialized to be added to the queue
+  // market config acc is not initialized or is not the owned by the program
   require!(
     ai.owner.eq(&crate::ID),
     ManagerError::InvalidMarketConfig
