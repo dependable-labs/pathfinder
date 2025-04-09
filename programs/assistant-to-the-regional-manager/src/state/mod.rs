@@ -43,6 +43,7 @@ pub struct AllocatorState {
 // Market Config Account - Stores configuration for each market
 // (Multiple accounts, one per market)
 // ["managermarketconfig", vault_address, market_id]
+// in queue methods MarketConfigs are passed as remaining accounts
 #[account]
 pub struct MarketConfig {
   pub bump: u8,

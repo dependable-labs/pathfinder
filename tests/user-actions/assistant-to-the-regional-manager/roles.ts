@@ -47,7 +47,9 @@ describe("roles", () => {
       authority: futarchy,
     });
 
-    manager = await test.initManagerFixture();
+    await market.createAndSetAuthority({ user: owen });
+
+    manager = await test.initManagerFixture(market);
 
     await manager.createCustom({
       user: owen,

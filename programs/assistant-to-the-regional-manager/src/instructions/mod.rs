@@ -1,5 +1,5 @@
 pub mod create_manager;
-pub mod queue;
+pub mod set_supply_queue;
 pub mod submit_cap;
 pub mod accept_cap;
 pub mod revoke_cap;
@@ -7,9 +7,10 @@ pub mod guardian;
 pub mod set_curator;
 pub mod set_allocator;
 pub mod timelock;
+pub mod submit_market_removal;
 
 pub use create_manager::*;
-pub use queue::*;
+pub use set_supply_queue::*;
 pub use submit_cap::*;
 pub use accept_cap::*;
 pub use revoke_cap::*;
@@ -17,3 +18,4 @@ pub use guardian::*;
 pub use set_curator::*; 
 pub use set_allocator::*;
 pub use timelock::*;
+pub use submit_market_removal::*;

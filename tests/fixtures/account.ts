@@ -6,23 +6,23 @@ import { getAccount } from '@solana/spl-token';
 
 
 export class AccountFixture {
-  public name: string;
+  public structName: string;
   public key: PublicKey;
   public program: Program<Markets>;
 
   public constructor(
-    public _name: string,
+    public _structName: string,
     public _key: PublicKey,
     public _program: Program<Markets>,
   ) {
-    this.name = _name;
+    this.structName = _structName;
     this.key = _key;
     this.program = _program;
   }
 
   public async get_data(): Promise<any> {
     try {
-      return await this.program.account[this.name].fetch(this.key);
+      return await this.program.account[this.structName].fetch(this.key);
     } catch (e) {
       return undefined;
     }

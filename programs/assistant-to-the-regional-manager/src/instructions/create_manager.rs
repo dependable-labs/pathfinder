@@ -46,6 +46,18 @@ pub struct CreateManager<'info> {
   )]
   pub config: Box<Account<'info, ManagerVaultConfig>>,
 
+  #[account(
+    init,
+    payer = user,
+    space = 8 + std::mem::size_of::<QueueState>() + (MAX_QUEUE_LENGTH * std::mem::size_of::<Pubkey>() * 2),
+    seeds = [
+      QUEUE_SEED_PREFIX,
+      config.key().as_ref(),
+    ],
+    bump,
+  )]
+  pub queue: Box<Account<'info, QueueState>>,
+
   // Share token mint account
   #[account(
     init,
@@ -86,6 +98,7 @@ impl<'info> CreateManager<'info> {
       rent,
       token_metadata_program,
       quote_mint,
+      queue,
       ..
     } = ctx.accounts;
 
@@ -114,6 +127,12 @@ impl<'info> CreateManager<'info> {
           value: 0,
           valid_at: 0,
         },
+    });
+
+    queue.set_inner(QueueState {
+      bump: ctx.bumps.queue,
+      supply_queue: Vec::new(),
+      withdraw_queue: Vec::new(),
     });
 
     // Create the metadata account for the share token

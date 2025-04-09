@@ -124,7 +124,7 @@ export function deriveMultiMarketConfigs(
   marketIds: PublicKey[],
   programId: PublicKey
 ) {
-  return marketIds.map((marketId) => {
+  const marketConfigs = marketIds.map((marketId) => {
     return {
       pubkey: deriveMarketConfigAccount(
         managerConfig,
@@ -135,6 +135,8 @@ export function deriveMultiMarketConfigs(
       isWritable: false
     }
   });
+
+  return marketConfigs;
 }
 
 export function deriveMarketConfigAccount(
@@ -294,11 +296,13 @@ export class TestUtils {
     );
   }
 
-  public async initManagerFixture() {
+  public async initManagerFixture(market: MarketFixture) {
     return new ManagerFixture(
       this.managerProgram,
       this.provider,
       this.quoteMint,
+      market // a manager has a one to many relationship with markets but for testing purposes we can just pass in one market
+
     );
   }
 

@@ -31,6 +31,11 @@ pub mod assistant_to_the_regional_manager {
         RevokePendingCap::handle(ctx, args)
     }
 
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn submit_market_removal(ctx: Context<SubmitMarketRemoval>, args: SubmitMarketRemovalArgs) -> Result<()> {
+        SubmitMarketRemoval::handle(ctx, args)
+    }
+
     pub fn set_supply_queue(ctx: Context<SetSupplyQueue>, args: SetSupplyQueueArgs) -> Result<()> {
         SetSupplyQueue::handle(ctx, args)
     }

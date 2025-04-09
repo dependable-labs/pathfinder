@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
-use pathfinder as PATH;
+use pathfinder::state::Market;
+use pathfinder::state::MARKET_SEED_PREFIX;
 
 use crate::state::*;
 use crate::error::*;
@@ -31,14 +32,12 @@ pub struct SubmitCap<'info> {
     pub config: Box<Account<'info, ManagerVaultConfig>>,
     
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<QueueState>(),
+        mut,
         seeds = [
             QUEUE_SEED_PREFIX,
             config.key().as_ref(),
         ],
-        bump,
+        bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
 
@@ -53,7 +52,13 @@ pub struct SubmitCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, MarketConfig>>,
+    pub market_config: Account<'info, MarketConfig>,
+
+    // errors if market account is not initialized
+    #[account(
+        owner = PATHFINDER_PROGRAM_ID,
+    )]
+    pub market: Account<'info, Market>,
 
     pub system_program: Program<'info, System>,
 }
@@ -70,12 +75,13 @@ impl<'info> SubmitCap<'info> {
     pub fn handle(ctx: Context<SubmitCap>, args: SubmitCapArgs) -> Result<()> {
         let SubmitCap {
             market_config,
-            queue,
             config,
+            market,
+            queue,
             ..
         } = ctx.accounts;
 
-        let market_id: Pubkey = args.market_id;
+        let market_id: Pubkey = market.key();
 
         // Check if there's already a pending cap change
         if market_config.pending_cap.valid_at != 0 {
