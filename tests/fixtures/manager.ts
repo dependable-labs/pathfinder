@@ -331,6 +331,7 @@ export class ManagerFixture {
         quoteMint: this.quoteMint,
         queue: this.queue.key,
         lenderShares: null,
+        // TODO: test once deposits are functional
         // lenderShares: market.get_lender_shares(ASSISTANT_TO_THE_REGIONAL_MANAGER_PROGRAM_ID).key,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
