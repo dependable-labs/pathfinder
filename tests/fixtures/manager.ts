@@ -14,34 +14,34 @@ import {
   deriveAllocatorAccount,
   MPL_TOKEN_METADATA_PROGRAM_ID,
   ONE_DAY_TIMELOCK,
-  deriveMarketAddress
+  deriveMarketAddress,
+  PATHFINDER_PROGRAM_ID,
+  ASSISTANT_TO_THE_REGIONAL_MANAGER_PROGRAM_ID,
 } from "../utils";
 
 export class ManagerFixture {
   public program: Program<AssistantToTheRegionalManager>;
   public provider: BankrunProvider;
   public quoteMint: PublicKey;
-  public collateralMint: PublicKey;
   public market: MarketFixture;
   public quoteAta: splAccountFixture;
   public shareMint: anchor.Wallet;
   public managerVaultConfigAcc: AccountFixture;
-  public queue: queueAccountFixture;
   public allocator: AccountFixture;
+  public queue: queueAccountFixture;
+  public markets: MarketFixture[];
 
   public constructor(
     public _program: Program<AssistantToTheRegionalManager>,
     public _provider: BankrunProvider,
     public _quoteMint: PublicKey,
-    public _market: MarketFixture,
-    public _collateralMint: PublicKey,
+    public _markets: MarketFixture[],
   ) {
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
-    this.collateralMint = _collateralMint;
-    this.market = _market;
     this.shareMint = new anchor.Wallet(Keypair.generate());
+    this.markets = _markets;
   }
 
   async create({
@@ -146,8 +146,6 @@ export class ManagerFixture {
     supplyCap: anchor.BN;
   }): Promise<void> {
 
-    const marketAccountData = await this.market.marketAcc.get_data();
-
     await this.program.methods
       .submitCap({
         marketId,
@@ -156,13 +154,14 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        market: this.market.marketAcc.key,
-        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        market: this.get_market(marketId).marketAcc.key,
+        marketConfig: this.get_market_config(marketId).key,
         queue: this.queue.key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
-      .rpc(COMMITMENT);
+      .rpc(COMMITMENT); 
+    
   }
 
   async submitCapCustom({
@@ -186,7 +185,7 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         market: market,
-        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        marketConfig: this.get_market_config(marketId).key,
         queue: this.queue.key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -209,7 +208,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        marketConfig: this.get_market_config(marketId).key,
         queue: this.queue.key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -232,7 +231,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        marketConfig: this.get_market_config(marketId).key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -253,7 +252,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        marketConfig: deriveMarketConfigAccount(this.managerVaultConfigAcc.key, marketId, this.program.programId),
+        marketConfig: this.get_market_config(marketId).key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -281,6 +280,62 @@ export class ManagerFixture {
         // NOTE: remaining accounts are market configs.
       })
       .remainingAccounts(deriveMultiMarketConfigs(this.managerVaultConfigAcc.key, marketIds, this.program.programId))
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async reorderWithdrawQueue({
+    user,
+    marketIds,
+  }: {
+    user: UserFixture;
+    marketIds: PublicKey[];
+  }): Promise<void> {
+
+    await this.program.methods
+      .reorderWithdrawQueue({
+        marketIds,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
+        config: this.managerVaultConfigAcc.key,
+        quoteMint: this.quoteMint,
+        queue: this.queue.key,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+  async removeFromWithdrawQueue({
+    user,
+    marketId,
+  }: {
+    user: UserFixture;
+    marketId: PublicKey;
+  }): Promise<void> {
+
+    const market = this.get_market(marketId);
+
+    await this.program.methods
+      .removeFromWithdrawQueue({
+        marketId,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
+        marketConfig: this.get_market_config(marketId).key,
+        quoteMint: this.quoteMint,
+        queue: this.queue.key,
+        lenderShares: null,
+        // TODO: test once deposits are functional
+        // lenderShares: market.get_lender_shares(ASSISTANT_TO_THE_REGIONAL_MANAGER_PROGRAM_ID).key,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }
@@ -450,6 +505,30 @@ export class ManagerFixture {
       ),
       this.program
     );
+  }
+
+  public get_market(marketId: PublicKey): MarketFixture {
+    const market = this.markets.find(market => market.marketAcc.key.equals(marketId));
+    if (!market) {
+      throw new Error(`Market ${marketId.toBase58()} not found`);
+    }
+    return market;
+  }
+
+  public async get_allocator(user: PublicKey): Promise<AccountFixture | null> {
+    let allocator = new AccountFixture(
+      "allocatorState",
+      deriveAllocatorAccount(this.managerVaultConfigAcc.key, user, this.program.programId),
+      this.program,
+    );
+
+    console.log("allocator here:", await allocator.get_data());
+
+    if (await allocator.get_data() == undefined) {
+      return null;
+    }
+
+    return allocator;
   }
   
   // account related methods

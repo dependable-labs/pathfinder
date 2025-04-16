@@ -47,9 +47,9 @@ describe("roles", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: owen });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: owen });
 
-    manager = await test.initManagerFixture(market);
+    manager = await test.initManagerFixture([market]);
 
     await manager.createCustom({
       user: owen,
@@ -121,9 +121,9 @@ describe("roles", () => {
       isAllocator: true
     });
 
-    const allocator = await manager.allocator.get_data();
+    const allocator = await (await manager.get_allocator(alice.key.publicKey))?.get_data();
     assert.equal(
-        allocator.isAllocator,
+        allocator?.isAllocator,
         true,
       "Allocator should be updated"
     );

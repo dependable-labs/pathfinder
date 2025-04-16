@@ -43,7 +43,7 @@ describe("Accrue Interest", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -229,7 +229,7 @@ describe("Accrue Interest", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: lip });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: lip });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -304,7 +304,7 @@ describe("Accrue Interest", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: lip });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: lip });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({
@@ -378,7 +378,7 @@ describe("Accrue Interest", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: lip });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: lip });
 
     // Setup initial state: deposit, collateralize, and borrow
     await market.deposit({

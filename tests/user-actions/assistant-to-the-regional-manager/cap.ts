@@ -37,9 +37,9 @@ describe("submit_cap", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: owen });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: owen });
 
-    manager = await test.initManagerFixture(market); 
+    manager = await test.initManagerFixture([market]); 
 
     await manager.create({
       user: owen,

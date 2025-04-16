@@ -40,6 +40,16 @@ pub mod assistant_to_the_regional_manager {
         SetSupplyQueue::handle(ctx, args)
     }
 
+    #[access_control(ctx.accounts.validate())]
+    pub fn reorder_withdraw_queue(ctx: Context<ReorderWithdrawQueue>, args: ReorderWithdrawQueueArgs) -> Result<()> {
+        ReorderWithdrawQueue::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn remove_from_withdraw_queue(ctx: Context<RemoveFromWithdrawQueue>, args: RemoveFromWithdrawQueueArgs) -> Result<()> {
+        RemoveFromWithdrawQueue::handle(ctx, args)
+    }
+
     #[access_control(ctx.accounts.validate(&args))]
     pub fn submit_guardian(ctx: Context<SubmitGuardian>, args: SubmitGuardianArgs) -> Result<()> {
         SubmitGuardian::handle(ctx, args)
@@ -77,7 +87,6 @@ pub mod assistant_to_the_regional_manager {
     pub fn revoke_pending_timelock(ctx: Context<RevokePendingTimelock>) -> Result<()> {
         RevokePendingTimelock::handle(ctx)
     }
-
 }
 
 

@@ -122,7 +122,7 @@ async function _generatePendingInterest({
     authority: futarchy,
   });
 
-  await market.createAndSetAuthority({ user: larry });
+  await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
   await market.updateFee({
     user: futarchy,

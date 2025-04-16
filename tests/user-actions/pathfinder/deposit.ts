@@ -40,7 +40,7 @@ describe("Deposit", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
   });
 
@@ -126,7 +126,7 @@ describe("Deposit", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,

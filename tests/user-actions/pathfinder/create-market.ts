@@ -47,7 +47,7 @@ describe("Create Market Operations", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
@@ -70,7 +70,7 @@ describe("Create Market Operations", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await assert.rejects(
       async () => {
