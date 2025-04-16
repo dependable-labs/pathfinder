@@ -50,21 +50,43 @@ export class MarketFixture {
   }
 
   async createAndSetAuthority({
-    user,
+    authority,
+    payerAndRecipient,
   }: {
-    user: UserFixture;
+    authority: UserFixture;
+    payerAndRecipient: UserFixture;
   }): Promise<void> {
-    await this.updateRecipient({
-      user: this.configAuthority,
-      new_recipient: this.configFeeRecipient,
-    });
-    await this.updateAuthority({
-      user: this.configAuthority,
-      new_authority: this.configAuthority,
-    });
+
+
+    const config = await this.get_config().get_data();
+
+    // if undefined, it hasn't been set
+    // if the feeRecipient is not the user, update the feeRecipient else keep it the same
+    if (config == undefined || config.feeRecipient.toBase58() !== payerAndRecipient.key.publicKey.toBase58()) {
+
+      await this.updateRecipient({
+        user: this.configAuthority, 
+        new_recipient: payerAndRecipient,
+      });
+
+      this.configFeeRecipient = payerAndRecipient;
+
+    }
+
+    // if undefined, it hasn't been set
+    // if the authority is not the user, update the authority else keep it the same
+    if (config == undefined || config.authority.toBase58() !== authority.key.publicKey.toBase58()) {
+      await this.updateAuthority({
+        user: this.configAuthority,
+        new_authority: authority,
+      });
+
+      this.configAuthority = authority;
+
+    }
 
     await this.createCustom({
-      user,
+      user: payerAndRecipient,
       collateralSymbol: this.collateral.symbol,
       ltvFactor: this.collateral._ltvFactor,
       quoteMint: this.quoteMint,

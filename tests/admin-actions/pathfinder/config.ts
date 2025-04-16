@@ -1,5 +1,5 @@
-import { TestUtils } from "../utils";
-import { MarketFixture, UserFixture } from "../fixtures";
+import { TestUtils } from "../../utils";
+import { MarketFixture, UserFixture } from "../../fixtures";
 import * as anchor from "@coral-xyz/anchor";
 import assert from "assert";
 
@@ -47,7 +47,10 @@ describe("Config Operations", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({
+      authority: futarchy,
+      payerAndRecipient: larry,
+    });
 
   });
 
@@ -65,7 +68,7 @@ describe("Config Operations", () => {
       },
       (err: anchor.AnchorError) => {
         assert.strictEqual(err.error.errorCode.number, 6018);
-        assert.strictEqual(err.error.errorMessage, "Invalid authority"); // wrong err!
+        assert.strictEqual(err.error.errorMessage, "Invalid authority");
         return true;
       }
     );
@@ -110,18 +113,18 @@ describe("Config Operations", () => {
 
   it("sets and restricts update recipient based on authority", async () => {
     const preConfigData = await market.get_config().get_data();
-    assert.equal(preConfigData.feeRecipient.toBase58(), futarchy.key.publicKey.toBase58());
+    assert.equal(preConfigData.feeRecipient.toBase58(), larry.key.publicKey.toBase58());
 
     await assert.rejects(
       async () => {
         await market.updateRecipient({
           user: larry,
-          new_recipient: lilly,
+          new_recipient: futarchy,
         });
       },
       (err: anchor.AnchorError) => {
         assert.strictEqual(err.error.errorCode.number, 6018);
-        assert.strictEqual(err.error.errorMessage, "Invalid authority"); // wrong err!
+        assert.strictEqual(err.error.errorMessage, "Invalid authority");
         return true;
       }
     );
@@ -131,16 +134,15 @@ describe("Config Operations", () => {
       new_recipient: lilly,
     });
 
+
     const postConfigData = await market.get_config().get_data();
     assert.equal(postConfigData.feeRecipient.toBase58(), lilly.key.publicKey.toBase58());
   });
 
 
   it("correctly for a year with protocol fee", async () => {
+
     // Setup initial state: deposit, collateralize, and borrow
-
-     // Add this check before deposit
-
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1_000 * 1e9),
@@ -245,7 +247,7 @@ describe("Config Operations", () => {
           user: futarchy,
           amount: new anchor.BN(0),
           shares: new anchor.BN(feeShares),
-          recipient: larry,
+          recipient: futarchy,
         });
       },
       (err: anchor.AnchorError) => {
@@ -256,10 +258,10 @@ describe("Config Operations", () => {
     );
 
     await market.withdrawFee({
-      user: futarchy,
+      user: larry,
       amount: new anchor.BN(0),
       shares: new anchor.BN(feeShares),
-      recipient: futarchy,
+      recipient: larry,
     });
 
     // Verify fee recipient shares
@@ -270,9 +272,9 @@ describe("Config Operations", () => {
     );
 
     // Verify fee recipient shares
-    const futarchyQuoteAfterWithdraw = await futarchy.get_quo_balance();
+    const quoteAfterWithdraw = await larry.get_quo_balance();
     assert.equal(
-      futarchyQuoteAfterWithdraw,
+      quoteAfterWithdraw,
       BigInt(135_144_693)
     );
 

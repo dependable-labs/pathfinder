@@ -57,4 +57,25 @@ pub enum ManagerError {
 
     #[msg("Unauthorized signer")]
     UnauthorizedSigner,
+
+    #[msg("Duplicate market")]
+    DuplicateMarket,
+
+    #[msg("Invalid market removal")]
+    InvalidMarketRemoval,
+
+    #[msg("Non-zero supply")]
+    NonZeroSupply,
+
+    #[msg("Market not in queue")]
+    MarketNotInQueue,
+
+    #[msg("Invalid market removal non-zero cap")]
+    InvalidMarketRemovalNonZeroCap,
+
+    #[msg("Invalid market removal non-zero supply")]
+    InvalidMarketRemovalNonZeroSupply,
+
+    #[msg("Invalid market removal timelock not elapsed")]
+    InvalidMarketRemovalTimelockNotElapsed,
 }

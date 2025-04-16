@@ -42,7 +42,7 @@ describe("User Borrow", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,

@@ -41,7 +41,7 @@ describe("Withdraw", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ user: larry });
+    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     // Pre-deposit funds for withdrawal tests
     await market.deposit({

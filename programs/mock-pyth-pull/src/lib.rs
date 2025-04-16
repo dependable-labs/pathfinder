@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use pyth_solana_receiver_sdk::price_update::{
-  get_feed_id_from_hex, PriceFeedMessage, PriceUpdateV2, VerificationLevel,
+  PriceFeedMessage, PriceUpdateV2, VerificationLevel,
 };
 
 declare_id!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");

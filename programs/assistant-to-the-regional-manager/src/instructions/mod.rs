@@ -1,5 +1,7 @@
 pub mod create_manager;
 pub mod set_supply_queue;
+pub mod remove_from_withdraw_queue;
+pub mod reorder_withdraw_queue;
 pub mod submit_cap;
 pub mod accept_cap;
 pub mod revoke_cap;
@@ -11,6 +13,8 @@ pub mod submit_market_removal;
 
 pub use create_manager::*;
 pub use set_supply_queue::*;
+pub use remove_from_withdraw_queue::*;
+pub use reorder_withdraw_queue::*;
 pub use submit_cap::*;
 pub use accept_cap::*;
 pub use revoke_cap::*;
