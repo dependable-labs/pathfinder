@@ -1,16 +1,13 @@
 use anchor_spl::{
-  associated_token::AssociatedToken,
-  token::{mint_to, Mint, MintTo, Token, TokenAccount},
-  metadata::{
-      create_metadata_accounts_v3,
-      mpl_token_metadata::types::DataV2,
-      CreateMetadataAccountsV3, 
-      Metadata,
-  },
+  token::{Mint, Token},
+  metadata::Metadata,
 };
 use anchor_lang::prelude::*;
-use crate::{state::*, generate_manager_vault_seeds};
-use crate::instructions::timelock::check_timelock_bounds;
+use crate::{
+  state::*, 
+  utils::shares::_create_metadata_account,
+  instructions::timelock::check_timelock_bounds,
+};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateManagerArgs {
@@ -66,7 +63,7 @@ pub struct CreateManager<'info> {
     mint::authority = config,  // The vault controls minting/burning
     mint::freeze_authority = config,
   )]
-  pub share_mint: Account<'info, Mint>,
+  pub shares_mint: Account<'info, Mint>,
 
   #[account(constraint = quote_mint.is_initialized == true)]
   pub quote_mint: Box<Account<'info, Mint>>,
@@ -93,7 +90,7 @@ impl<'info> CreateManager<'info> {
       user,
       config,
       metadata_account,
-      share_mint,
+      shares_mint,
       system_program,
       rent,
       token_metadata_program,
@@ -109,6 +106,7 @@ impl<'info> CreateManager<'info> {
         name: args.name,
         symbol: args.symbol,
         quote_mint: quote_mint.key(),
+        shares_mint: shares_mint.key(),
         curator: args.curator,
         guardian: args.guardian,
         owner: args.owner,
@@ -141,7 +139,7 @@ impl<'info> CreateManager<'info> {
       &config.symbol,
       &config,
       &metadata_account,
-      &share_mint,
+      &shares_mint,
       &user,
       &system_program,
       &rent,
@@ -155,52 +153,3 @@ impl<'info> CreateManager<'info> {
 }
 
 
-pub fn _create_metadata_account<'info>(
-  token_name: &String,
-  token_symbol: &String,
-  config: &Account<'info, ManagerVaultConfig>,
-  metadata_account: &AccountInfo<'info>,
-  mint_account: &Account<'info, Mint>,
-  payer: &Signer<'info>,
-  system_program: &Program<'info, System>,
-  rent: &Sysvar<'info, Rent>,
-  token_metadata_program: &Program<'info, Metadata>,
-) -> Result<()> {
-
-  // generate seeds for the manager vault
-  let seeds = generate_manager_vault_seeds!(config);
-  let signer = &[&seeds[..]];
-
-  // Cross Program Invocation (CPI)
-  // Invoking the create_metadata_account_v3 instruction on the token metadata program
-  create_metadata_accounts_v3(
-      CpiContext::new_with_signer(
-    token_metadata_program.to_account_info(),
-    CreateMetadataAccountsV3 {
-        metadata: metadata_account.to_account_info(),
-        mint: mint_account.to_account_info(),
-        mint_authority: config.to_account_info(),
-        update_authority: config.to_account_info(),
-        payer: payer.to_account_info(),
-        system_program: system_program.to_account_info(),
-        rent: rent.to_account_info(),
-      },
-      signer,
-    ),
-    DataV2 {
-      name: token_name.clone(),
-      symbol: token_symbol.clone(),
-      uri: "".to_string(),
-      seller_fee_basis_points: 0,
-      creators: None,
-      collection: None,
-      uses: None,
-    },
-    false, // Is mutable
-    false,  // Update authority is signer
-    None,  // Collection details
-  )?;
-
-  Ok(())
-
-}

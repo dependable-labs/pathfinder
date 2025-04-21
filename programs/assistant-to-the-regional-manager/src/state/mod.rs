@@ -15,6 +15,7 @@ pub struct ManagerVaultConfig {
   pub name: String,
   pub symbol: String,
   pub quote_mint: Pubkey,
+  pub shares_mint: Pubkey,
   pub curator: Pubkey,
   pub guardian: Pubkey,
   pub owner: Pubkey,

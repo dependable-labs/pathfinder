@@ -1524,7 +1524,7 @@ dependencies = [
 [[package]]
 name = "pathfinder"
 version = "0.1.0"
-source = "git+https://github.com/dependable-labs/pathfinder?branch=develop#c6a77673f14f8f14b956dd50e3bebe5f1fcd5eed"
+source = "git+https://github.com/dependable-labs/pathfinder?branch=develop#a26effbd6e7412e8ed1478b593336c2f8b128c28"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
@@ -2474,7 +2474,7 @@ dependencies = [
 [[package]]
 name = "switchboard-on-demand"
 version = "0.1.0"
-source = "git+https://github.com/dependable-labs/pathfinder?branch=develop#c6a77673f14f8f14b956dd50e3bebe5f1fcd5eed"
+source = "git+https://github.com/dependable-labs/pathfinder?branch=develop#a26effbd6e7412e8ed1478b593336c2f8b128c28"
 dependencies = [
  "anchor-lang",
  "bytemuck",
