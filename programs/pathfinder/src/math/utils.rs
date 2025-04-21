@@ -14,3 +14,12 @@ pub fn max_u64(a: u64, b: u64) -> u64 {
     b
   }
 }
+
+
+pub fn zero_floor_sub(a: u64, b: u64) -> u64 {
+  if a <= b {
+    return 0;
+  } else {
+    return a - b;
+  }
+}
