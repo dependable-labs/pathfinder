@@ -48,8 +48,8 @@ pub struct Borrow<'info> {
     mut,
     seeds = [
       MARKET_SEED_PREFIX,
-      quote_mint.key().as_ref(),
-      collateral_mint.key().as_ref(),
+      &market.quote_mint.key().as_ref(),
+      &market.collateral_mint.key().as_ref(),
       &market.ltv_factor.to_le_bytes(),
       &market.oracle.id.to_bytes(),
     ],
@@ -69,15 +69,13 @@ pub struct Borrow<'info> {
   )]
   pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
-  // quote
-  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Box<Account<'info, Mint>>,
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
     associated_token::authority = market,
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+
   #[account(
     init_if_needed,
     payer = user,
@@ -86,9 +84,8 @@ pub struct Borrow<'info> {
   )]
   pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
 
-  // collateral
-  #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
-  pub collateral_mint: Box<Account<'info, Mint>>,
+  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
+  pub quote_mint: Box<Account<'info, Mint>>,
 
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
@@ -107,7 +104,6 @@ impl<'info> Borrow<'info> {
       config,
       market,
       borrower_shares,
-      collateral_mint,
       recipient_ata_quote,
       vault_ata_quote,
       token_program,
@@ -143,7 +139,7 @@ impl<'info> Borrow<'info> {
       &oracle_ai,
       updated_shares,
       borrower_shares.collateral_amount,
-      collateral_mint.decimals,
+      market.collateral_mint_decimals,
     )? {
       return err!(MarketError::NotSolvent);
     }
