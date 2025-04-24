@@ -1,7 +1,6 @@
-
 use anchor_lang::prelude::*;
 use anchor_spl::{
-  token::{mint_to, Mint, MintTo, Token, TokenAccount},
+  token::{mint_to, Mint, MintTo, Token},
   metadata::{
       create_metadata_accounts_v3,
       mpl_token_metadata::types::DataV2,
@@ -9,7 +8,14 @@ use anchor_spl::{
       Metadata,
   },
 };
-use crate::{state::*, generate_manager_vault_seeds};
+use crate::{
+  state::*,
+  generate_manager_vault_seeds,
+  instructions::Deposit
+};
+use pathfinder::instructions::ViewMarket;
+use pathfinder::state::Market;
+use pathfinder::cpi::view_expected_supply_assets;
 
 pub fn _create_metadata_account<'info>(
   token_name: &String,
@@ -61,25 +67,58 @@ pub fn _create_metadata_account<'info>(
 
 }
 
-pub fn _mint<'info> (
-  mint_account: &Account<'info, Mint>,
-  to: &AccountInfo<'info>,
-  token_program: &Program<'info, Token>,
-  config: &Account<'info, ManagerVaultConfig>,
-  amount: u64,
-) -> Result<()> {
+// pub fn _mint<'info> (
+//   mint_account: &Account<'info, Mint>,
+//   to: &AccountInfo<'info>,
+//   token_program: &Program<'info, Token>,
+//   config: &Account<'info, ManagerVaultConfig>,
+//   amount: u64,
+// ) -> Result<()> {
 
-  mint_to(
-    CpiContext::new(
-      token_program.to_account_info(),
-      MintTo {
-        mint: mint_account.to_account_info(),
-        to: to.to_account_info(),
-        authority: config.to_account_info(),
-      },
-    ),
-    amount,
-  )?;
+//   mint_to(
+//     CpiContext::new(
+//       token_program.to_account_info(),
+//       MintTo {
+//         mint: mint_account.to_account_info(),
+//         to: to.to_account_info(),
+//         authority: config.to_account_info(),
+//       },
+//     ),
+//     amount,
+//   )?;
 
-  Ok(())
-}
+//   Ok(())
+// }
+
+// pub fn total_assets(
+//   ctx: &Context<Deposit>,
+//     // queue: &Account<'_, QueueState>,
+//     // config: &Account<'_, ManagerVaultConfig>
+// ) -> Result<u64> {
+//     let mut assets: u64 = 0;
+//     let queue = &ctx.accounts.queue;
+//     let config = ctx.accounts.pathfinder_config;
+
+//     for market_id in queue.withdraw_queue.iter() {
+
+//         let market = Account::<Market>::try_from(market_id)?;
+//         let market_account = 
+
+
+
+//         let view_market = ViewMarket {
+//             market: market,
+//             config: config,
+//         };
+//         let ctx = CpiContext::new(
+//             ctx.accounts.pathfinder_program.to_account_info(),
+//             view_market,
+//         );
+//         let expected_assets = view_expected_supply_assets(ctx, market.shares)?;
+//         assets = assets.checked_add(expected_assets).unwrap();
+//     }
+    
+//     Ok(assets)
+// }
+
+

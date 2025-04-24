@@ -25,7 +25,7 @@ export class ManagerFixture {
   public quoteMint: PublicKey;
   public market: MarketFixture;
   public quoteAta: splAccountFixture;
-  public shareMint: anchor.Wallet;
+  public sharesMint: anchor.Wallet;
   public managerVaultConfigAcc: AccountFixture;
   public allocator: AccountFixture;
   public queue: queueAccountFixture;
@@ -40,7 +40,7 @@ export class ManagerFixture {
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
-    this.shareMint = new anchor.Wallet(Keypair.generate());
+    this.sharesMint = new anchor.Wallet(Keypair.generate());
     this.markets = _markets;
   }
 
@@ -125,14 +125,14 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
-        shareMint: this.shareMint.publicKey,
+        sharesMint: this.sharesMint.publicKey,
         queue: this.queue.key,
-        metadataAccount: deriveMetadataAccount(this.shareMint.publicKey, MPL_TOKEN_METADATA_PROGRAM_ID, this.program.programId),
+        metadataAccount: deriveMetadataAccount(this.sharesMint.publicKey, MPL_TOKEN_METADATA_PROGRAM_ID, this.program.programId),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
       })
-      .signers([user.key.payer, this.shareMint.payer])
+      .signers([user.key.payer, this.sharesMint.payer])
       .rpc();
   }
 

@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
-use crate::{state::*, generate_manager_vault_seeds};
-use crate::traits::{owner::OwnerProtection};
-use crate::error::ManagerError;
+use crate::{
+  state::*,
+  traits::owner::OwnerProtection,
+  error::ManagerError
+};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetAllocatorArgs {

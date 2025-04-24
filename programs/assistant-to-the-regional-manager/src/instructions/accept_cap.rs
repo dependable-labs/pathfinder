@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::instructions::submit_cap::set_cap;
 use crate::state::*;
-use crate::error::*;
 use crate::instructions::timelock::after_timelock;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]

@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::*;
 use pathfinder::state::Market;
-use pathfinder::state::MARKET_SEED_PREFIX;
 
 use crate::state::*;
 use crate::error::*;

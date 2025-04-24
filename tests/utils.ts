@@ -109,7 +109,7 @@ export function deriveManagerConfigAccount(
 }
 
 export function deriveMetadataAccount(
-  shareMint: PublicKey,
+  sharesMint: PublicKey,
   tokenMetadataProgramId: PublicKey,
   programId: PublicKey
 ) {
@@ -117,7 +117,7 @@ export function deriveMetadataAccount(
     [
       Buffer.from("metadata"),
       tokenMetadataProgramId.toBuffer(),
-      shareMint.toBuffer(),
+      sharesMint.toBuffer(),
     ],
     tokenMetadataProgramId
   )[0];

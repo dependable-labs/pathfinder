@@ -8,6 +8,7 @@ use crate::{
   utils::shares::_create_metadata_account,
   instructions::timelock::check_timelock_bounds,
 };
+use pathfinder::math::math::zero_floor_sub;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateManagerArgs {
@@ -17,7 +18,6 @@ pub struct CreateManagerArgs {
   pub skim_recipient: Pubkey,
   pub curator: Pubkey,
   pub timelock: u64,
-  pub decimals_offset: u8,
   pub name: String,
   pub symbol: String,
 }
@@ -71,7 +71,7 @@ pub struct CreateManager<'info> {
   /// CHECK: The metadata account for the share token
   #[account(
     mut,
-    seeds = [b"metadata", token_metadata_program.key().as_ref(), share_mint.key().as_ref()],
+    seeds = [b"metadata", token_metadata_program.key().as_ref(), shares_mint.key().as_ref()],
     bump,
     seeds::program = token_metadata_program.key(),
   )]
@@ -118,7 +118,7 @@ impl<'info> CreateManager<'info> {
         skim_recipient: args.skim_recipient,
         timelock: args.timelock,
         fee: 0,
-        decimals_offset: args.decimals_offset,
+        decimals_offset: zero_floor_sub(9, quote_mint.decimals as u64) as u8,
         pathfinder_program: PATHFINDER_PROGRAM_ID,  // The PATHFINDER immutable
         last_total_assets: 0,
         pending_timelock: PendingU64 {

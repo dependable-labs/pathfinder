@@ -78,4 +78,13 @@ pub enum ManagerError {
 
     #[msg("Invalid market removal timelock not elapsed")]
     InvalidMarketRemovalTimelockNotElapsed,
+
+    #[msg("Invalid pathfinder market")]
+    InvalidPathfinderMarket,
+
+    #[msg("Invalid pathfinder lender shares")]
+    InvalidPathfinderLenderShares,
+
+    #[msg("Market queue mismatch")]
+    MarketQueueMismatch,
 }
