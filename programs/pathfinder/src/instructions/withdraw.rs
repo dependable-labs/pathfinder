@@ -47,8 +47,8 @@ pub struct Withdraw<'info> {
     mut,
     seeds = [
       MARKET_SEED_PREFIX,
-      quote_mint.key().as_ref(),
-      collateral_mint.key().as_ref(),
+      &market.quote_mint.key().as_ref(),
+      &market.collateral_mint.key().as_ref(),
       &market.ltv_factor.to_le_bytes(),
       &market.oracle.id.to_bytes(),
     ],
@@ -67,9 +67,6 @@ pub struct Withdraw<'info> {
   )]
   pub lender_shares: Box<Account<'info, LenderShares>>,
 
-  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Box<Account<'info, Mint>>,
-
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
@@ -85,8 +82,8 @@ pub struct Withdraw<'info> {
   )]
   pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
 
-  #[account(constraint = collateral_mint.key() == market.collateral_mint.key())]
-  pub collateral_mint: Box<Account<'info, Mint>>,
+  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
+  pub quote_mint: Box<Account<'info, Mint>>,
 
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
