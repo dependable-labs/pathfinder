@@ -67,7 +67,6 @@ pub struct Deposit<'info> {
   pub user_ata_quote: Box<Account<'info, TokenAccount>>,
 
   pub token_program: Program<'info, Token>,
-  pub associated_token_program: Program<'info, AssociatedToken>,
   pub system_program: Program<'info, System>,
 }
 
