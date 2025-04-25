@@ -84,7 +84,6 @@ pub struct Liquidate<'info> {
   pub oracle_ai: AccountInfo<'info>,
 
   pub token_program: Program<'info, Token>,
-  pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 impl<'info> Liquidate<'info> {

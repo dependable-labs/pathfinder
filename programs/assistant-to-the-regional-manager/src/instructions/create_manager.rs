@@ -1,6 +1,5 @@
 use anchor_spl::{
-  associated_token::AssociatedToken,
-  token::{mint_to, Mint, MintTo, Token, TokenAccount},
+  token::{Mint, Token},
   metadata::{
       create_metadata_accounts_v3,
       mpl_token_metadata::types::DataV2,

@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::error::MarketError;
@@ -63,9 +62,7 @@ pub struct Repay<'info> {
     associated_token::authority = user,
   )]
   pub user_ata_quote: Box<Account<'info, TokenAccount>>,
-
   pub token_program: Program<'info, Token>,
-  pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 impl<'info> Repay<'info> {
