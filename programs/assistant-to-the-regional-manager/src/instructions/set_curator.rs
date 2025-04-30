@@ -1,18 +1,5 @@
-use anchor_spl::{
-  associated_token::AssociatedToken,
-  token::{mint_to, Mint, MintTo, Token, TokenAccount},
-  metadata::{
-      create_metadata_accounts_v3,
-      mpl_token_metadata::types::DataV2,
-      CreateMetadataAccountsV3, 
-      Metadata,
-  },
-};
 use anchor_lang::prelude::*;
-use crate::{state::*, generate_manager_vault_seeds};
-use crate::instructions::timelock::check_timelock_bounds;
-use crate::traits::{owner::OwnerProtection};
-use crate::error::ManagerError;
+use crate::{state::*, traits::owner::OwnerProtection, error::ManagerError};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetCuratorArgs {
@@ -28,7 +15,7 @@ pub struct SetCurator<'info> {
   #[account(
     mut,
     seeds = [
-        CONFIG_SEED_PREFIX,
+        MANAGER_CONFIG_SEED_PREFIX,
         config.quote_mint.as_ref(),
         config.symbol.as_bytes(),
         config.name.as_bytes(),

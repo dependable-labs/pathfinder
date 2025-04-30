@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, FeedId, PriceUpdateV2};
+use pyth_solana_receiver_sdk::price_update::{FeedId, PriceUpdateV2};
 
 use crate::error::MarketError;
 use crate::state::HR_SECONDS;

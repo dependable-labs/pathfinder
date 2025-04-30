@@ -564,11 +564,13 @@ export class MarketFixture {
   public get_ata(mint: PublicKey): PublicKey {
     return anchor.utils.token.associatedAddress({
       mint,
-      owner: this.marketAcc.key,
+      owner: this.get_config().key,
     });
   }
 
-  public get_lender_shares(userKey: PublicKey): AccountFixture {
+  public get_lender_shares(
+    userKey: PublicKey,
+  ): AccountFixture {
     let lenderSharesKey = PublicKey.findProgramAddressSync(
       [
         Buffer.from("lender_shares"),

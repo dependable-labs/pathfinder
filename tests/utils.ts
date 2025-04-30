@@ -108,19 +108,35 @@ export function deriveManagerConfigAccount(
   )[0];
 }
 
-export function deriveMetadataAccount(
-  shareMint: PublicKey,
-  tokenMetadataProgramId: PublicKey,
+export function deriveDepositRemainingAccounts(
+  managerConfig: PublicKey,
+  markets: MarketFixture[],
   programId: PublicKey
 ) {
-  return PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("metadata"),
-      tokenMetadataProgramId.toBuffer(),
-      shareMint.toBuffer(),
-    ],
-    tokenMetadataProgramId
-  )[0];
+  // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
+  const remainingAccounts = markets.map((market) => [
+    {
+      pubkey: market.marketAcc.key,
+      isSigner: false,
+      isWritable: false
+    },
+    {
+      pubkey: market.get_lender_shares(managerConfig).key,
+      isSigner: false, 
+      isWritable: false
+    },
+    {
+      pubkey: deriveMarketConfigAccount(
+        managerConfig,
+        market.marketAcc.key,
+        programId
+      ),
+      isSigner: false,
+      isWritable: false
+    }
+  ]).flat();
+
+  return remainingAccounts;
 }
 
 export function deriveMultiMarketConfigs(

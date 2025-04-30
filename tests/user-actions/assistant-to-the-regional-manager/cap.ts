@@ -49,6 +49,7 @@ describe("submit_cap", () => {
       symbol: "USDCM",
       name: "USDC Manager",
     });
+    return;
   });
 
   it("successfully submits increase cap", async () => {
@@ -311,84 +312,84 @@ describe("submit_cap", () => {
   });
 
 
-it("should successfully submit market removal", async () => {
+  it("should successfully submit market removal", async () => {
 
-  await manager.submitCap({
-    user: owen,
-    marketId: market.marketAcc.key,
-    supplyCap: new anchor.BN(1_000_000 * 1e9),
+    await manager.submitCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+      supplyCap: new anchor.BN(1_000_000 * 1e9),
+    });
+
+    // pass 1 day + 1hr for timelock
+    await test.moveTimeForward(60 * 60 * 25);
+
+    await manager.acceptCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+    });
+  
+    // First set cap to 0
+    await manager.submitCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+      supplyCap: new anchor.BN(0),
+    });
+
+    // Submit market for removal
+    await manager.submitMarketRemoval({
+      user: owen,
+      marketId: market.marketAcc.key,
+    });
+
+    // Verify market config state
+    const marketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
+
+    assert.equal(marketConfig.cap.toString(), "0");
+    assert.equal(marketConfig.removableAt.toString(), (await test.getTimePlusTimelock()).toString());
   });
 
-  // pass 1 day + 1hr for timelock
-  await test.moveTimeForward(60 * 60 * 25);
+  it("should fail to submit market removal when cap is pending", async () => {
 
-  await manager.acceptCap({
-    user: owen,
-    marketId: market.marketAcc.key,
+    // submit cap to enable market
+    await manager.submitCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+      supplyCap: new anchor.BN(1_000_000 * 1e9),
+    });
+
+    // pass 1 day + 1hr for timelock
+    await test.moveTimeForward(60 * 60 * 25);
+
+    await manager.acceptCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+    });
+
+    // set cap to 0 (happens instantly)
+    await manager.submitCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+      supplyCap: new anchor.BN(0),
+    });
+
+    // submit cap to leave market in pending state
+    await manager.submitCap({
+      user: owen,
+      marketId: market.marketAcc.key,
+      supplyCap: new anchor.BN(1_000_000 * 1e9),
+    });
+
+    await assert.rejects(
+      async () => {
+        await manager.submitMarketRemoval({
+          user: owen,
+          marketId: market.marketAcc.key,
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "Pending cap");
+        return true;
+      }
+    );
   });
- 
-  // First set cap to 0
-  await manager.submitCap({
-    user: owen,
-    marketId: market.marketAcc.key,
-    supplyCap: new anchor.BN(0),
-  });
-
-  // Submit market for removal
-  await manager.submitMarketRemoval({
-    user: owen,
-    marketId: market.marketAcc.key,
-  });
-
-  // Verify market config state
-  const marketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
-
-  assert.equal(marketConfig.cap.toString(), "0");
-  assert.equal(marketConfig.removableAt.toString(), (await test.getTimePlusTimelock()).toString());
-});
-
-it("should fail to submit market removal when cap is pending", async () => {
-
-  // submit cap to enable market
-  await manager.submitCap({
-    user: owen,
-    marketId: market.marketAcc.key,
-    supplyCap: new anchor.BN(1_000_000 * 1e9),
-  });
-
-  // pass 1 day + 1hr for timelock
-  await test.moveTimeForward(60 * 60 * 25);
-
-  await manager.acceptCap({
-    user: owen,
-    marketId: market.marketAcc.key,
-  });
-
-  // set cap to 0 (happens instantly)
-  await manager.submitCap({
-    user: owen,
-    marketId: market.marketAcc.key,
-    supplyCap: new anchor.BN(0),
-  });
-
-  // submit cap to leave market in pending state
-  await manager.submitCap({
-    user: owen,
-    marketId: market.marketAcc.key,
-    supplyCap: new anchor.BN(1_000_000 * 1e9),
-  });
-
-  await assert.rejects(
-    async () => {
-      await manager.submitMarketRemoval({
-        user: owen,
-        marketId: market.marketAcc.key,
-      });
-    },
-    (err: anchor.AnchorError) => {
-      assert.strictEqual(err.error.errorMessage, "Pending cap");
-      return true;
-    }
-  );
-});
 });

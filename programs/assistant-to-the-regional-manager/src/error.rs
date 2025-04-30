@@ -11,6 +11,9 @@ pub enum ManagerError {
     #[msg("Math overflow")]
     MathOverflow,
 
+    #[msg("Math underflow")]
+    MathUnderflow,
+
     // market cap
     #[msg("Unauthorized market")]
     UnauthorizedMarket,
@@ -78,4 +81,16 @@ pub enum ManagerError {
 
     #[msg("Invalid market removal timelock not elapsed")]
     InvalidMarketRemovalTimelockNotElapsed,
+
+    #[msg("Invalid pathfinder market")]
+    InvalidPathfinderMarket,
+
+    #[msg("Invalid pathfinder lender shares")]
+    InvalidPathfinderLenderShares,
+
+    #[msg("Market queue mismatch")]
+    MarketQueueMismatch,
+
+    #[msg("Market cap reached")]
+    MarketCapReached,
 }

@@ -19,7 +19,7 @@ pub struct ReorderWithdrawQueue<'info> {
 
     #[account(
         seeds = [
-            ALLOCATOR_SEED_PREFIX,
+            MANAGER_ALLOCATOR_SEED_PREFIX,
             config.key().as_ref(),
             user.key().as_ref(),
         ],
@@ -30,7 +30,7 @@ pub struct ReorderWithdrawQueue<'info> {
     #[account(
         mut,
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             quote_mint.key().as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -43,7 +43,7 @@ pub struct ReorderWithdrawQueue<'info> {
     #[account(
         mut,
         seeds = [
-            QUEUE_SEED_PREFIX,
+            MANAGER_QUEUE_SEED_PREFIX,
             config.key().as_ref(),
         ],
         bump,

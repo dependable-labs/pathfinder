@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
-use crate::{state::*, generate_manager_vault_seeds};
-use crate::traits::{owner::OwnerProtection};
-use crate::error::ManagerError;
+use crate::{
+  state::*,
+  traits::owner::OwnerProtection,
+  error::ManagerError
+};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetAllocatorArgs {
@@ -20,7 +22,7 @@ pub struct SetAllocator<'info> {
     payer = user,
     space = 8 + std::mem::size_of::<AllocatorState>(),
     seeds = [
-        ALLOCATOR_SEED_PREFIX,
+        MANAGER_ALLOCATOR_SEED_PREFIX,
         config.key().as_ref(),
         args.allocator.as_ref(),
     ],
@@ -32,7 +34,7 @@ pub struct SetAllocator<'info> {
   #[account(
     mut,
     seeds = [
-        CONFIG_SEED_PREFIX,
+        MANAGER_CONFIG_SEED_PREFIX,
         config.quote_mint.as_ref(),
         config.symbol.as_bytes(),
         config.name.as_bytes(),

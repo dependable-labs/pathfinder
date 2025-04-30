@@ -5,7 +5,7 @@ use anchor_spl::token::*;
 use crate::error::MarketError;
 use crate::math::*;
 use crate::oracle::oracle_get_price;
-use crate::{accrue_interest::accrue_interest, generate_market_seeds, state::*};
+use crate::{accrue_interest::accrue_interest, generate_config_seeds, state::*};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct BorrowArgs {
@@ -23,7 +23,7 @@ pub struct Borrow<'info> {
   #[account(
     mut,
     seeds = [CONFIG_SEED_PREFIX],
-    bump,
+    bump = config.bump,
   )]
   pub config: Box<Account<'info, Config>>,
 
@@ -65,14 +65,14 @@ pub struct Borrow<'info> {
       market.key().as_ref(),
       args.owner.key().as_ref()
     ],
-    bump
+    bump,
   )]
   pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 
@@ -157,7 +157,7 @@ impl<'info> Borrow<'info> {
       .ok_or(MarketError::MathOverflow)?;
 
     // transfer tokens to borrower
-    let seeds = generate_market_seeds!(market);
+    let seeds = generate_config_seeds!(config);
     let signer = &[&seeds[..]];
 
     transfer(
@@ -166,7 +166,7 @@ impl<'info> Borrow<'info> {
         Transfer {
           from: vault_ata_quote.to_account_info(),
           to: recipient_ata_quote.to_account_info(),
-          authority: market.to_account_info(),
+          authority: config.to_account_info(),
         },
         signer,
       ),

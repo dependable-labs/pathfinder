@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::*;
 use pathfinder::state::Market;
-use pathfinder::state::MARKET_SEED_PREFIX;
 
 use crate::state::*;
 use crate::error::*;
@@ -22,7 +20,7 @@ pub struct SubmitCap<'info> {
     #[account(
         mut,
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             config.quote_mint.as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -34,7 +32,7 @@ pub struct SubmitCap<'info> {
     #[account(
         mut,
         seeds = [
-            QUEUE_SEED_PREFIX,
+            MANAGER_QUEUE_SEED_PREFIX,
             config.key().as_ref(),
         ],
         bump = queue.bump,
@@ -46,7 +44,7 @@ pub struct SubmitCap<'info> {
         payer = user,
         space = 8 + std::mem::size_of::<MarketConfig>(),
         seeds = [
-            MARKET_CONFIG_SEED_PREFIX,
+            MANAGER_MARKET_CONFIG_SEED_PREFIX,
             config.key().as_ref(),
             args.market_id.as_ref(),
         ],

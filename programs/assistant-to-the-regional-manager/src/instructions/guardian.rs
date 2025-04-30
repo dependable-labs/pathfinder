@@ -10,7 +10,7 @@ pub struct RevokePendingGuardian<'info> {
     #[account(
         mut,
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             config.quote_mint.as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -54,7 +54,7 @@ pub struct SubmitGuardian<'info> {
   #[account(
     mut,
     seeds = [
-        CONFIG_SEED_PREFIX,
+        MANAGER_CONFIG_SEED_PREFIX,
         config.quote_mint.as_ref(),
         config.symbol.as_bytes(),
         config.name.as_bytes(),
@@ -106,7 +106,7 @@ pub struct AcceptGuardian<'info> {
   #[account(
     mut,
     seeds = [
-        CONFIG_SEED_PREFIX,
+        MANAGER_CONFIG_SEED_PREFIX,
         config.quote_mint.as_ref(),
         config.symbol.as_bytes(),
         config.name.as_bytes(),

@@ -3,6 +3,7 @@ use anchor_spl::token::*;
 
 use crate::state::*;
 use crate::error::*;
+use crate::utils::accounts::{load_market_config, validate_market_config_pda};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetSupplyQueueArgs {
@@ -18,7 +19,7 @@ pub struct SetSupplyQueue<'info> {
     #[account(
         mut,
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             quote_mint.key().as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -31,7 +32,7 @@ pub struct SetSupplyQueue<'info> {
     #[account(
         mut,
         seeds = [
-            QUEUE_SEED_PREFIX,
+            MANAGER_QUEUE_SEED_PREFIX,
             config.key().as_ref(),
         ],
         bump,
@@ -62,34 +63,19 @@ impl<'info> SetSupplyQueue<'info> {
         }
 
         // Verify all markets in queue are authorized
-        for (i, market_pubkey) in args.market_ids.iter().enumerate() {
+        for (i, path_market_pubkey) in args.market_ids.iter().enumerate() {
 
           // retreive configs for each market account
-          let market_config = load_market_config_checked(&ctx.remaining_accounts[i])?;
+          let market_config = load_market_config(&ctx.remaining_accounts[i])?;
 
-          let config_key = config.key();
-          
-          // Derive the expected market config PDA to check cap
-          let seeds = &[
-              MARKET_CONFIG_SEED_PREFIX,
-              config_key.as_ref(),
-              market_pubkey.as_ref(),
-          ];
-
-          let (expected_market_config_pda, expected_bump) = Pubkey::find_program_address(seeds, ctx.program_id);
-
-          // Verify the account we received matches the expected PDA
-          if ctx.remaining_accounts[i].key() != expected_market_config_pda {
-            return err!(ManagerError::InvalidMarketConfig);
-          }
-
-          // TODO: Inspect these bump values... they were not matching
-          // if market_config.bump != expected_bump {
-          //   return err!(ManagerError::InvalidMarketConfig);
-          // }
-          
+          validate_market_config_pda(
+            &ctx.remaining_accounts[i],
+            &config.key(),
+            path_market_pubkey,
+          )?;
+ 
           if market_config.cap == 0 {
-            return err!(ManagerError::UnauthorizedMarket); 
+            return err!(ManagerError::UnauthorizedMarket);
           }
         }
 
@@ -99,33 +85,4 @@ impl<'info> SetSupplyQueue<'info> {
         Ok(())
 
     }
-}
-
-
-pub fn load_market_config_checked(ai: &AccountInfo) -> Result<MarketConfig> {
-  // TODO: Should use Account::<MarketConfig>::try_from() instead of manual checks
-
-  // market config acc is not initialized or is not the owned by the program
-  require!(
-    ai.owner.eq(&crate::ID),
-    ManagerError::InvalidMarketConfig
-  );
-
-  let market_config_data = ai.try_borrow_data()?;
-  // let discriminator = &market_config_data[0..8];
-
-  // require!(
-  //   discriminator == <MarketConfig as anchor_lang::Discriminator>::DISCRIMINATOR,
-  //   ManagerError::InvalidMarketConfig
-  // );
-
-  Ok(MarketConfig::deserialize(
-      &mut &market_config_data.as_ref()[8..],
-  )?)
-}
-
-#[event]
-pub struct SetSupplyQueueEvent {
-    pub curator: Pubkey,
-    pub new_supply_queue: Vec<Pubkey>,
 }

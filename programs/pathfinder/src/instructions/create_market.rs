@@ -22,7 +22,7 @@ pub struct CreateMarket<'info> {
   #[account(
     mut,
     seeds = [CONFIG_SEED_PREFIX],
-    bump,
+    bump = config.bump,
   )]
   pub config: Box<Account<'info, Config>>,
 
@@ -49,7 +49,7 @@ pub struct CreateMarket<'info> {
   #[account(
     init_if_needed,
     payer = user,
-    associated_token::authority = market,
+    associated_token::authority = config,
     associated_token::mint = quote_mint
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
@@ -62,7 +62,7 @@ pub struct CreateMarket<'info> {
   #[account(
     init_if_needed,
     payer = user,
-    associated_token::authority = market,
+    associated_token::authority = config,
     associated_token::mint = collateral_mint,
   )]
   pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,

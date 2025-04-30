@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::error::MarketError;
-use crate::generate_market_seeds;
+use crate::generate_config_seeds;
 use crate::math::*;
 use crate::oracle::oracle_get_price;
 use crate::{accrue_interest::accrue_interest, borrow::is_solvent, state::*};
@@ -52,11 +52,10 @@ pub struct Liquidate<'info> {
   )]
   pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
-
   #[account(
     mut,
     associated_token::mint = market.collateral_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
 
@@ -70,7 +69,7 @@ pub struct Liquidate<'info> {
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 
@@ -205,7 +204,7 @@ impl<'info> Liquidate<'info> {
     //add callback mechansim?
 
     // transfer tokens to liquidator
-    let seeds = generate_market_seeds!(market);
+    let seeds = generate_config_seeds!(config);
     let signer = &[&seeds[..]];
 
     transfer(
@@ -214,7 +213,7 @@ impl<'info> Liquidate<'info> {
         Transfer {
           from: vault_ata_collateral.to_account_info(),
           to: user_ata_collateral.to_account_info(),
-          authority: market.to_account_info(),
+          authority: config.to_account_info(),
         },
         signer,
       ),

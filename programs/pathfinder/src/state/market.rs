@@ -62,6 +62,16 @@ pub struct PositionDelegate {
 }
 
 #[macro_export]
+macro_rules! generate_config_seeds {
+  ($config:expr) => {{
+    &[
+      CONFIG_SEED_PREFIX,
+      &[$config.bump],
+    ]
+  }};
+}
+
+#[macro_export]
 macro_rules! generate_market_seeds {
   ($market:expr) => {{
     &[

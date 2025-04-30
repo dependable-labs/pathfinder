@@ -414,7 +414,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "pathfinder 0.1.0 (git+https://github.com/dependable-labs/pathfinder?branch=develop)",
+ "pathfinder",
 ]
 
 [[package]]
@@ -1517,21 +1517,7 @@ dependencies = [
  "arrayref",
  "bytemuck",
  "pyth-solana-receiver-sdk",
- "switchboard-on-demand 0.1.0",
- "uint",
-]
-
-[[package]]
-name = "pathfinder"
-version = "0.1.0"
-source = "git+https://github.com/dependable-labs/pathfinder?branch=develop#c6a77673f14f8f14b956dd50e3bebe5f1fcd5eed"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "arrayref",
- "bytemuck",
- "pyth-solana-receiver-sdk",
- "switchboard-on-demand 0.1.0 (git+https://github.com/dependable-labs/pathfinder?branch=develop)",
+ "switchboard-on-demand",
  "uint",
 ]
 
@@ -2467,16 +2453,6 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "base64 0.13.1",
- "bytemuck",
- "solana-program",
-]
-
-[[package]]
-name = "switchboard-on-demand"
-version = "0.1.0"
-source = "git+https://github.com/dependable-labs/pathfinder?branch=develop#c6a77673f14f8f14b956dd50e3bebe5f1fcd5eed"
-dependencies = [
- "anchor-lang",
  "bytemuck",
  "solana-program",
 ]

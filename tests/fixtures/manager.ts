@@ -8,15 +8,12 @@ import {
   COMMITMENT,
   deriveManagerConfigAccount,
   deriveMarketConfigAccount,
-  deriveMetadataAccount,
   deriveMultiMarketConfigs,
   deriveQueueAccount,
   deriveAllocatorAccount,
-  MPL_TOKEN_METADATA_PROGRAM_ID,
   ONE_DAY_TIMELOCK,
-  deriveMarketAddress,
+  deriveDepositRemainingAccounts,
   PATHFINDER_PROGRAM_ID,
-  ASSISTANT_TO_THE_REGIONAL_MANAGER_PROGRAM_ID,
 } from "../utils";
 
 export class ManagerFixture {
@@ -25,7 +22,6 @@ export class ManagerFixture {
   public quoteMint: PublicKey;
   public market: MarketFixture;
   public quoteAta: splAccountFixture;
-  public shareMint: anchor.Wallet;
   public managerVaultConfigAcc: AccountFixture;
   public allocator: AccountFixture;
   public queue: queueAccountFixture;
@@ -40,7 +36,6 @@ export class ManagerFixture {
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;
-    this.shareMint = new anchor.Wallet(Keypair.generate());
     this.markets = _markets;
   }
 
@@ -125,14 +120,11 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
-        shareMint: this.shareMint.publicKey,
         queue: this.queue.key,
-        metadataAccount: deriveMetadataAccount(this.shareMint.publicKey, MPL_TOKEN_METADATA_PROGRAM_ID, this.program.programId),
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
-        tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
       })
-      .signers([user.key.payer, this.shareMint.payer])
+      .signers([user.key.payer])
       .rpc();
   }
 
@@ -263,7 +255,7 @@ export class ManagerFixture {
     marketIds,
   }: {
     user: UserFixture;
-      marketIds: PublicKey[];
+    marketIds: PublicKey[];
   }): Promise<void> {
 
     await this.program.methods
@@ -491,6 +483,41 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
       })
+      .signers([user.key.payer])
+      .rpc(COMMITMENT);
+  }
+
+
+  async deposit({
+    user,
+    receiver,
+    assets,
+    markets,
+  }: {
+    user: UserFixture;
+    receiver: UserFixture;
+    assets: anchor.BN;
+    markets: MarketFixture[];
+  }): Promise<void> {
+
+    await this.program.methods
+      .deposit({
+        assets,
+        receiver: receiver.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        quoteAta: this.get_ata(this.quoteMint),
+        userAta: this.get_ata(this.quoteMint),
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        pathfinderConfig: markets[0].get_config().key,
+        vaultAta: markets[0].get_ata(this.quoteMint),
+        // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
+      })
+      .remainingAccounts(deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId))
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }

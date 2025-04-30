@@ -27,6 +27,7 @@ pub struct ManagerVaultConfig {
   pub decimals_offset: u8,
   pub pathfinder_program: Pubkey,  // The PATHFINDER immutable
   pub last_total_assets: u64,
+  pub total_shares: u64
 }
 
 // Allocator Account - Stores allocator permissions
@@ -38,6 +39,12 @@ pub struct ManagerVaultConfig {
 pub struct AllocatorState {
   pub bump: u8,
   pub is_allocator: bool,
+}
+
+#[account]
+pub struct SupplyShares {
+  pub bump: u8,
+  pub shares: u64,
 }
 
 // Market Config Account - Stores configuration for each market
@@ -81,7 +88,7 @@ pub struct PendingState {
 macro_rules! generate_manager_vault_seeds {
     ($vault:expr) => {{
         &[
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             $vault.quote_mint.as_ref(),
             $vault.symbol.as_ref(),
             $vault.name.as_ref(),

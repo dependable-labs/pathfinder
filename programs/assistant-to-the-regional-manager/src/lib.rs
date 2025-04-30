@@ -6,6 +6,7 @@ pub mod instructions;
 pub mod state;
 pub mod error;
 pub mod traits;
+pub mod utils;
 
 use crate::instructions::*;
 
@@ -86,6 +87,14 @@ pub mod assistant_to_the_regional_manager {
     #[access_control(ctx.accounts.validate())]
     pub fn revoke_pending_timelock(ctx: Context<RevokePendingTimelock>) -> Result<()> {
         RevokePendingTimelock::handle(ctx)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
+    pub fn deposit<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, Deposit<'info>>,
+        args: DepositArgs
+    ) -> Result<()> {
+        Deposit::handle(ctx, args)
     }
 }
 

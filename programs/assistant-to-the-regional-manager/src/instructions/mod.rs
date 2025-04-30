@@ -10,6 +10,7 @@ pub mod set_curator;
 pub mod set_allocator;
 pub mod timelock;
 pub mod submit_market_removal;
+pub mod deposit;
 
 pub use create_manager::*;
 pub use set_supply_queue::*;
@@ -23,3 +24,4 @@ pub use set_curator::*;
 pub use set_allocator::*;
 pub use timelock::*;
 pub use submit_market_removal::*;
+pub use deposit::*;
