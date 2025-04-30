@@ -4,7 +4,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::error::MarketError;
-use crate::{accrue_interest::accrue_interest, generate_market_seeds, math::*};
+use crate::{accrue_interest::accrue_interest, generate_config_seeds, math::*};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct WithdrawArgs {
@@ -171,7 +171,7 @@ pub fn process_withdrawal_and_transfer<'info>(
   }
 
   // Transfer tokens
-  let seeds = generate_market_seeds!(market);
+  let seeds = generate_config_seeds!(config);
   let signer = &[&seeds[..]];
 
   transfer(
@@ -180,7 +180,7 @@ pub fn process_withdrawal_and_transfer<'info>(
       Transfer {
         from: vault_ata_quote.to_account_info(),
         to: recipient_ata_quote.to_account_info(),
-        authority: market.to_account_info(),
+        authority: config.to_account_info(),
       },
       signer,
     ),

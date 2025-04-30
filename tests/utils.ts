@@ -12,7 +12,7 @@ import { Pathfinder } from "../target/types/pathfinder";
 import { AssistantToTheRegionalManager } from "../target/types/assistant_to_the_regional_manager";
 import { startAnchor, BankrunProvider } from 'anchor-bankrun';
 import { ProgramTestContext, Clock, BanksClient} from "solana-bankrun";
-import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral, OracleSource, ManagerFixture } from "./fixtures";
+import { UserFixture, MarketFixture, CollateralFixture, SupportedCollateral, OracleSource, ManagerFixture, AccountFixture } from "./fixtures";
 const PATHFINDER_IDL = require("../target/idl/pathfinder.json");
 const MANAGER_IDL = require("../target/idl/assistant_to_the_regional_manager.json");
 
@@ -217,6 +217,20 @@ export function deriveAllocatorAccount(
   )[0];
 }
 
+export function get_config(program: Program<Pathfinder>): AccountFixture {
+  let configKey = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("config"),
+      ],
+      program.programId
+    )[0];
+    return new AccountFixture(
+      "config",
+      configKey,
+      program
+    );
+  }
+
 
 export class TestUtils {
   private program: Program<Pathfinder>;
@@ -283,6 +297,37 @@ export class TestUtils {
     return user;
   }
 
+  public async initPathfinderProgram({
+    payerAndRecipient,
+    authority,
+  }: {
+    payerAndRecipient: UserFixture,
+    authority: UserFixture,
+  }) {
+    await this.program.methods
+      .init({
+        newAuthority: authority.key.publicKey,
+      })
+      .accounts({
+        user: payerAndRecipient.key.publicKey,
+        config: get_config(this.program).key,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([payerAndRecipient.key.payer])
+      .rpc();
+
+    await this.program.methods
+      .updateRecipient({
+        newRecipient: payerAndRecipient.key.publicKey,
+      })
+      .accounts({
+        user: authority.key.publicKey,
+        config: get_config(this.program).key,
+      })
+      .signers([authority.key.payer])
+      .rpc();
+  }
+
   public async createMarket(
     {
       symbol,
@@ -319,7 +364,7 @@ export class TestUtils {
       expo
     });
 
-    return new MarketFixture(
+    const marketFix = new MarketFixture(
       this.program,
       this.provider,
       this.quoteMint,
@@ -329,6 +374,12 @@ export class TestUtils {
       feeRecipient,
       authority
     );
+
+    await marketFix.create({
+      user: feeRecipient,
+    });
+
+    return marketFix;
   }
 
   public async initManagerFixture(markets: MarketFixture[]) {
@@ -337,7 +388,6 @@ export class TestUtils {
       this.provider,
       this.quoteMint,
       markets // a manager has a one to many relationship with markets but for testing purposes we can just pass in one market
-
     );
   }
 

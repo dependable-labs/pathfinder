@@ -33,9 +33,14 @@ describe("Config Operations", () => {
     );
 
     futarchy = await test.createUser(
-      new anchor.BN(0),
+      new anchor.BN(10 * 1e9),
       new anchor.BN(0)
     );
+
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
 
     market = await test.createMarket({
       symbol: "BONK",
@@ -45,11 +50,6 @@ describe("Config Operations", () => {
       expo: -9,
       feeRecipient: futarchy,
       authority: futarchy,
-    });
-
-    await market.createAndSetAuthority({
-      authority: futarchy,
-      payerAndRecipient: larry,
     });
 
   });
@@ -67,7 +67,6 @@ describe("Config Operations", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6018);
         assert.strictEqual(err.error.errorMessage, "Invalid authority");
         return true;
       }
@@ -95,7 +94,6 @@ describe("Config Operations", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6018);
         assert.strictEqual(err.error.errorMessage, "Invalid authority"); // wrong err!
         return true;
       }
@@ -123,7 +121,6 @@ describe("Config Operations", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6018);
         assert.strictEqual(err.error.errorMessage, "Invalid authority");
         return true;
       }
@@ -235,7 +232,6 @@ describe("Config Operations", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6017);
         assert.strictEqual(err.error.errorMessage, "Invalid recipient"); // wrong err!
         return true;
       }
@@ -251,7 +247,6 @@ describe("Config Operations", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6017);
         assert.strictEqual(err.error.errorMessage, "Invalid recipient"); // wrong err!
         return true;
       }

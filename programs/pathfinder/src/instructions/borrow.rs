@@ -65,7 +65,7 @@ pub struct Borrow<'info> {
       market.key().as_ref(),
       args.owner.key().as_ref()
     ],
-    bump = borrower_shares.bump,
+    bump,
   )]
   pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 

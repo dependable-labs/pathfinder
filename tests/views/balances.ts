@@ -12,6 +12,7 @@ describe("View Balances", () => {
       quoteDecimals: 9,
       collateralDecimals: 9,
     });
+
   });
 
   it("expectedMarketBalances should return the correct values", async () => {
@@ -112,6 +113,11 @@ async function _generatePendingInterest({
     new anchor.BN(0)
   );
 
+  await test.initPathfinderProgram({
+    payerAndRecipient: larry,
+    authority: futarchy,
+  });
+
   let market = await test.createMarket({
     symbol: "BONK",
     ltvFactor: new anchor.BN(0.8 * 1e9),
@@ -121,8 +127,6 @@ async function _generatePendingInterest({
     feeRecipient: futarchy,
     authority: futarchy,
   });
-
-  await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
   await market.updateFee({
     user: futarchy,

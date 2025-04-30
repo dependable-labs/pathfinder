@@ -32,6 +32,11 @@ describe("User Borrow", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
@@ -41,8 +46,6 @@ describe("User Borrow", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,
@@ -91,44 +94,42 @@ describe("User Borrow", () => {
     assert.equal(finalBalance - initialBalance, BigInt(500000000));
   });
 
-  // it("fails to borrow without collateral", async () => {
-  //   //TODO: Fixme
-  //   await assert.rejects(
-  //     async () => {
-  //       await market.borrow({
-  //         user: larry,
-  //         amount: new anchor.BN(100 * 1e9),
-  //         shares: new anchor.BN(0),
-  //         owner: larry,
-  //         recipient: larry,
-  //       });
-  //     },
-  //     (err: anchor.AnchorError) => {
-  //       assert.strictEqual(err.error.errorCode.number, 3012);
-  //       assert.strictEqual(err.error.errorMessage, "The program expected this account to be already initialized"); // wrong err!
-  //       return true;
-  //     }
-  //   );
-  // });
+  it("fails to borrow without collateral", async () => {
+    //TODO: Fixme
+    await assert.rejects(
+      async () => {
+        await market.borrow({
+          user: larry,
+          amount: new anchor.BN(100 * 1e9),
+          shares: new anchor.BN(0),
+          owner: larry,
+          recipient: larry,
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "The program expected this account to be already initialized"); // wrong err!
+        return true;
+      }
+    );
+  });
 
-  // it("fails to borrow more than collateral value", async () => {
-  //   await assert.rejects(
-  //     async () => {
-  //       await market.borrow({
-  //         user: bob,
-  //         amount: new anchor.BN(1000_000_000_001), // 1 More than debt cap
-  //         shares: new anchor.BN(0),
-  //         owner: bob,
-  //         recipient: bob,
-  //       });
-  //     },
-  //     (err: anchor.AnchorError) => {
-  //       assert.strictEqual(err.error.errorCode.number, 6011);
-  //       assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
-  //       return true;
-  //     }
-  //   );
-  // });
+  it("fails to borrow more than collateral value", async () => {
+    await assert.rejects(
+      async () => {
+        await market.borrow({
+          user: bob,
+          amount: new anchor.BN(1000_000_000_001), // 1 More than debt cap
+          shares: new anchor.BN(0),
+          owner: bob,
+          recipient: bob,
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
+        return true;
+      }
+    );
+  });
 
   // it("borrows from a market with a delegate", async () => {
   //   const priorBobBalance = await bob.get_quo_balance();

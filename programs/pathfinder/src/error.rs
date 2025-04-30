@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 #[error_code]
 pub enum MarketError {
   // Authority Errors
+  #[msg("Program already initialized")]
+  ProgramAlreadyInitialized,
   #[msg("Unauthorized authority")]
   UnauthorizedAuthority,
 
@@ -60,4 +62,7 @@ pub enum MarketError {
   InvalidOracle,
   #[msg("Stale oracle")]
   StaleOracle,
+
+
+
 }

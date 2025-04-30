@@ -33,6 +33,11 @@ describe("Create Market Operations", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
   });
 
   it("creates a market", async () => {
@@ -46,8 +51,6 @@ describe("Create Market Operations", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
@@ -69,8 +72,6 @@ describe("Create Market Operations", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await assert.rejects(
       async () => {

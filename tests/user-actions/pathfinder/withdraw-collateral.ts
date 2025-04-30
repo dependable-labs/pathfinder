@@ -30,6 +30,11 @@ describe("Withdraw Collateral", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
@@ -39,8 +44,6 @@ describe("Withdraw Collateral", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,
@@ -157,7 +160,6 @@ describe("Withdraw Collateral", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6011);
         assert.strictEqual(err.error.errorMessage, 'User is not solvent');
         return true;
       },

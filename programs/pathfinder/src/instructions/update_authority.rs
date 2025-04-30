@@ -16,11 +16,9 @@ pub struct UpdateAuthority<'info> {
   pub user: Signer<'info>,
 
   #[account(
-    init_if_needed,
-    payer = user,
-    space = 8 + std::mem::size_of::<Config>(),
+    mut,
     seeds = [CONFIG_SEED_PREFIX],
-    bump,
+    bump = config.bump,
   )]
   pub config: Box<Account<'info, Config>>,
   pub system_program: Program<'info, System>,
