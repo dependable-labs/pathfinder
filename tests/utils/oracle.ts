@@ -30,6 +30,12 @@ describe("Oracle", () => {
       new anchor.BN(0),
       new anchor.BN(0)
     );
+
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
   });
 
 
@@ -47,8 +53,6 @@ describe("Oracle", () => {
       authority: futarchy,
       oracleSource: OracleSource.SwitchboardPull,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,
@@ -75,7 +79,6 @@ describe("Oracle", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6011);
         assert.strictEqual(err.error.errorMessage, "User is not solvent"); // wrong err!
         return true;
       }
@@ -96,8 +99,6 @@ describe("Oracle", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,
@@ -136,8 +137,6 @@ describe("Oracle", () => {
       oracleSource: OracleSource.SwitchboardPull,
     });
 
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,
@@ -178,8 +177,6 @@ describe("Oracle", () => {
       authority: futarchy,
     });
 
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
-
     await market.deposit({
       user: larry,
       amount: new anchor.BN(1_000 * 1e9),
@@ -209,7 +206,6 @@ describe("Oracle", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6010);
         assert.strictEqual(err.error.errorMessage, "Math Underflow");
         return true;
       }

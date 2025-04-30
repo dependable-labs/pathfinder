@@ -39,6 +39,11 @@ describe("Liquidate", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: lender,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(8 * 1e8), // 80% LTV
@@ -48,8 +53,6 @@ describe("Liquidate", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: lender });
 
     // Lender deposits quote tokens
     await market.deposit({

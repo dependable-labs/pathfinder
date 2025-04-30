@@ -30,6 +30,11 @@ describe("Deposit", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
@@ -39,8 +44,6 @@ describe("Deposit", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
   });
 
@@ -116,6 +119,11 @@ describe("Deposit", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
@@ -125,8 +133,6 @@ describe("Deposit", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     await market.deposit({
       user: larry,

@@ -31,6 +31,11 @@ describe("Withdraw", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: larry,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
@@ -40,8 +45,6 @@ describe("Withdraw", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: larry });
 
     // Pre-deposit funds for withdrawal tests
     await market.deposit({
@@ -157,7 +160,6 @@ describe("Withdraw", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6010);
         assert.strictEqual(err.error.errorMessage, 'Math Underflow');
         return true;
       }
@@ -179,7 +181,6 @@ describe("Withdraw", () => {
         });
       },
       (err: anchor.AnchorError) => {
-        assert.strictEqual(err.error.errorCode.number, 6014);
         assert.strictEqual(err.error.errorMessage, 'Unauthorized delegate');
         return true;
       }

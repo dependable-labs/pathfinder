@@ -1,3 +1,5 @@
+
+pub use init::*;
 pub use accrue_interest::*;
 pub use borrow::*;
 pub use create_market::*;
@@ -15,6 +17,7 @@ pub use withdraw::*;
 pub use withdraw_collateral::*;
 pub use withdraw_fee::*;
 
+pub mod init;
 pub mod accrue_interest;
 pub mod borrow;
 pub mod create_market;
