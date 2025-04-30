@@ -108,21 +108,6 @@ export function deriveManagerConfigAccount(
   )[0];
 }
 
-export function deriveMetadataAccount(
-  sharesMint: PublicKey,
-  tokenMetadataProgramId: PublicKey,
-  programId: PublicKey
-) {
-  return PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("metadata"),
-      tokenMetadataProgramId.toBuffer(),
-      sharesMint.toBuffer(),
-    ],
-    tokenMetadataProgramId
-  )[0];
-}
-
 export function deriveDepositRemainingAccounts(
   managerConfig: PublicKey,
   markets: MarketFixture[],

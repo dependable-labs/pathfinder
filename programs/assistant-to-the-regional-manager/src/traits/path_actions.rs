@@ -17,17 +17,6 @@ pub trait PathActions<'info, 'c: 'info> {
   fn _supply_path(
     ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
     assets: &mut u64,
-    // assets: &mut u64,
-    // user: &Signer<'info>,
-    // config: &Account<'info, ManagerVaultConfig>,
-    // queue: &Account<'info, QueueState>,
-    // pathfinder_config: &Account<'info, Config>,
-    // pathfinder_program: &Program<'info, Pathfinder>,
-    // vault_ata_quote: &Account<'info, TokenAccount>,
-    // user_ata_quote: &Account<'info, TokenAccount>,
-    // token_program: &Program<'info, Token>,
-    // system_program: &Program<'info, System>,
-    // remaining_accounts: &[AccountInfo<'info>],
   ) -> Result<()> {
     let user = &ctx.accounts.user;
     let config = &ctx.accounts.config;

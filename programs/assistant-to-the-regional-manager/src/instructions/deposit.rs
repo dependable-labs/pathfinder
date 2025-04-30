@@ -27,11 +27,6 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    // #[account(
-    //     mut,
-    // )]
-    // pub receiver: AccountInfo<'info>,
-
     #[account(
         mut,
         seeds = [
@@ -170,45 +165,4 @@ impl<'info, 'c: 'info> Deposit<'info> {
 
         Ok(())
     }
-}
-
-
-// /// Supplies `assets` to Morpho.
-// fn _supply_path(
-//     assets: u64,
-//     config: &Account<'info, ManagerVaultConfig>,
-//     queue: &Account<'info, QueueState>,
-//     pathfinder_config: &Account<'info, Config>,
-//     pathfinder_program: &Program<'info, Pathfinder>,
-//     token_program: &Program<'info, Token>,
-// ) -> Result<()> {
-//     for (uint256 i; i < supplyQueue.length; ++i) {
-//         Id id = supplyQueue[i];
-
-//             uint256 supplyCap = config[id].cap;
-//             if (supplyCap == 0) continue;
-
-//             MarketParams memory marketParams = _marketParams(id);
-
-//             MORPHO.accrueInterest(marketParams);
-
-//             Market memory market = MORPHO.market(id);
-//             uint256 supplyShares = MORPHO.supplyShares(id, address(this));
-//             // `supplyAssets` needs to be rounded up for `toSupply` to be rounded down.
-//             uint256 supplyAssets = supplyShares.toAssetsUp(market.totalSupplyAssets, market.totalSupplyShares);
-
-//             uint256 toSupply = UtilsLib.min(supplyCap.zeroFloorSub(supplyAssets), assets);
-
-//             if (toSupply > 0) {
-//                 // Using try/catch to skip markets that revert.
-//                 try MORPHO.supply(marketParams, toSupply, 0, address(this), hex"") {
-//                     assets -= toSupply;
-//                 } catch {}
-//             }
-
-//             if (assets == 0) return;
-//         }
-
-//         if (assets != 0) revert ErrorsLib.AllCapsReached();
-//     }
-    
+} 

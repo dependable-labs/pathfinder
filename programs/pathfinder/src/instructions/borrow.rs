@@ -159,8 +159,6 @@ impl<'info> Borrow<'info> {
     // transfer tokens to borrower
     let seeds = generate_config_seeds!(config);
     let signer = &[&seeds[..]];
-    // let config_seeds = &[CONFIG_SEED_PREFIX, &[config.bump]];
-    // let signer = &[&config_seeds];
 
     transfer(
       CpiContext::new_with_signer(
