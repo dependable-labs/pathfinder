@@ -45,6 +45,11 @@ describe("guardian", () => {
       new anchor.BN(0)
     );
 
+    await test.initPathfinderProgram({
+      payerAndRecipient: owen,
+      authority: futarchy,
+    });
+
     market = await test.createMarket({
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
@@ -54,8 +59,6 @@ describe("guardian", () => {
       feeRecipient: futarchy,
       authority: futarchy,
     });
-
-    await market.createAndSetAuthority({ authority: futarchy, payerAndRecipient: owen });
 
     manager = await test.initManagerFixture([market]);
 

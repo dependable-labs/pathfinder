@@ -4,7 +4,7 @@ import { Program } from "@coral-xyz/anchor";
 import { Markets } from "../../target/types/markets";
 import { BankrunProvider } from "anchor-bankrun";
 import { CollateralFixture, SupportedCollateral, UserFixture, AccountFixture, marketAccountFixture, splAccountFixture, ControllerFixture, OracleSource } from "./index";
-import { deriveMarketAddress } from "../utils";
+import { deriveMarketAddress, get_config } from "../utils";
 import { assert } from "chai";
 import { IdlInstruction } from "@coral-xyz/anchor/dist/cjs/idl";
 
@@ -47,53 +47,6 @@ export class MarketFixture {
     this.configFeeRecipient = _configFeeRecipient;
     this.configAuthority = _configAuthority;
 
-  }
-
-  async createAndSetAuthority({
-    authority,
-    payerAndRecipient,
-  }: {
-    authority: UserFixture;
-    payerAndRecipient: UserFixture;
-  }): Promise<void> {
-
-
-    const config = await this.get_config().get_data();
-
-    // if undefined, it hasn't been set
-    // if the feeRecipient is not the user, update the feeRecipient else keep it the same
-    if (config == undefined || config.feeRecipient.toBase58() !== payerAndRecipient.key.publicKey.toBase58()) {
-
-      await this.updateRecipient({
-        user: this.configAuthority, 
-        new_recipient: payerAndRecipient,
-      });
-
-      this.configFeeRecipient = payerAndRecipient;
-
-    }
-
-    // if undefined, it hasn't been set
-    // if the authority is not the user, update the authority else keep it the same
-    if (config == undefined || config.authority.toBase58() !== authority.key.publicKey.toBase58()) {
-      await this.updateAuthority({
-        user: this.configAuthority,
-        new_authority: authority,
-      });
-
-      this.configAuthority = authority;
-
-    }
-
-    await this.createCustom({
-      user: payerAndRecipient,
-      collateralSymbol: this.collateral.symbol,
-      ltvFactor: this.collateral._ltvFactor,
-      quoteMint: this.quoteMint,
-      vaultAtaQuote: this.get_ata(this.quoteMint),
-      collateralMint: this.collateral.collateralMint,
-      vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
-    });
   }
 
   async create({
@@ -139,7 +92,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         market: this.marketAcc.key,
         quoteMint,
         collateralMint,
@@ -156,6 +109,30 @@ export class MarketFixture {
     assert.equal(marketAccountData.quoteMint.toBase58(), quoteMint.toBase58());
     assert.equal(marketAccountData.collateralMint.toBase58(), collateralMint.toBase58());
     assert.equal(marketAccountData.ltvFactor.toString(), ltvFactor.toString());
+  }
+
+  async init({
+    user,
+    new_authority,
+  }: {
+    user: UserFixture;
+    new_authority: UserFixture;
+  }): Promise<void> {
+
+    await this.program.methods
+      .init({
+        newAuthority: new_authority.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: get_config(this.program).key,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([user.key.payer])
+      .rpc();
+
+    const configData = await this.get_config().get_data();
+    assert.equal(configData.authority.toBase58(), new_authority.key.publicKey.toBase58());
   }
 
   async deposit({
@@ -178,7 +155,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         market: this.marketAcc.key,
         lenderShares: this.get_lender_shares(owner.key.publicKey).key,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -213,7 +190,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         recipient: recipient.key.publicKey,
         positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
@@ -246,7 +223,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         market: this.marketAcc.key,
         borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
@@ -278,7 +255,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         recipient: recipient.key.publicKey,
         positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
         market: this.marketAcc.key,
@@ -490,7 +467,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -510,7 +487,7 @@ export class MarketFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -531,7 +508,7 @@ export class MarketFixture {
     const result = await this.program.methods
       .viewMarketBalances()
       .accounts({
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         market: this.marketAcc.key,
       })
       .signers([this.provider.wallet.payer])
@@ -562,7 +539,7 @@ export class MarketFixture {
     const result = await this.program.methods
       .viewTotalBorrowAssets()
       .accounts({
-        config: this.get_config().key,
+        config: get_config(this.program).key,
         market: this.marketAcc.key,
       })
       .signers([this.provider.wallet.payer])
@@ -654,4 +631,5 @@ export class MarketFixture {
       this.program
     );
   }
+
 }
