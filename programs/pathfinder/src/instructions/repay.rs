@@ -52,7 +52,7 @@ pub struct Repay<'info> {
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 

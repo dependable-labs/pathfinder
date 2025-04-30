@@ -57,8 +57,19 @@ export class MarketFixture {
     payerAndRecipient: UserFixture;
   }): Promise<void> {
 
-
     const config = await this.get_config().get_data();
+
+    // if undefined, it hasn't been set
+    // if the authority is not the user, update the authority else keep it the same
+    if (config == undefined || config.authority.toBase58() !== authority.key.publicKey.toBase58()) {
+      await this.updateAuthority({
+        user: this.configAuthority,
+        new_authority: authority,
+      });
+
+      this.configAuthority = authority;
+
+    }
 
     // if undefined, it hasn't been set
     // if the feeRecipient is not the user, update the feeRecipient else keep it the same
@@ -70,18 +81,6 @@ export class MarketFixture {
       });
 
       this.configFeeRecipient = payerAndRecipient;
-
-    }
-
-    // if undefined, it hasn't been set
-    // if the authority is not the user, update the authority else keep it the same
-    if (config == undefined || config.authority.toBase58() !== authority.key.publicKey.toBase58()) {
-      await this.updateAuthority({
-        user: this.configAuthority,
-        new_authority: authority,
-      });
-
-      this.configAuthority = authority;
 
     }
 
@@ -587,11 +586,13 @@ export class MarketFixture {
   public get_ata(mint: PublicKey): PublicKey {
     return anchor.utils.token.associatedAddress({
       mint,
-      owner: this.marketAcc.key,
+      owner: this.get_config().key,
     });
   }
 
-  public get_lender_shares(userKey: PublicKey): AccountFixture {
+  public get_lender_shares(
+    userKey: PublicKey,
+  ): AccountFixture {
     let lenderSharesKey = PublicKey.findProgramAddressSync(
       [
         Buffer.from("lender_shares"),

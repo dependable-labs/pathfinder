@@ -47,3 +47,4 @@ test-manager-cap = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/ass
 test-manager-timelock = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/timelock.ts"
 test-manager-guardian = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/guardian.ts"
 test-manager-roles = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/roles.ts"
+test-manager-deposit = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/deposit.ts"

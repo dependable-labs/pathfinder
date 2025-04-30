@@ -10,7 +10,7 @@ pub struct RevokePendingTimelock<'info> {
     #[account(
         mut,
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             config.quote_mint.as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -55,7 +55,7 @@ pub struct SubmitTimelock<'info> {
   #[account(
       mut,
       seeds = [
-          CONFIG_SEED_PREFIX,
+          MANAGER_CONFIG_SEED_PREFIX,
           config.quote_mint.as_ref(),
           config.symbol.as_bytes(),
           config.name.as_bytes(),
@@ -112,7 +112,7 @@ pub struct AcceptTimelock<'info> {
 
   #[account(
       mut,
-      seeds = [CONFIG_SEED_PREFIX, config.quote_mint.as_ref(), config.symbol.as_bytes(), config.name.as_bytes()],
+      seeds = [MANAGER_CONFIG_SEED_PREFIX, config.quote_mint.as_ref(), config.symbol.as_bytes(), config.name.as_bytes()],
       bump = config.bump,
   )]
   pub config: Box<Account<'info, ManagerVaultConfig>>,

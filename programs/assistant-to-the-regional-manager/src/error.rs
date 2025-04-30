@@ -11,6 +11,9 @@ pub enum ManagerError {
     #[msg("Math overflow")]
     MathOverflow,
 
+    #[msg("Math underflow")]
+    MathUnderflow,
+
     // market cap
     #[msg("Unauthorized market")]
     UnauthorizedMarket,
@@ -87,4 +90,7 @@ pub enum ManagerError {
 
     #[msg("Market queue mismatch")]
     MarketQueueMismatch,
+
+    #[msg("Market cap reached")]
+    MarketCapReached,
 }

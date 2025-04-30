@@ -69,7 +69,7 @@ pub fn validate_market_config_pda(
 
     // Derive the expected market config PDA
     let seeds = &[
-        crate::state::MARKET_CONFIG_SEED_PREFIX,
+        crate::state::MANAGER_MARKET_CONFIG_SEED_PREFIX,
         config_key.as_ref(),
         market_pubkey.as_ref(),
     ];

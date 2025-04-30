@@ -22,7 +22,7 @@ pub struct WithdrawCollateral<'info> {
   #[account(
     mut,
     seeds = [CONFIG_SEED_PREFIX],
-    bump,
+    bump = config.bump,
   )]
   pub config: Box<Account<'info, Config>>,
 
@@ -70,7 +70,7 @@ pub struct WithdrawCollateral<'info> {
   #[account(
     mut,
     associated_token::mint = market.collateral_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_collateral: Box<Account<'info, TokenAccount>>,
 

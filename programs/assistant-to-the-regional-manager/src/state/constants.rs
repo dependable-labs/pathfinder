@@ -1,9 +1,10 @@
 use anchor_lang::prelude::*;
 
-pub const QUEUE_SEED_PREFIX: &[u8] = b"managerqueue";
-pub const CONFIG_SEED_PREFIX: &[u8] = b"managerconfig";
-pub const MARKET_CONFIG_SEED_PREFIX: &[u8] = b"managermarketconfig";
-pub const ALLOCATOR_SEED_PREFIX: &[u8] = b"managerallocator";
+pub const MANAGER_QUEUE_SEED_PREFIX: &[u8] = b"managerqueue";
+pub const MANAGER_CONFIG_SEED_PREFIX: &[u8] = b"managerconfig";
+pub const MANAGER_MARKET_CONFIG_SEED_PREFIX: &[u8] = b"managermarketconfig";
+pub const MANAGER_ALLOCATOR_SEED_PREFIX: &[u8] = b"managerallocator";
+pub const MANAGER_SHARES_SEED_PREFIX: &[u8] = b"managershares";
 
 // TODO: move PATHFINDER_PROGRAM_ID to being set dynamically
 pub const PATHFINDER_PROGRAM_ID: Pubkey = pubkey!("7ALFC87zvuPvpp9h5Stq9SSP3kTCUJfhtirEZVJmZYy4");

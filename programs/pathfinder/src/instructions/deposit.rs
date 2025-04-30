@@ -22,7 +22,7 @@ pub struct Deposit<'info> {
   #[account(
     mut,
     seeds = [CONFIG_SEED_PREFIX],
-    bump,
+    bump = config.bump,
   )]
   pub config: Box<Account<'info, Config>>,
 
@@ -55,7 +55,7 @@ pub struct Deposit<'info> {
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 

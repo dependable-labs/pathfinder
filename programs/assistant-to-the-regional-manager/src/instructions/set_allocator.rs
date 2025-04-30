@@ -22,7 +22,7 @@ pub struct SetAllocator<'info> {
     payer = user,
     space = 8 + std::mem::size_of::<AllocatorState>(),
     seeds = [
-        ALLOCATOR_SEED_PREFIX,
+        MANAGER_ALLOCATOR_SEED_PREFIX,
         config.key().as_ref(),
         args.allocator.as_ref(),
     ],
@@ -34,7 +34,7 @@ pub struct SetAllocator<'info> {
   #[account(
     mut,
     seeds = [
-        CONFIG_SEED_PREFIX,
+        MANAGER_CONFIG_SEED_PREFIX,
         config.quote_mint.as_ref(),
         config.symbol.as_bytes(),
         config.name.as_bytes(),

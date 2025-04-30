@@ -52,7 +52,6 @@ pub struct Liquidate<'info> {
   )]
   pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
-
   #[account(
     mut,
     associated_token::mint = market.collateral_mint,
@@ -70,7 +69,7 @@ pub struct Liquidate<'info> {
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
-    associated_token::authority = market,
+    associated_token::authority = config,
   )]
   pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 
@@ -214,7 +213,7 @@ impl<'info> Liquidate<'info> {
         Transfer {
           from: vault_ata_collateral.to_account_info(),
           to: user_ata_collateral.to_account_info(),
-          authority: market.to_account_info(),
+          authority: config.to_account_info(),
         },
         signer,
       ),

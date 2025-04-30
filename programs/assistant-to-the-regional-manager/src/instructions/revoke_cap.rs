@@ -14,7 +14,7 @@ pub struct RevokePendingCap<'info> {
 
     #[account(
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             config.quote_mint.as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -26,7 +26,7 @@ pub struct RevokePendingCap<'info> {
     #[account(
         mut,
         seeds = [
-            MARKET_CONFIG_SEED_PREFIX,
+            MANAGER_MARKET_CONFIG_SEED_PREFIX,
             config.key().as_ref(),
             args.market_id.as_ref(),
         ],

@@ -14,7 +14,7 @@ pub struct AccrueInterest<'info> {
   #[account(
     mut,
     seeds = [CONFIG_SEED_PREFIX],
-    bump,
+    bump = config.bump,
   )]
   pub config: Box<Account<'info, Config>>,
 

@@ -17,7 +17,7 @@ pub struct AcceptCap<'info> {
     #[account(
         mut,
         seeds = [
-            CONFIG_SEED_PREFIX,
+            MANAGER_CONFIG_SEED_PREFIX,
             config.quote_mint.as_ref(),
             config.symbol.as_bytes(),
             config.name.as_bytes(),
@@ -29,7 +29,7 @@ pub struct AcceptCap<'info> {
     #[account(
         mut,
         seeds = [
-            QUEUE_SEED_PREFIX,
+            MANAGER_QUEUE_SEED_PREFIX,
             config.key().as_ref(),
         ],
         bump,
@@ -39,7 +39,7 @@ pub struct AcceptCap<'info> {
     #[account(
         mut,
         seeds = [
-            MARKET_CONFIG_SEED_PREFIX,
+            MANAGER_MARKET_CONFIG_SEED_PREFIX,
             config.key().as_ref(),
             args.market_id.as_ref(),
         ],

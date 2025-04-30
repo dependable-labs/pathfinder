@@ -5,7 +5,6 @@ use anchor_spl::{
 use anchor_lang::prelude::*;
 use crate::{
   state::*, 
-  utils::shares::_create_metadata_account,
   instructions::timelock::check_timelock_bounds,
 };
 use pathfinder::math::math::zero_floor_sub;
@@ -34,7 +33,7 @@ pub struct CreateManager<'info> {
     payer = user,
     space = 8 + std::mem::size_of::<ManagerVaultConfig>(),
     seeds = [
-        CONFIG_SEED_PREFIX,
+        MANAGER_CONFIG_SEED_PREFIX,
         quote_mint.key().as_ref(),
         &args.symbol.as_bytes(),
         &args.name.as_bytes(),
@@ -48,34 +47,15 @@ pub struct CreateManager<'info> {
     payer = user,
     space = 8 + std::mem::size_of::<QueueState>() + (MAX_QUEUE_LENGTH * std::mem::size_of::<Pubkey>() * 2),
     seeds = [
-      QUEUE_SEED_PREFIX,
+      MANAGER_QUEUE_SEED_PREFIX,
       config.key().as_ref(),
     ],
     bump,
   )]
   pub queue: Box<Account<'info, QueueState>>,
 
-  // Share token mint account
-  #[account(
-    init,
-    payer = user,
-    mint::decimals = quote_mint.decimals,  // Match quote token decimals
-    mint::authority = config,  // The vault controls minting/burning
-    mint::freeze_authority = config,
-  )]
-  pub shares_mint: Account<'info, Mint>,
-
   #[account(constraint = quote_mint.is_initialized == true)]
   pub quote_mint: Box<Account<'info, Mint>>,
-
-  /// CHECK: The metadata account for the share token
-  #[account(
-    mut,
-    seeds = [b"metadata", token_metadata_program.key().as_ref(), shares_mint.key().as_ref()],
-    bump,
-    seeds::program = token_metadata_program.key(),
-  )]
-  pub metadata_account: AccountInfo<'info>,
 
   pub system_program: Program<'info, System>,
   pub token_program: Program<'info, Token>,
@@ -89,8 +69,6 @@ impl<'info> CreateManager<'info> {
     let CreateManager {
       user,
       config,
-      metadata_account,
-      shares_mint,
       system_program,
       rent,
       token_metadata_program,
@@ -106,7 +84,6 @@ impl<'info> CreateManager<'info> {
         name: args.name,
         symbol: args.symbol,
         quote_mint: quote_mint.key(),
-        shares_mint: shares_mint.key(),
         curator: args.curator,
         guardian: args.guardian,
         owner: args.owner,
@@ -125,6 +102,7 @@ impl<'info> CreateManager<'info> {
           value: 0,
           valid_at: 0,
         },
+        total_shares: 0,
     });
 
     queue.set_inner(QueueState {
@@ -132,20 +110,6 @@ impl<'info> CreateManager<'info> {
       supply_queue: Vec::new(),
       withdraw_queue: Vec::new(),
     });
-
-    // Create the metadata account for the share token
-    _create_metadata_account(
-      &config.name,
-      &config.symbol,
-      &config,
-      &metadata_account,
-      &shares_mint,
-      &user,
-      &system_program,
-      &rent,
-      &token_metadata_program,
-    )?;
-
 
     Ok(())
 
