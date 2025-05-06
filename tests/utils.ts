@@ -31,13 +31,15 @@ export function create_account_w_sol(
   pubkey: PublicKey,
   sol_amount: number,
   data: Buffer = Buffer.alloc(0),
+  rentEpoch: number = 0
 ) {
   create_custom_account(
     context,
     pubkey,
     anchor.web3.SystemProgram.programId,
     LAMPORTS_PER_SOL * sol_amount,
-    data
+    data,
+    rentEpoch
   );
 }
 
@@ -91,6 +93,21 @@ export function deriveMarketAddress(
   )[0];
 }
 
+export function deriveSupplyShares(
+  userKey: PublicKey,
+  config: PublicKey,
+  programId: PublicKey
+): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("managershares"),
+        config.toBuffer(),
+        userKey.toBuffer(),
+      ],
+      programId
+    )[0];
+  }
+
 export function deriveManagerConfigAccount(
   quoteMint: PublicKey,
   symbol: string,
@@ -118,12 +135,12 @@ export function deriveDepositRemainingAccounts(
     {
       pubkey: market.marketAcc.key,
       isSigner: false,
-      isWritable: false
+      isWritable: true
     },
     {
       pubkey: market.get_lender_shares(managerConfig).key,
       isSigner: false, 
-      isWritable: false
+      isWritable: true
     },
     {
       pubkey: deriveMarketConfigAccount(

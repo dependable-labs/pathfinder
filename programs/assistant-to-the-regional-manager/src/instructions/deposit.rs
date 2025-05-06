@@ -48,15 +48,16 @@ pub struct Deposit<'info> {
         bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
- 
+    
+    // TODO: initialize in whereever we set fee_recipient
     #[account(
         init_if_needed,
         payer = user,
         space = 8 + std::mem::size_of::<SupplyShares>(),
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            &config.key().as_ref(),
-            &config.fee_recipient.key().as_ref()
+            config.key().as_ref(),
+            config.fee_recipient.key().as_ref()
         ],
         bump
     )]
@@ -68,16 +69,19 @@ pub struct Deposit<'info> {
         space = 8 + std::mem::size_of::<SupplyShares>(),
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            &config.key().as_ref(),
-            &args.receiver.key().as_ref()
+            config.key().as_ref(),
+            args.receiver.key().as_ref()
         ],
         bump
     )]
     pub receiver_shares: Account<'info, SupplyShares>,
 
     // pathfinder accounts
+    #[account(mut)]
     pub pathfinder_config: Account<'info, Config>,
+    #[account(mut)]
     pub vault_ata_quote: Account<'info, TokenAccount>,
+    #[account(mut)]
     pub user_ata_quote: Account<'info, TokenAccount>,
 
     pub system_program: Program<'info, System>,
@@ -86,39 +90,27 @@ pub struct Deposit<'info> {
 
     // NOTE: remaining accounts are pathfinder market and lender shares accounts.
     // These are not specified here but are passed in the context
-    // the accounts are in threes [market, lender_shares, market_config, ...]
+    // the accounts are ordered by supply queue in threes [market, lender_shares, market_config, ...]
+    // Any excess accounts which exist in the withdraw queue but not in supply queue are tacked onto the end
 }
 
-impl<'info> CuratorProtection<'info> for Deposit<'info> {}
 impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> PathActions<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> Deposit<'info> {
 
-    pub fn validate(&self, args: &DepositArgs) -> Result<()> {
-        self.is_curator(&self.user, &self.config)?;
-        Ok(())
-    }
-
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Deposit<'info>>, args: DepositArgs) -> Result<()> {
 
+        // Protects against edgecase supplyqueue.len() > withdraw_queue.len()
+        // The guardian must set a new supply queue without the removed market.
+        // drastically reduces complexity of the deposit account checking logic
+        // msg!("remaining accounts: {:?}", ctx.remaining_accounts.len() / 3);
+        // msg!("withdraw queue: {:?}", ctx.accounts.queue.withdraw_queue.len());
+
+        // if ctx.accounts.queue.withdraw_queue.len() != ctx.remaining_accounts.len() / 3 {
+        //     return err!(ManagerError::MarketQueueMismatch);
+        // }
+
         let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(&ctx)?;
-
-        // let Deposit {
-        //     user,
-        //     config,
-        //     fee_recipient_shares,
-        //     receiver_shares,
-        //     queue,
-        //     pathfinder_config,
-        //     pathfinder_program,
-        //     vault_ata_quote,
-        //     user_ata_quote,
-        //     token_program,
-        //     system_program,
-        //     ..
-        // } = ctx.accounts;
-
-        let mut assets = args.assets;
 
         if fee_shares != 0 {
             ctx.accounts.fee_recipient_shares.shares = ctx.accounts.fee_recipient_shares.shares
@@ -137,21 +129,10 @@ impl<'info, 'c: 'info> Deposit<'info> {
             ctx.accounts.config.decimals_offset,
             false
         )?;
-
-        // Supply assets to Pathfinder markets
+ 
         Self::_supply_path(
             &ctx,
-            &mut assets,
-            // user,
-            // config,
-            // queue,
-            // pathfinder_config,
-            // pathfinder_program,
-            // vault_ata_quote,
-            // user_ata_quote,
-            // token_program,
-            // system_program,
-            // remaining_accounts
+            args.assets,
         )?;
 
         ctx.accounts.receiver_shares.shares = ctx.accounts.receiver_shares.shares
@@ -162,6 +143,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
         ctx.accounts.config.last_total_assets = ctx.accounts.config.last_total_assets
             .checked_add(args.assets)
             .ok_or(ManagerError::MathOverflow)?;
+
 
         Ok(())
     }

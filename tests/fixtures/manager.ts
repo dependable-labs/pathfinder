@@ -14,6 +14,8 @@ import {
   ONE_DAY_TIMELOCK,
   deriveDepositRemainingAccounts,
   PATHFINDER_PROGRAM_ID,
+  deriveLenderShares,
+  deriveSupplyShares,
 } from "../utils";
 
 export class ManagerFixture {
@@ -26,6 +28,7 @@ export class ManagerFixture {
   public allocator: AccountFixture;
   public queue: queueAccountFixture;
   public markets: MarketFixture[];
+  public feeRecipient: UserFixture;
 
   public constructor(
     public _program: Program<AssistantToTheRegionalManager>,
@@ -103,6 +106,8 @@ export class ManagerFixture {
       this.program
     );
 
+    this.feeRecipient = feeRecipient;
+
     await this.program.methods
       .createManager({
         symbol,
@@ -110,7 +115,7 @@ export class ManagerFixture {
         owner: owner.key.publicKey,
         guardian: guardian.key.publicKey,
         allocator: allocator.key.publicKey,
-        feeRecipient: feeRecipient.key.publicKey,
+        feeRecipient: this.feeRecipient.key.publicKey,
         skimRecipient: skimRecipient.key.publicKey,
         curator: curator.key.publicKey,
         timelock: ONE_DAY_TIMELOCK,
@@ -500,6 +505,11 @@ export class ManagerFixture {
     markets: MarketFixture[];
   }): Promise<void> {
 
+    // Check if pathfinder config is initialized
+    const pathfinderConfigData = await markets[0].get_config().get_data();
+
+    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+
     await this.program.methods
       .deposit({
         assets,
@@ -508,16 +518,18 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        quoteAta: this.get_ata(this.quoteMint),
-        userAta: this.get_ata(this.quoteMint),
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        queue: this.queue.key,
+        feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        receiverShares: deriveSupplyShares(receiver.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
         pathfinderConfig: markets[0].get_config().key,
-        vaultAta: markets[0].get_ata(this.quoteMint),
+        vaultAtaQuote: markets[0].quoteAta.key,
+        userAtaQuote: user.quoteAta,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
         // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
       })
-      .remainingAccounts(deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId))
+      .remainingAccounts(remainingAcc)
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }

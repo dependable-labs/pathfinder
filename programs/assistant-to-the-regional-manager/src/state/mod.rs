@@ -68,8 +68,8 @@ pub struct MarketConfig {
 #[account]
 pub struct QueueState {
   pub bump: u8,
-  pub supply_queue: Vec<Pubkey>,    // Vector of market IDs
-  pub withdraw_queue: Vec<Pubkey>,   // Vector of market IDs
+  pub supply_queue: Vec<Pubkey>,                // Vector of market IDs
+  pub withdraw_queue: Vec<Pubkey>,              // Vector of market IDs
 }
 
 // Pending State Account - Stores pending changes

@@ -49,3 +49,28 @@ pub fn validate_market_config_pda(
 
     Ok(())
 }
+
+
+// Validates that a MarketConfig PDA matches expected values
+// pub fn validate_pathfinder_market_pda(
+//     ai: &AccountInfo,
+//     market: &Market,
+// ) -> Result<()> {
+
+//     let seeds = &[
+//       pathfinder::state::MARKET_SEED_PREFIX,
+//       &market.quote_mint.key().as_ref(),
+//       &market.collateral_mint.key().as_ref(),
+//       &market.ltv_factor.to_le_bytes().as_ref(),
+//       &market.oracle.id.to_bytes().as_ref(),
+//     ];
+
+//     let (expected_pda, _) = Pubkey::find_program_address(seeds, &crate::ID);
+
+//     require!(
+//         ai.key() == expected_pda,
+//         ManagerError::InvalidMarketConfig
+//     );  
+
+//     Ok(())
+// }

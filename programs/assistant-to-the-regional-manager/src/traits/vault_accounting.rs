@@ -8,28 +8,44 @@ use crate::{
 use pathfinder::math::{mul_div_down, mul_div_up, zero_floor_sub, WAD}; 
 use pathfinder::cpi::view_expected_supply_assets;
 use pathfinder::state::{Market, LenderShares};
+use std::collections::HashSet;
+
 pub trait VaultAccounting<'info, 'c: 'info> {
 
   fn total_assets(
     ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
   ) -> Result<u64> {
-    let assets = 0;
-    let pathfinder_accounts = ctx.remaining_accounts;
+    let mut assets: u64 = 0;
+    let market_accounts = ctx.remaining_accounts;
     let withdraw_queue = &ctx.accounts.queue.withdraw_queue;
 
-    require!(
-        withdraw_queue.len() == pathfinder_accounts.len().checked_mul(2).unwrap(),
-        ManagerError::MarketQueueMismatch
-    );
+    // checking against set errors on duplicate and ensures all withdraw_queue accounts are accounted for
+    let withdraw_queue_set: HashSet<_> = withdraw_queue
+      .iter()
+      .map(|market| market.key())
+      .collect();
 
-    for i in 0..withdraw_queue.len() {
+    // order of withdraw queue accounts is not guaranteed
+    for i in (0..market_accounts.len()).step_by(3) {
 
-      // let market_account = &pathfinder_accounts[i];
-      let market_account = Account::<Market>::try_from(&pathfinder_accounts[i])?;
-      let lender_shares_account = Account::<LenderShares>::try_from(&pathfinder_accounts[i + 1])?;
+      // check to ensure market is in withdraw queue
+      if !withdraw_queue_set.contains(&market_accounts[i].key()) {
+        return err!(ManagerError::MarketNotInQueue);
+      }
 
-      // TODO: is validating the seed necessary? what value doe we get from it?
-      // validate_pathfinder_market(&market_account, &withdraw_queue[i])?;
+      let market_account = Account::<Market>::try_from(&market_accounts[i])?;
+
+      // validate that lender shares account is valid
+      // TODO: if try_from fails, we need a way to verify that its because this is the first deposit and not becuase the account is invalid
+      let lender_shares_account = if market_accounts[i + 1].data_is_empty() {
+          // return err!(ManagerError::LenderSharesAccountNotInitialized);
+          continue;
+      } else {
+          Account::<LenderShares>::try_from(&market_accounts[i + 1])?
+      };
+
+      // validate that seed derivation is correct
+      // validate_pathfinder_market(&market_accounts[i])?;
       // validate_pathfinder_lender_shares(&market_account.key(), &lender_shares_account.key(), &manager_config.key())?;
 
       let view_market_ctx = CpiContext::new(
@@ -42,11 +58,11 @@ pub trait VaultAccounting<'info, 'c: 'info> {
 
       let expected_assets = view_expected_supply_assets(
         view_market_ctx,
-        lender_shares_account.shares);
+        lender_shares_account.shares)?;
 
-      // msg!("expected_assets: {}", expected_assets);
-
-      // assets = assets.checked_add(expected_assets).unwrap();
+      assets = assets
+        .checked_add(expected_assets.get())
+        .ok_or(ManagerError::MathOverflow)?;
     }
 
     Ok(assets)

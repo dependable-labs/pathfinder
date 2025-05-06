@@ -93,4 +93,16 @@ pub enum ManagerError {
 
     #[msg("Market cap reached")]
     MarketCapReached,
+
+    #[msg("Invalid supply queue account")]
+    InvalidSupplyQueueAccount,
+
+    #[msg("Number of remaining accounts and supply queue don't match")]
+    RemainingAccountsMismatch,
+
+    #[msg("Market removal exists in supply queue")]
+    InvalidMarketRemovalExistsInSupplyQueue,
+
+    #[msg("Lender shares account is not initialized")]
+    LenderSharesAccountNotInitialized,
 }

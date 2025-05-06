@@ -16,7 +16,7 @@ pub trait PathActions<'info, 'c: 'info> {
 
   fn _supply_path(
     ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
-    assets: &mut u64,
+    assets: u64,
   ) -> Result<()> {
     let user = &ctx.accounts.user;
     let config = &ctx.accounts.config;
@@ -29,13 +29,38 @@ pub trait PathActions<'info, 'c: 'info> {
     let token_program = &ctx.accounts.token_program;
     let system_program = &ctx.accounts.system_program;
 
+    let mut queue_index = 0;
+    let mut assets = assets;
 
-    for i in 0..queue.supply_queue.len() {
-      let market_account = Account::<Market>::try_from(&remaining_accounts[i])?;
-      let lender_shares_account = Account::<LenderShares>::try_from(&remaining_accounts[i + 1])?;
-      let market_config_account = Account::<MarketConfig>::try_from(&remaining_accounts[i + 2])?;
+    for i in (0..remaining_accounts.len()).step_by(3) {
 
-      // get market id from queue
+      let market_acc_info = &remaining_accounts[i];
+      let lender_shares_acc_info = &remaining_accounts[i + 1];
+      let market_config_acc_info = &remaining_accounts[i + 2];
+
+      let mut shares: u64 = 0;
+
+      // if queue_index is greater than queue.supply_queue.len(), break
+      if queue_index >= queue.supply_queue.len() {
+        break;
+      }
+
+      // remaining accounts must be in the same order as the supply queue
+      let market_pubkey = queue.supply_queue[queue_index];
+      let market_account = Account::<Market>::try_from(&market_acc_info)?;
+      if market_account.key() != market_pubkey {
+        return Err(ManagerError::InvalidSupplyQueueAccount.into());
+      }
+ 
+      // if initialized, validate that lender shares account data
+      if !lender_shares_acc_info.data_is_empty() {
+        let lender_account = Account::<LenderShares>::try_from(&lender_shares_acc_info)?;
+        shares = lender_account.shares;
+      }
+
+      // validate that market config account data
+      let market_config_account = Account::<MarketConfig>::try_from(&market_config_acc_info)?;
+
       // check supply cap, if 0, skip
       let supply_cap = market_config_account.cap;
       if supply_cap == 0 {
@@ -55,9 +80,9 @@ pub trait PathActions<'info, 'c: 'info> {
       accrue_interest(accrue_ctx)?;
 
       // get supply shares for manager's position in market
-      let deposit_shares = lender_shares_account.shares;
+      let deposit_shares = shares;
 
-      // convert supply shares to assets, rounding up
+      // // convert supply shares to assets, rounding up
       let supply_assets = to_assets_up(
         deposit_shares,
         market_account.total_deposits()?,
@@ -65,8 +90,7 @@ pub trait PathActions<'info, 'c: 'info> {
       )?;
 
       // calculate toSupply as min of (supplyCap - supplyAssets, assets)
-      let to_supply = min_u64(zero_floor_sub(supply_cap, supply_assets), *assets);
-
+      let to_supply = min_u64(zero_floor_sub(supply_cap, supply_assets), assets);
 
       if to_supply > 0 {
 
@@ -76,7 +100,7 @@ pub trait PathActions<'info, 'c: 'info> {
             user: user.to_account_info(),
             market: market_account.to_account_info(),
             config: pathfinder_config.to_account_info(),
-            lender_shares: lender_shares_account.to_account_info(),
+            lender_shares: lender_shares_acc_info.to_account_info(),
             vault_ata_quote: vault_ata_quote.to_account_info(),
             user_ata_quote: user_ata_quote.to_account_info(),
             token_program: token_program.to_account_info(),
@@ -92,16 +116,18 @@ pub trait PathActions<'info, 'c: 'info> {
 
         // Skip markets that fail by catching any errors
         if deposit(deposit_ctx, deposit_args).is_ok() {
-            *assets = assets.checked_sub(to_supply).ok_or(ManagerError::MathUnderflow)?;
+            assets = assets.checked_sub(to_supply).ok_or(ManagerError::MathUnderflow)?;
         }
       }
 
-      if *assets == 0 {
+      if assets == 0 {
         break;
       }
+
+      queue_index += 1;
     }
 
-    if *assets != 0 {
+    if assets != 0 {
       return Err(ManagerError::MarketCapReached.into());
     }
 

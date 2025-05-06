@@ -67,11 +67,7 @@ impl<'info> CreateManager<'info> {
   pub fn handle(ctx: Context<CreateManager>, args: CreateManagerArgs) -> Result<()> {
 
     let CreateManager {
-      user,
       config,
-      system_program,
-      rent,
-      token_metadata_program,
       quote_mint,
       queue,
       ..

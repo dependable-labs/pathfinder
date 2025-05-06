@@ -89,7 +89,6 @@ pub mod assistant_to_the_regional_manager {
         RevokePendingTimelock::handle(ctx)
     }
 
-    #[access_control(ctx.accounts.validate(&args))]
     pub fn deposit<'c: 'info, 'info>(
         ctx: Context<'_, '_, 'c, 'info, Deposit<'info>>,
         args: DepositArgs
