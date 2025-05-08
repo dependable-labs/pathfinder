@@ -29,6 +29,9 @@ pub trait VaultAccounting<'info, 'c: 'info> {
     for i in (0..market_accounts.len()).step_by(3) {
 
       // check to ensure market is in withdraw queue
+      // Also protects against edgecase supplyqueue.len() > withdraw_queue.len()
+      // The guardian must set a new supply queue without the removed market prior to depositors calling deposit.
+      // drastically reduces complexity of the deposit account checking logic
       if !withdraw_queue_set.contains(&market_accounts[i].key()) {
         return err!(ManagerError::MarketNotInQueue);
       }

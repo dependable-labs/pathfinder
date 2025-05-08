@@ -94,8 +94,8 @@ pub enum ManagerError {
     #[msg("Market cap reached")]
     MarketCapReached,
 
-    #[msg("Invalid supply queue account")]
-    InvalidSupplyQueueAccount,
+    #[msg("Invalid supply queue")]
+    InvalidSupplyQueue,
 
     #[msg("Number of remaining accounts and supply queue don't match")]
     RemainingAccountsMismatch,

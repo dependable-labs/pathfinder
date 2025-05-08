@@ -330,6 +330,33 @@ export class TestUtils {
       .rpc();
   }
 
+  public async createMarkets(
+      marketConfigs: {
+        symbol: string,
+        ltvFactor: anchor.BN,
+        price: anchor.BN,
+        conf: anchor.BN,
+        expo: number,
+        feeRecipient: UserFixture,
+        authority: UserFixture,
+      }[],
+  ): Promise<{
+    solMarket?: MarketFixture,
+    wbtcMarket?: MarketFixture,
+    pepeMarket?: MarketFixture,
+    dogeMarket?: MarketFixture,
+    metaMarket?: MarketFixture
+  }> {
+    const markets: {[key: string]: MarketFixture} = {};
+    for (const marketConfig of marketConfigs) {
+      const market = await this.createMarket(marketConfig);
+      const marketKey = `${marketConfig.symbol.toLowerCase()}Market`;
+      markets[marketKey] = market;
+    }
+    return markets;
+  }
+
+
   public async createMarket(
     {
       symbol,

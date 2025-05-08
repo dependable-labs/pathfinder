@@ -49,7 +49,7 @@ pub trait PathActions<'info, 'c: 'info> {
       let market_pubkey = queue.supply_queue[queue_index];
       let market_account = Account::<Market>::try_from(&market_acc_info)?;
       if market_account.key() != market_pubkey {
-        return Err(ManagerError::InvalidSupplyQueueAccount.into());
+        return err!(ManagerError::InvalidSupplyQueue);
       }
  
       // if initialized, validate that lender shares account data
@@ -127,8 +127,13 @@ pub trait PathActions<'info, 'c: 'info> {
       queue_index += 1;
     }
 
+    require!(
+      assets == 0,
+      ManagerError::MarketCapReached
+    );
+
     if assets != 0 {
-      return Err(ManagerError::MarketCapReached.into());
+      return err!(ManagerError::MarketCapReached);
     }
 
     Ok(())

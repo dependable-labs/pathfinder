@@ -100,16 +100,6 @@ impl<'info, 'c: 'info> Deposit<'info> {
 
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Deposit<'info>>, args: DepositArgs) -> Result<()> {
 
-        // Protects against edgecase supplyqueue.len() > withdraw_queue.len()
-        // The guardian must set a new supply queue without the removed market.
-        // drastically reduces complexity of the deposit account checking logic
-        // msg!("remaining accounts: {:?}", ctx.remaining_accounts.len() / 3);
-        // msg!("withdraw queue: {:?}", ctx.accounts.queue.withdraw_queue.len());
-
-        // if ctx.accounts.queue.withdraw_queue.len() != ctx.remaining_accounts.len() / 3 {
-        //     return err!(ManagerError::MarketQueueMismatch);
-        // }
-
         let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(&ctx)?;
 
         if fee_shares != 0 {

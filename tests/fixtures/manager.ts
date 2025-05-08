@@ -1,4 +1,4 @@
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
@@ -493,7 +493,7 @@ export class ManagerFixture {
   }
 
 
-  async deposit({
+  async depositAssess({
     user,
     receiver,
     assets,
@@ -505,8 +505,55 @@ export class ManagerFixture {
     markets: MarketFixture[];
   }): Promise<void> {
 
-    // Check if pathfinder config is initialized
-    const pathfinderConfigData = await markets[0].get_config().get_data();
+    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    const budgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1_000_000,
+    });
+
+    let tx = await this.program.methods
+      .deposit({
+        assets,
+        receiver: receiver.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        queue: this.queue.key,
+        feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        receiverShares: deriveSupplyShares(receiver.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        pathfinderConfig: markets[0].get_config().key,
+        vaultAtaQuote: markets[0].quoteAta.key,
+        userAtaQuote: user.quoteAta,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
+      })
+      .remainingAccounts(remainingAcc)
+      .transaction();
+    
+    
+    tx = tx.add(
+      budgetInstruction,
+    )
+    tx.recentBlockhash = this.provider.context.lastBlockhash
+    tx.sign(user.key.payer);
+
+    await this.provider.context.banksClient.processTransaction(tx);
+
+  }
+
+  async deposit({
+      user,
+      receiver,
+      assets,
+      markets,
+  }: {
+    user: UserFixture;
+    receiver: UserFixture;
+    assets: anchor.BN;
+    markets: MarketFixture[];
+  }): Promise < void> {
 
     let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
 
