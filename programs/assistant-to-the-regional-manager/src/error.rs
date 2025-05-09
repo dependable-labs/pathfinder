@@ -18,8 +18,11 @@ pub enum ManagerError {
     #[msg("Unauthorized market")]
     UnauthorizedMarket,
 
-    #[msg("Invalid market config")]
-    InvalidMarketConfig,
+    #[msg("Invalid manager market config")]
+    InvalidManagerMarketConfig,
+
+    #[msg("Invalid pathfinder market config")]
+    InvalidPathfinderMarketConfig,
 
     #[msg("Market is not enabled")]
     MarketNotEnabled,
@@ -105,4 +108,7 @@ pub enum ManagerError {
 
     #[msg("Lender shares account is not initialized")]
     LenderSharesAccountNotInitialized,
+
+    #[msg("Invalid lender shares")]
+    InvalidLenderShares,
 }

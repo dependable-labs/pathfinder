@@ -42,7 +42,7 @@ pub struct SubmitCap<'info> {
     #[account(
         init_if_needed,
         payer = user,
-        space = 8 + std::mem::size_of::<MarketConfig>(),
+        space = 8 + std::mem::size_of::<ManagerMarketConfig>(),
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
             config.key().as_ref(),
@@ -50,7 +50,7 @@ pub struct SubmitCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, MarketConfig>>,
+    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
 
     // errors if market account is not initialized
     #[account(
@@ -114,7 +114,7 @@ impl<'info> SubmitCap<'info> {
 
 pub fn set_cap(
     queue: &mut QueueState,
-    market_config: &mut MarketConfig,
+    market_config: &mut ManagerMarketConfig,
     market_id: Pubkey,
     new_cap: u64
 ) -> Result<()> {

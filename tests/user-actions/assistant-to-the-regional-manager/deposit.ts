@@ -349,8 +349,7 @@ describe("deposit", () => {
           assets: depositAmount,
         });
       },
-      (err: anchor.AnchorError) => {
-        // not reading from rpc so we get back generic failure
+      (err: any) => {
         assert.strictEqual(err.code, "GenericFailure");
         return true;
       }
@@ -462,7 +461,7 @@ describe("deposit", () => {
       user: owen,
       marketId: metaMarket.marketAcc.key,
     });
-    
+
     await manager.acceptCap({
       user: owen,
       marketId: wbtcMarket.marketAcc.key,
@@ -596,19 +595,13 @@ describe("deposit", () => {
     assert.equal(Number(await metaMarket.quoteAta.getTokenBalance()), depositAmount.toNumber());
 
     // Dan's balance should be reduced by deposit amount
-    assert.equal(Number(await dan.get_quo_balance()), 450_000 * 1e9);
-    return;
+    assert.equal(Number(await dan.get_quo_balance()), 900_000 * 1e9);
 
     // Verify last_total_assets was updated in config
     const configData = await manager.managerVaultConfigAcc.get_data();
     assert.equal(configData.lastTotalAssets.toNumber(), depositAmount.toNumber());
 
     // manager vault owns shares in base market
-    const postManagerVaultData = await market
-      .get_lender_shares(manager.managerVaultConfigAcc.key)
-      .get_data();
-    assert.equal(postManagerVaultData.shares.toNumber(), 100_000 * 1e9);
-
     const postManagerVaultDataMeta = await metaMarket
       .get_lender_shares(manager.managerVaultConfigAcc.key)
       .get_data();

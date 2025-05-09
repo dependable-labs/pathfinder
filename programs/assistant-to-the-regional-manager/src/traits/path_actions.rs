@@ -4,13 +4,13 @@ use crate::{
   state::*, 
   error::ManagerError,
   instructions::Deposit,
+  utils::accounts::validate_manager_market_config_pda
 };
 
 use pathfinder::{
-    program::Pathfinder,
     cpi::{accrue_interest, deposit},
-    math::{min_u64, mul_div_down, mul_div_up, to_assets_up, zero_floor_sub, WAD},
-    state::{Config, LenderShares, Market},
+    math::{min_u64, to_assets_up, zero_floor_sub},
+    state::{LenderShares, Market},
 };
 pub trait PathActions<'info, 'c: 'info> {
 
@@ -34,35 +34,43 @@ pub trait PathActions<'info, 'c: 'info> {
 
     for i in (0..remaining_accounts.len()).step_by(3) {
 
-      let market_acc_info = &remaining_accounts[i];
-      let lender_shares_acc_info = &remaining_accounts[i + 1];
-      let market_config_acc_info = &remaining_accounts[i + 2];
+      let market_info = &remaining_accounts[i];
+      let lender_shares_info = &remaining_accounts[i + 1];
+      let manager_market_config_info = &remaining_accounts[i + 2];
 
       let mut shares: u64 = 0;
 
-      // if queue_index is greater than queue.supply_queue.len(), break
+      // if queue_index is greater than queue.supply_queue.len()
+      // we've processed all markets in the supply queue
       if queue_index >= queue.supply_queue.len() {
         break;
       }
 
       // remaining accounts must be in the same order as the supply queue
-      let market_pubkey = queue.supply_queue[queue_index];
-      let market_account = Account::<Market>::try_from(&market_acc_info)?;
-      if market_account.key() != market_pubkey {
+      let supply_queue_market = queue.supply_queue[queue_index];
+      // market_info seed derivation has already been validated in total_assets()
+      let market_account: Account<'_, Market> = Account::<Market>::try_from(&market_info)?;
+      if market_info.key() != supply_queue_market {
         return err!(ManagerError::InvalidSupplyQueue);
       }
  
-      // if initialized, validate that lender shares account data
-      if !lender_shares_acc_info.data_is_empty() {
-        let lender_account = Account::<LenderShares>::try_from(&lender_shares_acc_info)?;
+      // validate that lender shares account data
+      // lender_shares seed derivation has already been validated in total_assets()
+      if !lender_shares_info.data_is_empty() {
+        let lender_account = Account::<LenderShares>::try_from(&lender_shares_info)?;
         shares = lender_account.shares;
       }
 
-      // validate that market config account data
-      let market_config_account = Account::<MarketConfig>::try_from(&market_config_acc_info)?;
+      // validate manager market config account
+      let manager_market_config_account = Account::<ManagerMarketConfig>::try_from(&manager_market_config_info)?;
+      validate_manager_market_config_pda(
+        &manager_market_config_info.key(),
+        &market_info.key(),
+        &config.key(),
+      )?;
 
       // check supply cap, if 0, skip
-      let supply_cap = market_config_account.cap;
+      let supply_cap = manager_market_config_account.cap;
       if supply_cap == 0 {
         continue;
       }
@@ -98,9 +106,9 @@ pub trait PathActions<'info, 'c: 'info> {
           pathfinder_program.to_account_info(),
           pathfinder::cpi::accounts::Deposit {
             user: user.to_account_info(),
-            market: market_account.to_account_info(),
+            market: market_info.to_account_info(),
             config: pathfinder_config.to_account_info(),
-            lender_shares: lender_shares_acc_info.to_account_info(),
+            lender_shares: lender_shares_info.to_account_info(),
             vault_ata_quote: vault_ata_quote.to_account_info(),
             user_ata_quote: user_ata_quote.to_account_info(),
             token_program: token_program.to_account_info(),

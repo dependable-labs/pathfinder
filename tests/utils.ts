@@ -130,7 +130,7 @@ export function deriveDepositRemainingAccounts(
   markets: MarketFixture[],
   programId: PublicKey
 ) {
-  // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
+  // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
   const remainingAccounts = markets.map((market) => [
     {
       pubkey: market.marketAcc.key,
@@ -143,7 +143,7 @@ export function deriveDepositRemainingAccounts(
       isWritable: true
     },
     {
-      pubkey: deriveMarketConfigAccount(
+      pubkey: deriveManagerMarketConfigAccount(
         managerConfig,
         market.marketAcc.key,
         programId
@@ -156,14 +156,14 @@ export function deriveDepositRemainingAccounts(
   return remainingAccounts;
 }
 
-export function deriveMultiMarketConfigs(
+export function deriveMultiManagerMarketConfigs(
   managerConfig: PublicKey,
   marketIds: PublicKey[],
   programId: PublicKey
 ) {
   const marketConfigs = marketIds.map((marketId) => {
     return {
-      pubkey: deriveMarketConfigAccount(
+      pubkey: deriveManagerMarketConfigAccount(
         managerConfig,
         marketId,
         programId
@@ -176,7 +176,7 @@ export function deriveMultiMarketConfigs(
   return marketConfigs;
 }
 
-export function deriveMarketConfigAccount(
+export function deriveManagerMarketConfigAccount(
   managerConfig: PublicKey,
   marketId: PublicKey,
   programId: PublicKey

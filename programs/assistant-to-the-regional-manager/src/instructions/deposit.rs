@@ -90,7 +90,7 @@ pub struct Deposit<'info> {
 
     // NOTE: remaining accounts are pathfinder market and lender shares accounts.
     // These are not specified here but are passed in the context
-    // the accounts are ordered by supply queue in threes [market, lender_shares, market_config, ...]
+    // the accounts are ordered by supply queue in threes [market, lender_shares, manager_market_config, ...]
     // Any excess accounts which exist in the withdraw queue but not in supply queue are tacked onto the end
 }
 
@@ -113,7 +113,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
         ctx.accounts.config.last_total_assets = new_total_assets;
 
         let shares = Self::_convert_to_shares_with_totals(
-            args.assets, 
+            args.assets,
             ctx.accounts.config.total_shares,
             new_total_assets,
             ctx.accounts.config.decimals_offset,
@@ -133,7 +133,6 @@ impl<'info, 'c: 'info> Deposit<'info> {
         ctx.accounts.config.last_total_assets = ctx.accounts.config.last_total_assets
             .checked_add(args.assets)
             .ok_or(ManagerError::MathOverflow)?;
-
 
         Ok(())
     }

@@ -9,6 +9,7 @@ pub use pending_type::*;
 // Config Account - Contains core configuration and authority data
 // Config Account - Main vault configuration
 // This is the main config account for each vault instance
+// owner of postitions in pathfinder markets
 #[account]
 pub struct ManagerVaultConfig {
   pub bump: u8,
@@ -52,12 +53,12 @@ pub struct SupplyShares {
 // ["managermarketconfig", vault_address, market_id]
 // in queue methods MarketConfigs are passed as remaining accounts
 #[account]
-pub struct MarketConfig {
+pub struct ManagerMarketConfig {
   pub bump: u8,
   pub enabled: bool,
   pub cap: u64,                  // Supply cap for this market
   pub removable_at: u64,         // Timestamp when market can be removed
-  pub pending_cap: PendingU64,   // Pending cap change
+  pub pending_cap: PendingU64,          // Pending cap for this market
 }
 
 // Queue Account - Stores supply and withdraw queues

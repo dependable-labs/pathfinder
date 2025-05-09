@@ -1,76 +1,82 @@
 use anchor_lang::prelude::*;
-use crate::error::ManagerError;
-use crate::state::MarketConfig;
+use crate::{error::ManagerError, state::PATHFINDER_PROGRAM_ID};
+use crate::state::ManagerMarketConfig;
+use pathfinder::state::{Market, LenderShares, Config};
+use crate::state::ManagerVaultConfig;
 
 /// Loads a MarketConfig account from an AccountInfo
 /// Validates that the account is owned by the program
-pub fn load_market_config(ai: &AccountInfo) -> Result<MarketConfig> {
-    // Verify the account is owned by the program
-    require!(
-        ai.owner.eq(&crate::ID),
-        ManagerError::InvalidMarketConfig
-    );
+// pub fn load_manager_market_config(ai: &AccountInfo) -> Result<ManagerMarketConfig> {
+//     // Verify the account is owned by the program
+//     require!(
+//         ai.owner.eq(&crate::ID),
+//         ManagerError::InvalidManagerMarketConfig
+//     );
 
-    let market_config_data = ai.try_borrow_data()?;
+//     let market_config_data = ai.try_borrow_data()?;
     
-    // Deserialize the account data
-    Ok(MarketConfig::deserialize(
-        &mut &market_config_data.as_ref()[8..],
-    )?)
-}
+//     // Deserialize the account data
+//     Ok(ManagerMarketConfig::deserialize(
+//         &mut &market_config_data.as_ref()[8..],
+//     )?)
+// }
 
-/// Validates that a MarketConfig PDA matches expected values
-pub fn validate_market_config_pda(
-    ai: &AccountInfo,
-    config_key: &Pubkey,
-    market_pubkey: &Pubkey,
+pub fn validate_manager_market_config_pda(
+    ai: &Pubkey,
+    market: &Pubkey,
+    manager_config: &Pubkey,
 ) -> Result<()> {
-
-    // Derive the expected market config PDA
-    let seeds = &[
-        crate::state::MANAGER_MARKET_CONFIG_SEED_PREFIX,
-        config_key.as_ref(),
-        market_pubkey.as_ref(),
-    ];
-
-    let (expected_pda, _) = Pubkey::find_program_address(seeds, &crate::ID);
-
-    // Verify the account matches the expected PDA
-    require!(
-        ai.key() == expected_pda,
-        ManagerError::InvalidMarketConfig
+    let (expected_pda, _) = Pubkey::find_program_address(
+        &[
+            crate::state::MANAGER_MARKET_CONFIG_SEED_PREFIX,
+            manager_config.key().as_ref(),
+            market.key().as_ref(),
+        ],
+        &crate::ID
     );
 
-    // TODO: Inspect these bump values... they were not matching
-    // let (expected_market_config_pda, expected_bump) = Pubkey::find_program_address(seeds, ctx.program_id);
-    // if market_config.bump != expected_bump {
-    //   return err!(ManagerError::InvalidMarketConfig);
-    // }
-
+    require!(ai.key() == expected_pda, ManagerError::InvalidManagerMarketConfig);
     Ok(())
 }
 
 
+// Validates that a Market PDA matches expected values
+pub fn validate_pathfinder_market_pda(
+    ai: &Pubkey,
+    market: &Market,
+) -> Result<()> {
+    let expected_pda= Pubkey::create_program_address(
+        &[
+            pathfinder::state::MARKET_SEED_PREFIX,
+            market.quote_mint.key().as_ref(),
+            market.collateral_mint.key().as_ref(),
+            market.ltv_factor.to_le_bytes().as_ref(),
+            market.oracle.id.to_bytes().as_ref(),
+            &[market.bump]
+        ],
+        &PATHFINDER_PROGRAM_ID
+    ).map_err(|_| ManagerError::InvalidPathfinderMarketConfig)?;
+
+    require!(ai.key() == expected_pda, ManagerError::InvalidPathfinderMarketConfig);
+    Ok(())
+}
+
 // Validates that a MarketConfig PDA matches expected values
-// pub fn validate_pathfinder_market_pda(
-//     ai: &AccountInfo,
-//     market: &Market,
-// ) -> Result<()> {
+pub fn validate_pathfinder_lender_shares_pda(
+    market_info: &Pubkey,
+    manager_config_info: &Pubkey,
+    lender_shares_info: &Pubkey,
+) -> Result<()> {
 
-//     let seeds = &[
-//       pathfinder::state::MARKET_SEED_PREFIX,
-//       &market.quote_mint.key().as_ref(),
-//       &market.collateral_mint.key().as_ref(),
-//       &market.ltv_factor.to_le_bytes().as_ref(),
-//       &market.oracle.id.to_bytes().as_ref(),
-//     ];
+    let (expected_pda, _) = Pubkey::find_program_address(
+        &[
+            pathfinder::state::MARKET_SHARES_SEED_PREFIX,
+            market_info.key().as_ref(),
+            manager_config_info.key().as_ref(),
+        ],
+        &PATHFINDER_PROGRAM_ID
+    );
 
-//     let (expected_pda, _) = Pubkey::find_program_address(seeds, &crate::ID);
-
-//     require!(
-//         ai.key() == expected_pda,
-//         ManagerError::InvalidMarketConfig
-//     );  
-
-//     Ok(())
-// }
+    require!(lender_shares_info.key() == expected_pda, ManagerError::InvalidLenderShares);
+    Ok(())
+}

@@ -89,19 +89,6 @@ export class MarketFixture {
 
     let source = this.collateral.getOracleSource() === OracleSource.PythPull ? { pythPull: {} } : { switchboardPull: {} }
 
-    console.log("Creating market with accounts:");
-    console.log("  user:", user.key.publicKey.toBase58());
-    console.log("  config:", get_config(this.program).key.toBase58());
-    console.log("  market:", this.marketAcc.key.toBase58());
-    console.log("  quoteMint:", quoteMint.toBase58());
-    console.log("  collateralMint:", collateralMint.toBase58());
-    console.log("  vaultAtaQuote:", vaultAtaQuote.toBase58());
-    console.log("  vaultAtaCollateral:", vaultAtaCollateral.toBase58());
-    console.log("  associatedTokenProgram:", anchor.utils.token.ASSOCIATED_PROGRAM_ID.toBase58());
-    console.log("  tokenProgram:", anchor.utils.token.TOKEN_PROGRAM_ID.toBase58());
-    console.log("  systemProgram:", anchor.web3.SystemProgram.programId.toBase58());
-
-
     await this.program.methods
       .createMarket({
         oracleId: this.collateral.getOracleId(),
