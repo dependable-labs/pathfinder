@@ -37,7 +37,10 @@ pub mod assistant_to_the_regional_manager {
         SubmitMarketRemoval::handle(ctx, args)
     }
 
-    pub fn set_supply_queue(ctx: Context<SetSupplyQueue>, args: SetSupplyQueueArgs) -> Result<()> {
+    pub fn set_supply_queue<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, SetSupplyQueue<'info>>,
+        args: SetSupplyQueueArgs
+    ) -> Result<()> {
         SetSupplyQueue::handle(ctx, args)
     }
 
@@ -89,7 +92,6 @@ pub mod assistant_to_the_regional_manager {
         RevokePendingTimelock::handle(ctx)
     }
 
-    #[access_control(ctx.accounts.validate(&args))]
     pub fn deposit<'c: 'info, 'info>(
         ctx: Context<'_, '_, 'c, 'info, Deposit<'info>>,
         args: DepositArgs

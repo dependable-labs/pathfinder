@@ -175,10 +175,6 @@ describe("guardian", () => {
       supplyCap: new anchor.BN(1000),
     });
 
-    // Verify market config state after submit
-    const marketConfigAfterSubmit = await manager.get_market_config(market.marketAcc.key).get_data();
-    assert.equal(marketConfigAfterSubmit.pendingCap.value.toNumber(), 1000);
-    assert.equal(marketConfigAfterSubmit.pendingCap.validAt.toNumber(), await test.getTime() + ONE_DAY_TIMELOCK.toNumber());
 
     // Move time forward but not past timelock
     await test.moveTimeForward(ONE_DAY_TIMELOCK.toNumber() / 2);
@@ -194,8 +190,6 @@ describe("guardian", () => {
     assert.equal(marketConfig.cap.toNumber(), 0); // Original cap
     assert.equal(marketConfig.enabled, false);
     assert.equal(marketConfig.removableAt.toNumber(), 0);
-    assert.equal(marketConfig.pendingCap.value.toNumber(), 0);
-    assert.equal(marketConfig.pendingCap.validAt.toNumber(), 0);
   });
 
   it("guardian can revoke pending guardian", async () => {

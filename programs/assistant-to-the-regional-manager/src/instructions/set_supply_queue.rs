@@ -3,7 +3,7 @@ use anchor_spl::token::*;
 
 use crate::state::*;
 use crate::error::*;
-use crate::utils::accounts::{load_market_config, validate_market_config_pda};
+use crate::utils::accounts::{validate_manager_market_config_pda};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetSupplyQueueArgs {
@@ -49,8 +49,8 @@ pub struct SetSupplyQueue<'info> {
     // These are not specified here but are passed in the context
 }
 
-impl<'info> SetSupplyQueue<'info> {
-    pub fn handle(ctx: Context<SetSupplyQueue>, args: SetSupplyQueueArgs) -> Result<()> {
+impl<'info, 'c: 'info> SetSupplyQueue<'info> {
+    pub fn handle(ctx: Context<'_, '_, 'c, 'info, SetSupplyQueue<'info>>, args: SetSupplyQueueArgs) -> Result<()> {
         let SetSupplyQueue {
           config,
           queue,
@@ -65,16 +65,19 @@ impl<'info> SetSupplyQueue<'info> {
         // Verify all markets in queue are authorized
         for (i, path_market_pubkey) in args.market_ids.iter().enumerate() {
 
-          // retreive configs for each market account
-          let market_config = load_market_config(&ctx.remaining_accounts[i])?;
+          let market_config_info = &ctx.remaining_accounts[i];
 
-          validate_market_config_pda(
-            &ctx.remaining_accounts[i],
-            &config.key(),
-            path_market_pubkey,
+          // retreive configs for each market account
+          // let manager_market_config = load_manager_market_config(market_config_info)?;
+          let manager_market_config_account = Account::<ManagerMarketConfig>::try_from(&market_config_info)?;
+
+          validate_manager_market_config_pda(
+            &market_config_info.key(),
+            &path_market_pubkey,
+            &config.key()
           )?;
- 
-          if market_config.cap == 0 {
+
+          if manager_market_config_account.cap == 0 {
             return err!(ManagerError::UnauthorizedMarket);
           }
         }

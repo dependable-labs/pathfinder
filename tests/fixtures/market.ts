@@ -31,11 +31,16 @@ export class MarketFixture {
   ) {
     this.collateral = _collateral;
 
+    console.log("marketAcc oracle ID", this.collateral.getOracleId().toBase58());
+
     this.marketAcc = new marketAccountFixture(
       "market",
       deriveMarketAddress(_quoteMint, _collateralMint, this.collateral._ltvFactor, this.collateral.getOracleId(), _program.programId),
       _program,
     );
+
+    console.log("marketAcc:", this.marketAcc.key.toBase58());
+
     this.program = _program;
     this.provider = _provider;
     this.quoteMint = _quoteMint;

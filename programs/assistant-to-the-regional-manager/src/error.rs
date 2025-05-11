@@ -18,8 +18,11 @@ pub enum ManagerError {
     #[msg("Unauthorized market")]
     UnauthorizedMarket,
 
-    #[msg("Invalid market config")]
-    InvalidMarketConfig,
+    #[msg("Invalid manager market config")]
+    InvalidManagerMarketConfig,
+
+    #[msg("Invalid pathfinder market config")]
+    InvalidPathfinderMarketConfig,
 
     #[msg("Market is not enabled")]
     MarketNotEnabled,
@@ -85,12 +88,12 @@ pub enum ManagerError {
     #[msg("Invalid pathfinder market")]
     InvalidPathfinderMarket,
 
-    #[msg("Invalid pathfinder lender shares")]
-    InvalidPathfinderLenderShares,
-
-    #[msg("Market queue mismatch")]
-    MarketQueueMismatch,
-
     #[msg("Market cap reached")]
     MarketCapReached,
+
+    #[msg("Invalid supply queue")]
+    InvalidSupplyQueue,
+
+    #[msg("Invalid lender shares")]
+    InvalidLenderShares,
 }

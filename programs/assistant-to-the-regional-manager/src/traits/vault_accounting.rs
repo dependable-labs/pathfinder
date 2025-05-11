@@ -8,45 +8,71 @@ use crate::{
 use pathfinder::math::{mul_div_down, mul_div_up, zero_floor_sub, WAD}; 
 use pathfinder::cpi::view_expected_supply_assets;
 use pathfinder::state::{Market, LenderShares};
+use std::collections::HashSet;
+use crate::utils::accounts::{
+  validate_pathfinder_market_pda, 
+  validate_pathfinder_lender_shares_pda,
+};
 pub trait VaultAccounting<'info, 'c: 'info> {
 
   fn total_assets(
     ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
   ) -> Result<u64> {
-    let assets = 0;
-    let pathfinder_accounts = ctx.remaining_accounts;
+    let mut assets: u64 = 0;
+    let market_accounts = ctx.remaining_accounts;
     let withdraw_queue = &ctx.accounts.queue.withdraw_queue;
+    let pathfinder_config = &ctx.accounts.pathfinder_config;
+    let manager_config_info = &ctx.accounts.config.to_account_info();
 
-    require!(
-        withdraw_queue.len() == pathfinder_accounts.len().checked_mul(2).unwrap(),
-        ManagerError::MarketQueueMismatch
-    );
+    // checking against set errors on duplicate and ensures all withdraw_queue accounts are accounted for
+    let withdraw_queue_set: HashSet<_> = withdraw_queue
+      .iter()
+      .map(|market| market.key())
+      .collect();
 
-    for i in 0..withdraw_queue.len() {
+    // order of withdraw queue accounts is not guaranteed
+    for i in (0..market_accounts.len()).step_by(3) {
 
-      // let market_account = &pathfinder_accounts[i];
-      let market_account = Account::<Market>::try_from(&pathfinder_accounts[i])?;
-      let lender_shares_account = Account::<LenderShares>::try_from(&pathfinder_accounts[i + 1])?;
+      let market_info = &market_accounts[i];
+      let lender_shares_info = &market_accounts[i + 1];
 
-      // TODO: is validating the seed necessary? what value doe we get from it?
-      // validate_pathfinder_market(&market_account, &withdraw_queue[i])?;
-      // validate_pathfinder_lender_shares(&market_account.key(), &lender_shares_account.key(), &manager_config.key())?;
+      // check to ensure market is in withdraw queue
+      // Also protects against edgecase supplyqueue.len() > withdraw_queue.len()
+      // The guardian must set a new supply queue without the removed market prior to depositors calling deposit.
+      // drastically reduces complexity of the deposit account checking logic
+      if !withdraw_queue_set.contains(&market_info.key()) {
+        return err!(ManagerError::MarketNotInQueue);
+      }
+
+      // validate market account
+      let market_account = Account::<Market>::try_from(&market_info)?;
+      validate_pathfinder_market_pda(&market_info.key(), &market_account)?;
+
+      // validate lender shares account
+      validate_pathfinder_lender_shares_pda(&market_info.key(), &manager_config_info.key(), &lender_shares_info.key())?;
+      let lender_shares_account = if lender_shares_info.data_is_empty() {
+        // if the lender shares account is empty market doesn't have position
+        // skip the expected assets calculation
+        continue;
+      } else {
+        Account::<LenderShares>::try_from(&lender_shares_info)?
+      };
 
       let view_market_ctx = CpiContext::new(
         ctx.accounts.pathfinder_program.to_account_info(),
         pathfinder::cpi::accounts::ViewMarket {
-          market: market_account.to_account_info(),
-          config: ctx.accounts.pathfinder_config.to_account_info(),
+          market: market_info.to_account_info(),
+          config: pathfinder_config.to_account_info(),
         },
       );
 
       let expected_assets = view_expected_supply_assets(
         view_market_ctx,
-        lender_shares_account.shares);
+        lender_shares_account.shares)?;
 
-      // msg!("expected_assets: {}", expected_assets);
-
-      // assets = assets.checked_add(expected_assets).unwrap();
+      assets = assets
+        .checked_add(expected_assets.get())
+        .ok_or(ManagerError::MathOverflow)?;
     }
 
     Ok(assets)

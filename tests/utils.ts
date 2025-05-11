@@ -31,13 +31,15 @@ export function create_account_w_sol(
   pubkey: PublicKey,
   sol_amount: number,
   data: Buffer = Buffer.alloc(0),
+  rentEpoch: number = 0
 ) {
   create_custom_account(
     context,
     pubkey,
     anchor.web3.SystemProgram.programId,
     LAMPORTS_PER_SOL * sol_amount,
-    data
+    data,
+    rentEpoch
   );
 }
 
@@ -91,6 +93,21 @@ export function deriveMarketAddress(
   )[0];
 }
 
+export function deriveSupplyShares(
+  userKey: PublicKey,
+  config: PublicKey,
+  programId: PublicKey
+): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("managershares"),
+        config.toBuffer(),
+        userKey.toBuffer(),
+      ],
+      programId
+    )[0];
+  }
+
 export function deriveManagerConfigAccount(
   quoteMint: PublicKey,
   symbol: string,
@@ -113,20 +130,20 @@ export function deriveDepositRemainingAccounts(
   markets: MarketFixture[],
   programId: PublicKey
 ) {
-  // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
+  // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
   const remainingAccounts = markets.map((market) => [
     {
       pubkey: market.marketAcc.key,
       isSigner: false,
-      isWritable: false
+      isWritable: true
     },
     {
       pubkey: market.get_lender_shares(managerConfig).key,
       isSigner: false, 
-      isWritable: false
+      isWritable: true
     },
     {
-      pubkey: deriveMarketConfigAccount(
+      pubkey: deriveManagerMarketConfigAccount(
         managerConfig,
         market.marketAcc.key,
         programId
@@ -139,14 +156,14 @@ export function deriveDepositRemainingAccounts(
   return remainingAccounts;
 }
 
-export function deriveMultiMarketConfigs(
+export function deriveMultiManagerMarketConfigs(
   managerConfig: PublicKey,
   marketIds: PublicKey[],
   programId: PublicKey
 ) {
   const marketConfigs = marketIds.map((marketId) => {
     return {
-      pubkey: deriveMarketConfigAccount(
+      pubkey: deriveManagerMarketConfigAccount(
         managerConfig,
         marketId,
         programId
@@ -159,7 +176,7 @@ export function deriveMultiMarketConfigs(
   return marketConfigs;
 }
 
-export function deriveMarketConfigAccount(
+export function deriveManagerMarketConfigAccount(
   managerConfig: PublicKey,
   marketId: PublicKey,
   programId: PublicKey
@@ -312,6 +329,33 @@ export class TestUtils {
       .signers([authority.key.payer])
       .rpc();
   }
+
+  public async createMarkets(
+      marketConfigs: {
+        symbol: string,
+        ltvFactor: anchor.BN,
+        price: anchor.BN,
+        conf: anchor.BN,
+        expo: number,
+        feeRecipient: UserFixture,
+        authority: UserFixture,
+      }[],
+  ): Promise<{
+    solMarket?: MarketFixture,
+    wbtcMarket?: MarketFixture,
+    pepeMarket?: MarketFixture,
+    dogeMarket?: MarketFixture,
+    metaMarket?: MarketFixture
+  }> {
+    const markets: {[key: string]: MarketFixture} = {};
+    for (const marketConfig of marketConfigs) {
+      const market = await this.createMarket(marketConfig);
+      const marketKey = `${marketConfig.symbol.toLowerCase()}Market`;
+      markets[marketKey] = market;
+    }
+    return markets;
+  }
+
 
   public async createMarket(
     {

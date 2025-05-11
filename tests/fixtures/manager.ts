@@ -1,4 +1,4 @@
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
@@ -7,13 +7,15 @@ import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture, Ma
 import {
   COMMITMENT,
   deriveManagerConfigAccount,
-  deriveMarketConfigAccount,
-  deriveMultiMarketConfigs,
+  deriveManagerMarketConfigAccount,
+  deriveMultiManagerMarketConfigs,
   deriveQueueAccount,
   deriveAllocatorAccount,
   ONE_DAY_TIMELOCK,
   deriveDepositRemainingAccounts,
   PATHFINDER_PROGRAM_ID,
+  deriveLenderShares,
+  deriveSupplyShares,
 } from "../utils";
 
 export class ManagerFixture {
@@ -26,6 +28,7 @@ export class ManagerFixture {
   public allocator: AccountFixture;
   public queue: queueAccountFixture;
   public markets: MarketFixture[];
+  public feeRecipient: UserFixture;
 
   public constructor(
     public _program: Program<AssistantToTheRegionalManager>,
@@ -103,6 +106,8 @@ export class ManagerFixture {
       this.program
     );
 
+    this.feeRecipient = feeRecipient;
+
     await this.program.methods
       .createManager({
         symbol,
@@ -110,7 +115,7 @@ export class ManagerFixture {
         owner: owner.key.publicKey,
         guardian: guardian.key.publicKey,
         allocator: allocator.key.publicKey,
-        feeRecipient: feeRecipient.key.publicKey,
+        feeRecipient: this.feeRecipient.key.publicKey,
         skimRecipient: skimRecipient.key.publicKey,
         curator: curator.key.publicKey,
         timelock: ONE_DAY_TIMELOCK,
@@ -271,7 +276,7 @@ export class ManagerFixture {
         systemProgram: anchor.web3.SystemProgram.programId,
         // NOTE: remaining accounts are market configs.
       })
-      .remainingAccounts(deriveMultiMarketConfigs(this.managerVaultConfigAcc.key, marketIds, this.program.programId))
+      .remainingAccounts(deriveMultiManagerMarketConfigs(this.managerVaultConfigAcc.key, marketIds, this.program.programId))
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }
@@ -488,17 +493,84 @@ export class ManagerFixture {
   }
 
 
-  async deposit({
+  async depositCustomCU({
     user,
     receiver,
     assets,
     markets,
+    customCU,
   }: {
     user: UserFixture;
     receiver: UserFixture;
     assets: anchor.BN;
     markets: MarketFixture[];
+    customCU: number;
   }): Promise<void> {
+
+    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    const budgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+      units: customCU,
+    });
+
+    let tx = await this.program.methods
+      .deposit({
+        assets,
+        receiver: receiver.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        queue: this.queue.key,
+        feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        receiverShares: deriveSupplyShares(receiver.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        pathfinderConfig: markets[0].get_config().key,
+        vaultAtaQuote: markets[0].quoteAta.key,
+        userAtaQuote: user.quoteAta,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
+      })
+      .remainingAccounts(remainingAcc)
+      .transaction();
+    
+    
+    tx = tx.add(
+      budgetInstruction,
+    )
+    tx.recentBlockhash = (await this.provider.context.banksClient.getLatestBlockhash())[0]
+    tx.sign(user.key.payer);
+    tx.feePayer = user.key.publicKey;
+
+    // try {
+    //   let simTx = await this.provider.context.banksClient.simulateTransaction(tx, 'confirmed');
+    //   console.log("simTx logs:", simTx.meta.logMessages);
+    // } catch (error) {
+    //   console.error("Simulation error details:", {
+    //     error: error.message,
+    //     code: error.code,
+    //     logs: error.logs,
+    //     stack: error.stack
+    //   });
+    // }
+
+    await this.provider.context.banksClient.processTransaction(tx);
+  }
+
+  async deposit({
+      user,
+      receiver,
+      assets,
+      markets,
+  }: {
+    user: UserFixture;
+    receiver: UserFixture;
+    assets: anchor.BN;
+    markets: MarketFixture[];
+  }): Promise < void> {
+
+    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    console.log("remainingAcc", remainingAcc);
 
     await this.program.methods
       .deposit({
@@ -508,24 +580,26 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        quoteAta: this.get_ata(this.quoteMint),
-        userAta: this.get_ata(this.quoteMint),
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        queue: this.queue.key,
+        feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        receiverShares: deriveSupplyShares(receiver.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
         pathfinderConfig: markets[0].get_config().key,
-        vaultAta: markets[0].get_ata(this.quoteMint),
-        // NOTE: remaining accounts are [market, lender_shares, market_config, ...]
+        vaultAtaQuote: markets[0].quoteAta.key,
+        userAtaQuote: user.quoteAta,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
       })
-      .remainingAccounts(deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId))
+      .remainingAccounts(remainingAcc)
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }
 
   public get_market_config(marketId: PublicKey): AccountFixture {
     return new AccountFixture(
-      "marketConfig",
-      deriveMarketConfigAccount(
+      "managerMarketConfig",
+      deriveManagerMarketConfigAccount(
         this.managerVaultConfigAcc.key,
         marketId,
         this.program.programId

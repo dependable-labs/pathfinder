@@ -24,6 +24,21 @@ export const ORACLE_CONFIG = {
     sb_id: "2o5GtpULRgktBvhHVVAjU6JZC5KNPagfgq8JfT85oVw5",
     decimals: 9,
   },
+  "PEPE": { // PEPE-USD
+    pyth_id: "0xd69731a2e74ac1ce884fc3890f7ee324b6deb66147055249568869ed700882e4",
+    sb_id: "CJ4iULr5vJaaYk9KBT3LihGHDrh282n9eouhmBxCH98Y",
+    decimals: 9,
+  },
+  "DOGE": { // DOGE-USD
+    pyth_id: "0xdcef50dd0a4cd2dcc17e45df1676dcb336a11a61c69df7a0299b0150c672d25c",
+    sb_id: "6sN3HsHMoBYngxjhAunaKdBKmPCzGah28xw2C7ufPfQs",
+    decimals: 9,
+  },
+  "WBTC": { // WBTC-USD
+    pyth_id: "0xc9d8b075a5c69303365ae23633d4e085199bf5c520a3b90fed1322a0342ffc33",
+    sb_id: "6qmsMwtMmeqMgZEhyLv1Pe4wcqT5iKwJAWnmzmnKjf83",
+    decimals: 9,
+  },
 } as const;
 
 export type SupportedCollateral = keyof typeof ORACLE_CONFIG;

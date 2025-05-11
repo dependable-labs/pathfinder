@@ -32,7 +32,7 @@ pub struct RevokePendingCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, MarketConfig>>,
+    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
 }
 
 impl<'info> CuratorOrGuardianProtection<'info> for RevokePendingCap<'info> {}
@@ -56,4 +56,3 @@ impl<'info> RevokePendingCap<'info> {
         Ok(())
     }
 }
-
