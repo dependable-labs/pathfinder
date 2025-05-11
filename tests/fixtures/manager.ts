@@ -493,21 +493,23 @@ export class ManagerFixture {
   }
 
 
-  async depositAssess({
+  async depositCustomCU({
     user,
     receiver,
     assets,
     markets,
+    customCU,
   }: {
     user: UserFixture;
     receiver: UserFixture;
     assets: anchor.BN;
     markets: MarketFixture[];
+    customCU: number;
   }): Promise<void> {
 
     let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
     const budgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-      units: 1_000_000,
+      units: customCU,
     });
 
     let tx = await this.program.methods

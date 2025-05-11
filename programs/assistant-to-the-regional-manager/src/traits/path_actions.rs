@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 use crate::{
   state::*, 
   error::ManagerError,
@@ -90,7 +89,7 @@ pub trait PathActions<'info, 'c: 'info> {
       // get supply shares for manager's position in market
       let deposit_shares = shares;
 
-      // // convert supply shares to assets, rounding up
+      // convert supply shares to assets, rounding up
       let supply_assets = to_assets_up(
         deposit_shares,
         market_account.total_deposits()?,

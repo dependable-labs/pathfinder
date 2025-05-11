@@ -88,26 +88,11 @@ pub enum ManagerError {
     #[msg("Invalid pathfinder market")]
     InvalidPathfinderMarket,
 
-    #[msg("Invalid pathfinder lender shares")]
-    InvalidPathfinderLenderShares,
-
-    #[msg("Market queue mismatch")]
-    MarketQueueMismatch,
-
     #[msg("Market cap reached")]
     MarketCapReached,
 
     #[msg("Invalid supply queue")]
     InvalidSupplyQueue,
-
-    #[msg("Number of remaining accounts and supply queue don't match")]
-    RemainingAccountsMismatch,
-
-    #[msg("Market removal exists in supply queue")]
-    InvalidMarketRemovalExistsInSupplyQueue,
-
-    #[msg("Lender shares account is not initialized")]
-    LenderSharesAccountNotInitialized,
 
     #[msg("Invalid lender shares")]
     InvalidLenderShares,

@@ -157,11 +157,12 @@ describe("deposit", () => {
   it("successfully deposits accross two markets", async () => {
     const depositAmount = new anchor.BN(150_000 * 1e9);
 
-    await manager.depositAssess({
+    await manager.depositCustomCU({
       user: dan,
       receiver: dan,
       markets: [market, metaMarket],
       assets: depositAmount,
+      customCU: 1_000_000,
     });
 
     // shared vault balance should be 100
@@ -342,11 +343,12 @@ describe("deposit", () => {
     // should reject because deposit amount exceeds summed supply caps
     await assert.rejects(
       async () => {
-        await manager.depositAssess({
+        await manager.depositCustomCU({
           user: dan,
           receiver: dan,
           markets: [market, metaMarket, solMarket, wbtcMarket, pepeMarket, dogeMarket],
           assets: depositAmount,
+          customCU: 1_000_000,
         });
       },
       (err: any) => {
@@ -358,11 +360,12 @@ describe("deposit", () => {
     // should succeed because deposit amount is within summed supply caps
     depositAmount = new anchor.BN(550_000 * 1e9);
 
-    await manager.depositAssess({
+    await manager.depositCustomCU({
       user: dan,
       receiver: dan,
       markets: [market, metaMarket, solMarket, wbtcMarket, pepeMarket, dogeMarket],
       assets: depositAmount,
+      customCU: 1_000_000,
     });
 
     // shared vault balance should be 100
@@ -515,11 +518,12 @@ describe("deposit", () => {
     // fails with market not in queue error
     await assert.rejects(
       async () => {
-        await manager.depositAssess({
+        await manager.depositCustomCU({
           user: dan,
           receiver: dan,
           markets: [market, metaMarket, wbtcMarket],
           assets: depositAmount,
+          customCU: 1_000_000,
         });
       },
       (err: anchor.AnchorError) => {
@@ -532,11 +536,12 @@ describe("deposit", () => {
     // fails with duplicate markets at front of remaining accounts
     await assert.rejects(
       async () => {
-        await manager.depositAssess({
+        await manager.depositCustomCU({
           user: dan,
           receiver: dan,
           markets: [metaMarket, metaMarket, wbtcMarket],
           assets: depositAmount,
+          customCU: 1_000_000,
         });
       },
       (err: anchor.AnchorError) => {
@@ -548,11 +553,12 @@ describe("deposit", () => {
 
     await assert.rejects(
       async () => {
-        await manager.depositAssess({
+        await manager.depositCustomCU({
           user: dan,
           receiver: dan,
           markets: [metaMarket, wbtcMarket],
           assets: depositAmount,
+          customCU: 1_000_000,
         });
       },
       (err: anchor.AnchorError) => {
@@ -583,11 +589,12 @@ describe("deposit", () => {
     await test.moveTimeForward(1);
 
     // call deposit (pass two accounts)
-    await manager.depositAssess({
+    await manager.depositCustomCU({
       user: dan,
       receiver: dan,
       markets: [metaMarket, wbtcMarket],
       assets: depositAmount,
+      customCU: 1_000_000,
     });
 
     // shared vault balance should be 100

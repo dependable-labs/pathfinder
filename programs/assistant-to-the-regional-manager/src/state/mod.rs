@@ -58,7 +58,7 @@ pub struct ManagerMarketConfig {
   pub enabled: bool,
   pub cap: u64,                  // Supply cap for this market
   pub removable_at: u64,         // Timestamp when market can be removed
-  pub pending_cap: PendingU64,          // Pending cap for this market
+  pub pending_cap: PendingU64,   // Pending cap for this market
 }
 
 // Queue Account - Stores supply and withdraw queues
@@ -69,8 +69,8 @@ pub struct ManagerMarketConfig {
 #[account]
 pub struct QueueState {
   pub bump: u8,
-  pub supply_queue: Vec<Pubkey>,                // Vector of market IDs
-  pub withdraw_queue: Vec<Pubkey>,              // Vector of market IDs
+  pub supply_queue: Vec<Pubkey>,    // Vector of market IDs
+  pub withdraw_queue: Vec<Pubkey>,  // Vector of market IDs
 }
 
 // Pending State Account - Stores pending changes

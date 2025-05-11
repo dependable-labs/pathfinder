@@ -1,25 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::{error::ManagerError, state::PATHFINDER_PROGRAM_ID};
-use crate::state::ManagerMarketConfig;
-use pathfinder::state::{Market, LenderShares, Config};
-use crate::state::ManagerVaultConfig;
-
-/// Loads a MarketConfig account from an AccountInfo
-/// Validates that the account is owned by the program
-// pub fn load_manager_market_config(ai: &AccountInfo) -> Result<ManagerMarketConfig> {
-//     // Verify the account is owned by the program
-//     require!(
-//         ai.owner.eq(&crate::ID),
-//         ManagerError::InvalidManagerMarketConfig
-//     );
-
-//     let market_config_data = ai.try_borrow_data()?;
-    
-//     // Deserialize the account data
-//     Ok(ManagerMarketConfig::deserialize(
-//         &mut &market_config_data.as_ref()[8..],
-//     )?)
-// }
+use pathfinder::state::Market;
 
 pub fn validate_manager_market_config_pda(
     ai: &Pubkey,
