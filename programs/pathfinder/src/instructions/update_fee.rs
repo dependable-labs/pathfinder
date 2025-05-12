@@ -39,7 +39,7 @@ impl<'info> UpdateFee<'info> {
       args.new_fee_factor != self.config.fee_factor,
       MarketError::FeeAlreadySet
     );
-
+    
     Ok(())
   }
 

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{TokenAccount, Token};
 use crate::{
   state::*, 
   error::ManagerError,
@@ -9,25 +10,24 @@ use crate::{
 use pathfinder::{
     cpi::{accrue_interest, deposit},
     math::{min_u64, to_assets_up, zero_floor_sub},
-    state::{LenderShares, Market},
+    state::{LenderShares, Market, Config},
+    program::Pathfinder,
 };
 pub trait PathActions<'info, 'c: 'info> {
 
   fn _supply_path(
-    ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
     assets: u64,
+    user: &Signer<'info>,
+    config: &Account<'info, ManagerVaultConfig>,
+    supply_queue: &Vec<Pubkey>,
+    vault_ata_quote: &Account<'info, TokenAccount>,
+    user_ata_quote: &Account<'info, TokenAccount>,
+    remaining_accounts: &'info [AccountInfo<'info>],
+    pathfinder_config: &Account<'info, Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
+    token_program: &Program<'info, Token>,
+    system_program: &Program<'info, System>,
   ) -> Result<()> {
-    let user = &ctx.accounts.user;
-    let config = &ctx.accounts.config;
-    let queue = &ctx.accounts.queue;
-    let remaining_accounts = &ctx.remaining_accounts;
-    let pathfinder_config = &ctx.accounts.pathfinder_config;
-    let pathfinder_program = &ctx.accounts.pathfinder_program;
-    let vault_ata_quote = &ctx.accounts.vault_ata_quote;
-    let user_ata_quote = &ctx.accounts.user_ata_quote;
-    let token_program = &ctx.accounts.token_program;
-    let system_program = &ctx.accounts.system_program;
-
     let mut queue_index = 0;
     let mut assets = assets;
 
@@ -41,14 +41,14 @@ pub trait PathActions<'info, 'c: 'info> {
 
       // if queue_index is greater than queue.supply_queue.len()
       // we've processed all markets in the supply queue
-      if queue_index >= queue.supply_queue.len() {
+      if queue_index >= supply_queue.len() {
         break;
       }
 
       // remaining accounts must be in the same order as the supply queue
-      let supply_queue_market = queue.supply_queue[queue_index];
+      let supply_queue_market = supply_queue[queue_index];
       // market_info seed derivation has already been validated in total_assets()
-      let market_account: Account<'_, Market> = Account::<Market>::try_from(&market_info)?;
+      let market_account = Account::<Market>::try_from(&market_info)?;
       if market_info.key() != supply_queue_market {
         return err!(ManagerError::InvalidSupplyQueue);
       }

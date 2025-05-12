@@ -49,7 +49,7 @@ pub struct Deposit<'info> {
     )]
     pub queue: Box<Account<'info, QueueState>>,
     
-    // TODO: initialize in whereever we set fee_recipient
+    // TODO: initialize in where ever we set fee_recipient
     #[account(
         init_if_needed,
         payer = user,
@@ -88,49 +88,80 @@ pub struct Deposit<'info> {
     pub token_program: Program<'info, Token>,
     pub pathfinder_program: Program<'info, Pathfinder>,
 
-    // NOTE: remaining accounts are pathfinder market and lender shares accounts.
+    // NOTE: remaining accounts are pathfinder market, lender shares, and manager market config accounts.
     // These are not specified here but are passed in the context
     // the accounts are ordered by supply queue in threes [market, lender_shares, manager_market_config, ...]
     // Any excess accounts which exist in the withdraw queue but not in supply queue are tacked onto the end
 }
 
+// impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> PathActions<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> Deposit<'info> {
 
-    pub fn handle(ctx: Context<'_, '_, 'c, 'info, Deposit<'info>>, args: DepositArgs) -> Result<()> {
+    pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: DepositArgs) -> Result<()> {
 
-        let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(&ctx)?;
+        let Deposit {
+            user,
+            config,
+            queue,
+            fee_recipient_shares,
+            receiver_shares,
+            vault_ata_quote,
+            user_ata_quote,
+            pathfinder_config,
+            pathfinder_program,
+            token_program,
+            system_program,
+            ..
+        } = ctx.accounts;
+
+        let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(
+            config,
+            &queue.withdraw_queue,
+            ctx.remaining_accounts,
+            pathfinder_config,
+            pathfinder_program,
+        )?;
 
         if fee_shares != 0 {
-            ctx.accounts.fee_recipient_shares.shares = ctx.accounts.fee_recipient_shares.shares
+            fee_recipient_shares.shares = fee_recipient_shares.shares
                 .checked_add(fee_shares)
                 .ok_or(ManagerError::MathOverflow)?;
         } 
 
         // Update `lastTotalAssets` to avoid an inconsistent state in a re-entrant context.
         // It is updated again in `_deposit`.
-        ctx.accounts.config.last_total_assets = new_total_assets;
+        config.last_total_assets = new_total_assets;
 
         let shares = Self::_convert_to_shares_with_totals(
             args.assets,
-            ctx.accounts.config.total_shares,
+            config.total_shares,
             new_total_assets,
-            ctx.accounts.config.decimals_offset,
+            config.decimals_offset,
             false
         )?;
  
         Self::_supply_path(
-            &ctx,
             args.assets,
+            &user,
+            &config,
+            &queue.supply_queue,
+            &vault_ata_quote,
+            &user_ata_quote,
+            &ctx.remaining_accounts,
+            &pathfinder_config,
+            &pathfinder_program,
+            &token_program,
+            &system_program,
         )?;
 
-        ctx.accounts.receiver_shares.shares = ctx.accounts.receiver_shares.shares
+        receiver_shares.shares = receiver_shares.shares
             .checked_add(shares)
             .ok_or(ManagerError::MathOverflow)?;
 
         // Update last total assets
-        ctx.accounts.config.last_total_assets = ctx.accounts.config.last_total_assets
+        config.last_total_assets = config.last_total_assets
             .checked_add(args.assets)
             .ok_or(ManagerError::MathOverflow)?;
 

@@ -96,4 +96,10 @@ pub enum ManagerError {
 
     #[msg("Invalid lender shares")]
     InvalidLenderShares,
+
+    #[msg("Max fee exceeded")]
+    MaxFeeExceeded,
+
+    #[msg("Zero fee recipient")]
+    ZeroFeeRecipient,
 }

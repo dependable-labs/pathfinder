@@ -1,28 +1,33 @@
 
 use anchor_lang::prelude::*;
+use anchor_lang::Bumps;
+
 use crate::{
   error::ManagerError,
-  instructions::Deposit,
+  state::ManagerVaultConfig,
 };
 
-use pathfinder::math::{mul_div_down, mul_div_up, zero_floor_sub, WAD}; 
-use pathfinder::cpi::view_expected_supply_assets;
-use pathfinder::state::{Market, LenderShares};
+use pathfinder::{
+  math::{mul_div_down, mul_div_up, zero_floor_sub, WAD}, 
+  cpi::view_expected_supply_assets,
+  state::{Market, LenderShares, Config},
+  program::Pathfinder,
+};
 use std::collections::HashSet;
 use crate::utils::accounts::{
   validate_pathfinder_market_pda, 
   validate_pathfinder_lender_shares_pda,
 };
-pub trait VaultAccounting<'info, 'c: 'info> {
+pub trait VaultAccounting<'info, 'c: 'info>{
 
   fn total_assets(
-    ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
+    manager_config: &Account<'info, ManagerVaultConfig>,
+    withdraw_queue: &Vec<anchor_lang::prelude::Pubkey>,
+    market_accounts: &'info [AccountInfo<'info>],
+    pathfinder_config: &Account<'info, Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
   ) -> Result<u64> {
     let mut assets: u64 = 0;
-    let market_accounts = ctx.remaining_accounts;
-    let withdraw_queue = &ctx.accounts.queue.withdraw_queue;
-    let pathfinder_config = &ctx.accounts.pathfinder_config;
-    let manager_config_info = &ctx.accounts.config.to_account_info();
 
     // checking against set errors on duplicate and ensures all withdraw_queue accounts are accounted for
     let withdraw_queue_set: HashSet<_> = withdraw_queue
@@ -45,11 +50,11 @@ pub trait VaultAccounting<'info, 'c: 'info> {
       }
 
       // validate market account
-      let market_account = Account::<Market>::try_from(&market_info)?;
+      let market_account = Account::<Market>::try_from(market_info)?;
       validate_pathfinder_market_pda(&market_info.key(), &market_account)?;
 
       // validate lender shares account
-      validate_pathfinder_lender_shares_pda(&market_info.key(), &manager_config_info.key(), &lender_shares_info.key())?;
+      validate_pathfinder_lender_shares_pda(&market_info.key(), &manager_config.key(), &lender_shares_info.key())?;
       let lender_shares_account = if lender_shares_info.data_is_empty() {
         // if the lender shares account is empty market doesn't have position
         // skip the expected assets calculation
@@ -59,7 +64,7 @@ pub trait VaultAccounting<'info, 'c: 'info> {
       };
 
       let view_market_ctx = CpiContext::new(
-        ctx.accounts.pathfinder_program.to_account_info(),
+        pathfinder_program.to_account_info(),
         pathfinder::cpi::accounts::ViewMarket {
           market: market_info.to_account_info(),
           config: pathfinder_config.to_account_info(),
@@ -78,13 +83,23 @@ pub trait VaultAccounting<'info, 'c: 'info> {
     Ok(assets)
   }
 
-  // @dev Computes and returns the fee shares (`feeShares`) to mint and the new vault's total assets
+  // Computes and returns the fee shares (`feeShares`) to mint and the new vault's total assets
   // (`newTotalAssets`).
   fn _accrued_fee_shares(
-    ctx: &Context<'_, '_, 'c, 'info, Deposit<'info>>,
+    manager_config: &Account<'info, ManagerVaultConfig>,
+    withdraw_queue: &Vec<anchor_lang::prelude::Pubkey>,
+    market_accounts: &'info [AccountInfo<'info>],
+    pathfinder_config: &Account<'info, Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
   ) -> Result<(u64, u64)> {
-    let new_total_assets = Self::total_assets(ctx)?;
-    let manager_config = &ctx.accounts.config;
+
+    let new_total_assets = Self::total_assets(
+      manager_config,
+      withdraw_queue,
+      market_accounts,
+      pathfinder_config,
+      pathfinder_program
+    )?;
 
     let mut fee_shares = 0;
 

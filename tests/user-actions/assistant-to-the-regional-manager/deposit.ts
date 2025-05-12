@@ -566,7 +566,6 @@ describe("deposit", () => {
     const withdrawQueueAccount= await manager.queue.getWithdrawQueue();
     assert.deepEqual(withdrawQueueAccount, supplyQueue);
 
-
     // should succeed because deposit amount is within summed supply caps
     let depositAmount = new anchor.BN(550_000 * 1e9);
 
@@ -670,6 +669,17 @@ describe("deposit", () => {
       (await dogeMarket.get_lender_shares(manager.managerVaultConfigAcc.key).get_data()).shares.toNumber(),
       59999448510994
     );
+
+    // Verify fee recipient shares were created correctly
+    const feeRecipientShares = await manager.get_supply_shares(manager.feeRecipient.key.publicKey).get_data();
+    assert.equal(feeRecipientShares.shares.toNumber(), 0 * 1e9);
+
+    // Verify dans shares were created correctly
+    const danShares = await manager.get_supply_shares(dan.key.publicKey).get_data();
+    assert.equal(danShares.shares.toNumber(), 550_000 * 1e9);
+
+
+
   });
 
   it("reverts when remaining accounts exceeds withdraw queue", async () => {
