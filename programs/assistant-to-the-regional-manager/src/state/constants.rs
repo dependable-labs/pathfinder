@@ -10,5 +10,7 @@ pub const MANAGER_SHARES_SEED_PREFIX: &[u8] = b"managershares";
 pub const PATHFINDER_PROGRAM_ID: Pubkey = pubkey!("7ALFC87zvuPvpp9h5Stq9SSP3kTCUJfhtirEZVJmZYy4");
 pub const MAX_QUEUE_LENGTH: usize = 10;
 
+pub const MAX_FEE: u64 = 500_000_000_000_000_000; // 50% in WAD (0.5 * 1e18)
+
 pub const MAX_TIMELOCK: u64 = 2 * 60 * 60 * 24 * 7; // 2 weeks
 pub const MIN_TIMELOCK: u64 = 60 * 60 * 24; // 1 day

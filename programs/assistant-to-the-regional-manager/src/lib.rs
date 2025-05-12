@@ -19,6 +19,14 @@ pub mod assistant_to_the_regional_manager {
     }
 
     #[access_control(ctx.accounts.validate(&args))]
+    pub fn set_fee<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, SetFee<'info>>,
+        args: SetFeeArgs
+    ) -> Result<()> {
+        SetFee::handle(ctx, args)
+    }
+
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn submit_cap(ctx: Context<SubmitCap>, args: SubmitCapArgs) -> Result<()> {
         SubmitCap::handle(ctx, args)
     }

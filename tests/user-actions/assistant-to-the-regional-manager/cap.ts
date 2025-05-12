@@ -49,7 +49,6 @@ describe("submit_cap", () => {
       symbol: "USDCM",
       name: "USDC Manager",
     });
-    return;
   });
 
   it("successfully submits increase cap", async () => {

@@ -11,6 +11,7 @@ pub mod set_allocator;
 pub mod timelock;
 pub mod submit_market_removal;
 pub mod deposit;
+pub mod set_fee;
 
 pub use create_manager::*;
 pub use set_supply_queue::*;
@@ -25,3 +26,4 @@ pub use set_allocator::*;
 pub use timelock::*;
 pub use submit_market_removal::*;
 pub use deposit::*;
+pub use set_fee::*;
