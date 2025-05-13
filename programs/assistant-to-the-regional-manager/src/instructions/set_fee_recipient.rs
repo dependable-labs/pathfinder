@@ -11,13 +11,13 @@ use pathfinder::{
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct SetFeeArgs {
-    pub fee: u64,
+pub struct SetFeeRecipientArgs {
+    pub new_fee_recipient: Pubkey,
 }
 
 #[derive(Accounts)]
-#[instruction(args: SetFeeArgs)]
-pub struct SetFee<'info> {
+#[instruction(args: SetFeeRecipientArgs)]
+pub struct SetFeeRecipient<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
@@ -43,6 +43,20 @@ pub struct SetFee<'info> {
         bump = fee_recipient_shares.bump,
     )]
     pub fee_recipient_shares: Account<'info, SupplyShares>,
+
+    // new fee recipient is always expected to show up with a new / fresh account
+    #[account(
+        init,
+        payer = user,
+        space = 8 + std::mem::size_of::<SupplyShares>(),
+        seeds = [
+            MANAGER_SHARES_SEED_PREFIX,
+            config.key().as_ref(),
+            args.new_fee_recipient.key().as_ref()
+        ],
+        bump
+    )]
+    pub new_fee_recipient_shares: Account<'info, SupplyShares>,
     
     #[account(
         mut,
@@ -67,33 +81,34 @@ pub struct SetFee<'info> {
     // Any excess accounts which exist in the withdraw queue but not in supply queue are tacked onto the end
 }
 
-impl<'info> OwnerProtection<'info> for SetFee<'info> {}
-impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for SetFee<'info> {}
+impl<'info> OwnerProtection<'info> for SetFeeRecipient<'info> {}
+impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for SetFeeRecipient<'info> {}
 
-impl<'info, 'c: 'info> SetFee<'info> {
+impl<'info, 'c: 'info> SetFeeRecipient<'info> {
 
-    pub fn validate(&self, args: &SetFeeArgs) -> Result<()> {
+    pub fn validate(&self, args: &SetFeeRecipientArgs) -> Result<()> {
         self.is_owner(&self.user, &self.config)?;
 
-        if args.fee == self.config.fee {
+        if args.new_fee_recipient == self.config.fee_recipient {
             return err!(ManagerError::AlreadySet);
         }
 
-        if args.fee > MAX_FEE {
-            return err!(ManagerError::MaxFeeExceeded);
+        if args.new_fee_recipient == Pubkey::default() {
+            return err!(ManagerError::ZeroFeeRecipient);
         }
 
-        if args.fee != 0 && self.config.fee_recipient == Pubkey::default() {
+        if self.config.fee != 0 && self.config.fee_recipient == Pubkey::default() {
             return err!(ManagerError::ZeroFeeRecipient);
         }
 
         Ok(())
     }
 
-    pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: SetFeeArgs) -> Result<()> {
-        let SetFee { 
+    pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: SetFeeRecipientArgs) -> Result<()> {
+        let SetFeeRecipient { 
             config,
             fee_recipient_shares,
+            new_fee_recipient_shares,
             queue,
             pathfinder_config,
             pathfinder_program ,
@@ -119,7 +134,13 @@ impl<'info, 'c: 'info> SetFee<'info> {
             .checked_add(new_total_assets)
             .ok_or(ManagerError::MathOverflow)?;
 
-        config.fee = args.fee;
+        // initialize recipient shares
+        new_fee_recipient_shares.set_inner(SupplyShares {
+            bump: ctx.bumps.new_fee_recipient_shares,
+            shares: 0,
+        });
+
+        config.fee_recipient = args.new_fee_recipient;
 
         Ok(())
     }

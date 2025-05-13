@@ -133,6 +133,38 @@ export class ManagerFixture {
       .rpc();
   }
 
+  async setFeeRecipient({
+    user,
+    new_fee_recipient,
+    markets,
+  }: {
+    user: UserFixture;
+    new_fee_recipient: UserFixture;
+    markets: MarketFixture[];
+  }): Promise<void> {
+
+    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+
+    await this.program.methods
+      .setFeeRecipient({
+        newFeeRecipient: new_fee_recipient.key.publicKey
+      })
+      .accounts({
+        user: user.key.publicKey,
+        config: this.managerVaultConfigAcc.key,
+        queue: this.queue.key,
+        feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        newFeeRecipientShares: deriveSupplyShares(new_fee_recipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        pathfinderConfig: markets[0].get_config().key,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
+      })
+      .remainingAccounts(remainingAcc)
+      .signers([user.key.payer])
+      .rpc(COMMITMENT); 
+  }
+
   async setFee({
     user,
     fee,

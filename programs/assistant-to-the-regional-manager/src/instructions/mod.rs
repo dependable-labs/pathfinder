@@ -12,6 +12,7 @@ pub mod timelock;
 pub mod submit_market_removal;
 pub mod deposit;
 pub mod set_fee;
+pub mod set_fee_recipient;
 
 pub use create_manager::*;
 pub use set_supply_queue::*;
@@ -27,3 +28,4 @@ pub use timelock::*;
 pub use submit_market_removal::*;
 pub use deposit::*;
 pub use set_fee::*;
+pub use set_fee_recipient::*;
