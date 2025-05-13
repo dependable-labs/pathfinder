@@ -54,6 +54,19 @@ pub struct CreateManager<'info> {
   )]
   pub queue: Box<Account<'info, QueueState>>,
 
+  #[account(
+      init,
+      payer = user,
+      space = 8 + std::mem::size_of::<SupplyShares>(),
+      seeds = [
+          MANAGER_SHARES_SEED_PREFIX,
+          config.key().as_ref(),
+          args.fee_recipient.key().as_ref()
+      ],
+      bump
+  )]
+  pub fee_recipient_shares: Account<'info, SupplyShares>,
+
   #[account(constraint = quote_mint.is_initialized == true)]
   pub quote_mint: Box<Account<'info, Mint>>,
 
@@ -70,6 +83,7 @@ impl<'info> CreateManager<'info> {
       config,
       quote_mint,
       queue,
+      fee_recipient_shares,
       ..
     } = ctx.accounts;
 
@@ -105,6 +119,11 @@ impl<'info> CreateManager<'info> {
       bump: ctx.bumps.queue,
       supply_queue: Vec::new(),
       withdraw_queue: Vec::new(),
+    });
+
+    fee_recipient_shares.set_inner(SupplyShares {
+      bump: ctx.bumps.fee_recipient_shares,
+      shares: 0,
     });
 
     Ok(())

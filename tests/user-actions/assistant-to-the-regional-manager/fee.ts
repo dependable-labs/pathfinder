@@ -10,6 +10,7 @@ describe("set_fee", () => {
   let manager: ManagerFixture;
   let owen: UserFixture;
   let bob: UserFixture;
+  let fred: UserFixture;
   let futarchy: UserFixture;
   let market: MarketFixture;
 
@@ -26,6 +27,11 @@ describe("set_fee", () => {
     bob = await test.createUser(
       new anchor.BN(1_000 * 1e9),
       new anchor.BN(1_000 * 1e9)
+    );
+
+    fred = await test.createUser(
+      new anchor.BN(100_000 * 1e9),
+      new anchor.BN(0)
     );
 
     futarchy = await test.createUser(
@@ -175,4 +181,21 @@ describe("set_fee", () => {
       }
     );
   });
+
+  it("successfully sets new fee recipient", async () => {
+
+    const config = await manager.managerVaultConfigAcc.get_data();
+    assert.equal(config.feeRecipient.toBase58(), owen.key.publicKey.toBase58());
+
+    await manager.setFeeRecipient({
+      user: owen,
+      new_fee_recipient: fred,
+      markets: [market]
+    })
+
+    const postConfig = await manager.managerVaultConfigAcc.get_data();
+    assert.equal(postConfig.feeRecipient.toBase58(), fred.key.publicKey.toBase58());
+
+  });
+
 });

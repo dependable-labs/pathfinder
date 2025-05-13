@@ -49,17 +49,14 @@ pub struct Deposit<'info> {
     )]
     pub queue: Box<Account<'info, QueueState>>,
     
-    // TODO: initialize in where ever we set fee_recipient
     #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + std::mem::size_of::<SupplyShares>(),
+        mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
             config.key().as_ref(),
             config.fee_recipient.key().as_ref()
         ],
-        bump
+        bump = fee_recipient_shares.bump,
     )]
     pub fee_recipient_shares: Account<'info, SupplyShares>,
 
