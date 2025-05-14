@@ -12,9 +12,9 @@ import {
   deriveQueueAccount,
   deriveAllocatorAccount,
   ONE_DAY_TIMELOCK,
-  deriveDepositRemainingAccounts,
+  deriveTripleGroupRemainingAccounts,
+  derivePairGroupRemainingAccounts,
   PATHFINDER_PROGRAM_ID,
-  deriveLenderShares,
   deriveSupplyShares,
 } from "../utils";
 
@@ -143,7 +143,7 @@ export class ManagerFixture {
     markets: MarketFixture[];
   }): Promise<void> {
 
-    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    let remainingAcc = derivePairGroupRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
 
     await this.program.methods
       .setFeeRecipient({
@@ -158,8 +158,8 @@ export class ManagerFixture {
         pathfinderConfig: markets[0].get_config().key,
         pathfinderProgram: PATHFINDER_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
-        // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
       })
+      // NOTE: remaining accounts are [market, lender_shares ...]
       .remainingAccounts(remainingAcc)
       .signers([user.key.payer])
       .rpc(COMMITMENT); 
@@ -175,7 +175,7 @@ export class ManagerFixture {
     markets: MarketFixture[];
   }): Promise<void> {
 
-    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    let remainingAcc = derivePairGroupRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
 
     await this.program.methods
       .setFee({
@@ -189,8 +189,8 @@ export class ManagerFixture {
         pathfinderConfig: markets[0].get_config().key,
         pathfinderProgram: PATHFINDER_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
-        // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
       })
+      // NOTE: remaining accounts are [market, lender_shares ...]
       .remainingAccounts(remainingAcc)
       .signers([user.key.payer])
       .rpc(COMMITMENT); 
@@ -570,7 +570,7 @@ export class ManagerFixture {
     customCU: number;
   }): Promise<void> {
 
-    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    let remainingAcc = deriveTripleGroupRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
     const budgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
       units: customCU,
     });
@@ -632,7 +632,7 @@ export class ManagerFixture {
     markets: MarketFixture[];
   }): Promise < void> {
 
-    let remainingAcc = deriveDepositRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    let remainingAcc = deriveTripleGroupRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
     console.log("remainingAcc", remainingAcc);
 
     await this.program.methods

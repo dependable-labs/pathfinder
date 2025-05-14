@@ -8,12 +8,13 @@ use pathfinder::{
 use crate::{
     state::*,
     traits::{
-        curator::CuratorProtection,
-        vault_accounting::VaultAccounting,
+        vault_accounting::{VaultAccounting, RemainingAccountsPattern},
         path_actions::PathActions,
     },
     error::*
 };
+
+
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct DepositArgs {
@@ -119,6 +120,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
             ctx.remaining_accounts,
             pathfinder_config,
             pathfinder_program,
+            RemainingAccountsPattern::TripleGrouping
         )?;
 
         if fee_shares != 0 {

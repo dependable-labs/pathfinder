@@ -125,7 +125,29 @@ export function deriveManagerConfigAccount(
   )[0];
 }
 
-export function deriveDepositRemainingAccounts(
+export function derivePairGroupRemainingAccounts(
+  managerConfig: PublicKey,
+  markets: MarketFixture[],
+  programId: PublicKey
+) {
+  // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
+  const remainingAccounts = markets.map((market) => [
+    {
+      pubkey: market.marketAcc.key,
+      isSigner: false,
+      isWritable: true
+    },
+    {
+      pubkey: market.get_lender_shares(managerConfig).key,
+      isSigner: false, 
+      isWritable: true
+    },
+  ]).flat();
+
+  return remainingAccounts;
+}
+
+export function deriveTripleGroupRemainingAccounts(
   managerConfig: PublicKey,
   markets: MarketFixture[],
   programId: PublicKey
