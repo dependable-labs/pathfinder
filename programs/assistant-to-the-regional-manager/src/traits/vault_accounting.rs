@@ -18,6 +18,12 @@ use crate::utils::accounts::{
   validate_pathfinder_market_pda, 
   validate_pathfinder_lender_shares_pda,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RemainingAccountsPattern{
+    TripleGrouping,
+    PairGrouping,
+}
 pub trait VaultAccounting<'info, 'c: 'info>{
 
   fn total_assets(
@@ -26,7 +32,14 @@ pub trait VaultAccounting<'info, 'c: 'info>{
     market_accounts: &'info [AccountInfo<'info>],
     pathfinder_config: &Account<'info, Config>,
     pathfinder_program: &Program<'info, Pathfinder>,
+    processing_mode: RemainingAccountsPattern
   ) -> Result<u64> {
+
+    let step_size = match processing_mode {
+      RemainingAccountsPattern::TripleGrouping => 3,
+      RemainingAccountsPattern::PairGrouping => 2
+    };
+
     let mut assets: u64 = 0;
 
     // checking against set errors on duplicate and ensures all withdraw_queue accounts are accounted for
@@ -36,7 +49,7 @@ pub trait VaultAccounting<'info, 'c: 'info>{
       .collect();
 
     // order of withdraw queue accounts is not guaranteed
-    for i in (0..market_accounts.len()).step_by(3) {
+    for i in (0..market_accounts.len()).step_by(step_size) {
 
       let market_info = &market_accounts[i];
       let lender_shares_info = &market_accounts[i + 1];
@@ -91,6 +104,7 @@ pub trait VaultAccounting<'info, 'c: 'info>{
     market_accounts: &'info [AccountInfo<'info>],
     pathfinder_config: &Account<'info, Config>,
     pathfinder_program: &Program<'info, Pathfinder>,
+    account_pattern: RemainingAccountsPattern,  
   ) -> Result<(u64, u64)> {
 
     let new_total_assets = Self::total_assets(
@@ -98,7 +112,8 @@ pub trait VaultAccounting<'info, 'c: 'info>{
       withdraw_queue,
       market_accounts,
       pathfinder_config,
-      pathfinder_program
+      pathfinder_program,
+      account_pattern
     )?;
 
     let mut fee_shares = 0;

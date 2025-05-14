@@ -2,8 +2,10 @@ use anchor_lang::prelude::*;
 
 use crate::state::*;
 use crate::error::*;
-use crate::traits::owner::OwnerProtection;
-use crate::traits::vault_accounting::VaultAccounting;
+use crate::traits::{
+    owner::OwnerProtection,
+    vault_accounting::{VaultAccounting, RemainingAccountsPattern}
+};
 
 use pathfinder::{
     state::Config,
@@ -77,7 +79,7 @@ pub struct SetFeeRecipient<'info> {
 
     // NOTE: remaining accounts are pathfinder market, lender shares, and manager market config accounts.
     // These are not specified here but are passed in the context
-    // the accounts are ordered by supply queue in threes [market, lender_shares, manager_market_config, ...]
+    // the accounts are ordered by supply queue in pairs [market, lender_shares ...]
     // Any excess accounts which exist in the withdraw queue but not in supply queue are tacked onto the end
 }
 
@@ -121,6 +123,7 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
             ctx.remaining_accounts,
             pathfinder_config,
             pathfinder_program,
+            RemainingAccountsPattern::PairGrouping
         )?;
 
         if fee_shares > 0 {
