@@ -181,7 +181,7 @@ describe("Withdraw Collateral", () => {
     assert.equal(initialLarryBalance, BigInt(0), "Larry should have 0 collateral tokens");
     assert.equal(initialBobBalance, BigInt(900 * 1e9), "Bob should have 100 collateral tokens");
 
-    await market.updateDelegate({
+    await market.initDelegate({
       user: bob,
       newDelegate: larry,
     });

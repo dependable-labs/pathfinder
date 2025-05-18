@@ -22,6 +22,11 @@ pub mod pathfinder {
   }
 
   #[access_control(ctx.accounts.validate())]
+  pub fn init_delegate(ctx: Context<InitDelegate>, args: InitDelegateArgs) -> Result<()> {
+    InitDelegate::handle(ctx, args)
+  }
+
+  #[access_control(ctx.accounts.validate())]
   pub fn update_delegate(ctx: Context<UpdateDelegate>, args: UpdateDelegateArgs) -> Result<()> {
     UpdateDelegate::handle(ctx, args)
   }

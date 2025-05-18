@@ -2,39 +2,45 @@ use crate::state::{PositionDelegate, DELEGATE_SEED_PREFIX};
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct UpdateDelegateArgs {
+pub struct InitDelegateArgs {
   pub new_delegate: Pubkey,
 }
 
 #[derive(Accounts)]
-#[instruction(args: UpdateDelegateArgs)]
-pub struct UpdateDelegate<'info> {
+#[instruction(args: InitDelegateArgs)]
+pub struct InitDelegate<'info> {
   #[account(mut)]
   pub user: Signer<'info>,
 
   // position delegate
   #[account(
-    mut,
+    init,
+    payer = user,
+    space = 8 + std::mem::size_of::<PositionDelegate>(),
     seeds = [
       DELEGATE_SEED_PREFIX,
       user.key().as_ref(),
     ],
-    bump = position_delegate.bump
+    bump
   )]
   pub position_delegate: Box<Account<'info, PositionDelegate>>,
+  pub system_program: Program<'info, System>,
 }
 
-impl<'info> UpdateDelegate<'info> {
+impl<'info> InitDelegate<'info> {
   pub fn validate(&self) -> Result<()> {
     Ok(())
   }
 
-  pub fn handle(ctx: Context<Self>, args: UpdateDelegateArgs) -> Result<()> {
-    let UpdateDelegate {
+  pub fn handle(ctx: Context<Self>, args: InitDelegateArgs) -> Result<()> {
+    let InitDelegate {
       position_delegate, ..
     } = ctx.accounts;
 
-    position_delegate.delegate = args.new_delegate;
+    position_delegate.set_inner( PositionDelegate {
+      delegate: args.new_delegate,
+      bump: ctx.bumps.position_delegate
+    });
 
     Ok(())
   }

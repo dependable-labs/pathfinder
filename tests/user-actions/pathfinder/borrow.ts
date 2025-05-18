@@ -134,7 +134,7 @@ describe("User Borrow", () => {
     const priorBobBalance = await bob.get_quo_balance();
     const priorLarryBalance = await larry.get_quo_balance();
 
-    await market.updateDelegate({
+    await market.initDelegate({
       user: bob,
       newDelegate: larry,
     });

@@ -166,7 +166,6 @@ describe("Withdraw", () => {
     );
   });
 
-
   it("from a market on behalf of another owner", async () => {
     const initialBalance: BigInt = await larry.get_quo_balance();
 
@@ -187,7 +186,7 @@ describe("Withdraw", () => {
     );
 
     // lizz updates her delegate to larry
-    await market.updateDelegate({
+    await market.initDelegate({
       user: lizz,
       newDelegate: larry
     });
@@ -197,7 +196,8 @@ describe("Withdraw", () => {
       owner: lizz,
       recipient: larry,
       amount: new anchor.BN(0.5 * 1e9),
-      shares: new anchor.BN(0)
+      shares: new anchor.BN(0),
+      delegate: larry
     });
 
     const marketAccountData = await market.marketAcc.get_data();
