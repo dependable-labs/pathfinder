@@ -32,7 +32,7 @@ pub struct WithdrawCollateral<'info> {
 
   #[account(
     mut,
-    constraint = args.owner.key() == user.key() || position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
+    constraint = position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
     seeds = [
       DELEGATE_SEED_PREFIX,
       args.owner.key().as_ref(),
@@ -56,6 +56,7 @@ pub struct WithdrawCollateral<'info> {
 
   #[account(
     mut,
+    constraint = args.owner.key() == user.key() || position_delegate.is_some() @ MarketError::UnauthorizedDelegate,
     seeds = [
       BORROWER_SHARES_SEED_PREFIX,
       market.key().as_ref(),

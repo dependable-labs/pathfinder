@@ -181,6 +181,21 @@ describe("Withdraw Collateral", () => {
     assert.equal(initialLarryBalance, BigInt(0), "Larry should have 0 collateral tokens");
     assert.equal(initialBobBalance, BigInt(900 * 1e9), "Bob should have 100 collateral tokens");
 
+    await assert.rejects(
+      async () => {
+        await market.withdrawCollateral({
+          user: larry,
+          owner: bob,
+          recipient: larry,
+          amount: new anchor.BN(100 * 1e9),  // Withdraw all 100 tokens
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "Unauthorized delegate");
+        return true;
+      }
+    );
+
     await market.initDelegate({
       user: bob,
       newDelegate: larry,
@@ -190,7 +205,8 @@ describe("Withdraw Collateral", () => {
       user: larry,
       owner: bob,
       recipient: larry,
-      amount: new anchor.BN(100 * 1e9)  // Withdraw all 100 tokens
+      amount: new anchor.BN(100 * 1e9),  // Withdraw all 100 tokens
+      delegate: larry
     });
 
     const collateralData = await market.marketAcc.get_data();

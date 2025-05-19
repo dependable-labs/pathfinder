@@ -8,6 +8,7 @@ describe("Withdraw", () => {
   let market: MarketFixture;
   let larry: UserFixture;
   let lizz: UserFixture;
+  let randy: UserFixture;
 
   beforeEach(async () => {
 
@@ -22,6 +23,11 @@ describe("Withdraw", () => {
     );
 
     lizz = await test.createUser(
+      new anchor.BN(1000 * 1e9),
+      new anchor.BN(0)
+    );
+
+    randy = await test.createUser(
       new anchor.BN(1000 * 1e9),
       new anchor.BN(0)
     );
@@ -171,12 +177,13 @@ describe("Withdraw", () => {
 
     await assert.rejects(
       async () => {
+        // when delegate account is not passed lender_shares account constraint fires
         await market.withdraw({
           user: larry,
           owner: lizz,
           recipient: larry,
           amount: new anchor.BN(0.5 * 1e9),
-          shares: new anchor.BN(0)
+          shares: new anchor.BN(0),
         });
       },
       (err: anchor.AnchorError) => {
@@ -239,5 +246,4 @@ describe("Withdraw", () => {
       BigInt(999.5 * 1e9)
     );
   });
-
 });

@@ -58,6 +58,7 @@ pub struct Borrow<'info> {
   // borrower shares
   #[account(
     mut,
+    constraint = args.owner.key() == user.key() || position_delegate.is_some() @ MarketError::UnauthorizedDelegate,
     seeds = [
       BORROWER_SHARES_SEED_PREFIX,
       market.key().as_ref(),
