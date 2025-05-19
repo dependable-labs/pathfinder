@@ -32,7 +32,7 @@ pub struct Withdraw<'info> {
 
   #[account(
     mut,
-    constraint = args.owner.key() == user.key() || position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
+    constraint = position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
     seeds = [
       DELEGATE_SEED_PREFIX,
       args.owner.key().as_ref(),
