@@ -32,17 +32,15 @@ pub struct Borrow<'info> {
   pub recipient: AccountInfo<'info>,
 
   #[account(
-    init_if_needed,
-    payer = user,
-    constraint = args.owner.key() == user.key() || position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
-    space = 8 + std::mem::size_of::<PositionDelegate>(),
+    mut,
+    constraint = position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
     seeds = [
       DELEGATE_SEED_PREFIX,
       args.owner.key().as_ref(),
     ],
-    bump
+    bump = position_delegate.bump
   )]
-  pub position_delegate: Box<Account<'info, PositionDelegate>>,
+  pub position_delegate: Option<Box<Account<'info, PositionDelegate>>>,
 
   #[account(
     mut,
@@ -60,6 +58,7 @@ pub struct Borrow<'info> {
   // borrower shares
   #[account(
     mut,
+    constraint = args.owner.key() == user.key() || position_delegate.is_some() @ MarketError::UnauthorizedDelegate,
     seeds = [
       BORROWER_SHARES_SEED_PREFIX,
       market.key().as_ref(),

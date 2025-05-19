@@ -178,12 +178,14 @@ export class MarketFixture {
     shares,
     owner,
     recipient,
+    delegate,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
     owner: UserFixture;
     recipient: UserFixture;
+    delegate?: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
@@ -197,7 +199,7 @@ export class MarketFixture {
         user: user.key.publicKey,
         config: get_config(this.program).key,
         recipient: recipient.key.publicKey,
-        positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
+        positionDelegate: delegate ? this.get_position_delegate(owner.key.publicKey).key : null,
         market: this.marketAcc.key,
         lenderShares: this.get_lender_shares(owner.key.publicKey).key,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -246,11 +248,13 @@ export class MarketFixture {
     amount,
     owner,
     recipient,
+    delegate,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     owner: UserFixture;
     recipient: UserFixture;
+    delegate?: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
@@ -262,7 +266,7 @@ export class MarketFixture {
         user: user.key.publicKey,
         config: get_config(this.program).key,
         recipient: recipient.key.publicKey,
-        positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
+        positionDelegate: delegate ? this.get_position_delegate(owner.key.publicKey).key : null,
         market: this.marketAcc.key,
         borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         vaultAtaCollateral: this.get_ata(this.collateral.collateralMint),
@@ -283,12 +287,14 @@ export class MarketFixture {
     shares,
     owner,
     recipient,
+    delegate,
   }: {
     user: UserFixture;
     amount: anchor.BN;
     shares: anchor.BN;
     owner: UserFixture;
     recipient: UserFixture;
+    delegate?: UserFixture;
   }): Promise<void> {
 
     await this.program.methods
@@ -301,7 +307,7 @@ export class MarketFixture {
         user: user.key.publicKey,
         config: this.get_config().key,
         recipient: recipient.key.publicKey,
-        positionDelegate: this.get_position_delegate(owner.key.publicKey).key,
+        positionDelegate: delegate ? this.get_position_delegate(owner.key.publicKey).key : null,
         market: this.marketAcc.key,
         borrowerShares: this.get_borrower_shares(owner.key.publicKey).key,
         vaultAtaQuote: this.get_ata(this.quoteMint),
@@ -420,6 +426,23 @@ export class MarketFixture {
       .rpc();
   }
 
+  async initDelegate({
+    user,
+    newDelegate,
+  }: {
+    user: UserFixture;
+    newDelegate: UserFixture;
+  }): Promise<void> {
+    await this.program.methods
+      .initDelegate({
+        newDelegate: newDelegate.key.publicKey,
+      })
+      .accounts({
+        user: user.key.publicKey,
+      })
+      .signers([user.key.payer])
+      .rpc();
+  }
 
   async updateDelegate({
     user,

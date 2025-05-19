@@ -10,6 +10,7 @@ describe("User Borrow", () => {
   let market: MarketFixture;
   let larry: UserFixture;
   let bob: UserFixture;
+  let dan: UserFixture;
 
   beforeEach(async () => {
     test = await TestUtils.create({
@@ -25,6 +26,11 @@ describe("User Borrow", () => {
     bob = await test.createUser(
       new anchor.BN(0),
       new anchor.BN(1_000 * 1e9),
+    );
+
+    dan = await test.createUser(
+      new anchor.BN(0),
+      new anchor.BN(0),
     );
 
     let futarchy = await test.createUser(
@@ -93,6 +99,60 @@ describe("User Borrow", () => {
     assert.equal(finalBalance - initialBalance, BigInt(500000000));
   });
 
+  it("borrows with delegate from a market", async () => {
+    const initialBalance = await bob.get_quo_balance();
+
+    await assert.rejects(
+      async () => {
+        await market.borrow({
+          user: dan,
+          amount: new anchor.BN(0.5 * 1e9),
+          shares: new anchor.BN(0), 
+          owner: bob,
+          recipient: bob,
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "Unauthorized delegate");
+        return true;
+      }
+    );
+
+    await market.initDelegate({
+      user: bob,
+      newDelegate: dan,
+    });
+
+    await market.borrow({
+      user: dan,
+      amount: new anchor.BN(0.5 * 1e9), // 0.5 * 1e9
+      shares: new anchor.BN(0),
+      owner: bob,
+      recipient: bob,
+      delegate: dan
+    });
+
+    const marketAccountData = await market.marketAcc.get_data();
+    const totalBorrows = await market.marketAcc.getTotalBorrows();
+
+    assert.equal(
+      marketAccountData.totalBorrowShares.toNumber(),
+      500000000
+    );
+    assert.equal(totalBorrows.toNumber(), 500000000);
+
+    const borrowerSharesAccountData = await market
+      .get_borrower_shares(bob.key.publicKey)
+      .get_data();
+    assert.equal(
+      borrowerSharesAccountData.borrowShares.toNumber(),
+      500000000
+    );
+
+    const finalBalance = await bob.get_quo_balance();
+    assert.equal(finalBalance - initialBalance, BigInt(500000000));
+  });
+
   it("fails to borrow without collateral", async () => {
     //TODO: Fixme
     await assert.rejects(
@@ -134,7 +194,7 @@ describe("User Borrow", () => {
     const priorBobBalance = await bob.get_quo_balance();
     const priorLarryBalance = await larry.get_quo_balance();
 
-    await market.updateDelegate({
+    await market.initDelegate({
       user: bob,
       newDelegate: larry,
     });
@@ -145,6 +205,7 @@ describe("User Borrow", () => {
       shares: new anchor.BN(0),
       owner: bob,
       recipient: larry,
+      delegate: larry,
     });
 
     const marketAccountData = await market.marketAcc.get_data();
