@@ -667,7 +667,7 @@ describe("deposit", () => {
 
     assert.equal(
       (await dogeMarket.get_lender_shares(manager.managerVaultConfigAcc.key).get_data()).shares.toNumber(),
-      59999448510994
+      60000000000000
     );
 
     // Verify fee recipient shares were created correctly
@@ -677,8 +677,6 @@ describe("deposit", () => {
     // Verify dans shares were created correctly
     const danShares = await manager.get_supply_shares(dan.key.publicKey).get_data();
     assert.equal(danShares.shares.toNumber(), 550_000 * 1e9);
-
-
 
   });
 

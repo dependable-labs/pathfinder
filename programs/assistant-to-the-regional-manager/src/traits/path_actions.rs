@@ -1,17 +1,32 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{TokenAccount, Token};
+use anchor_spl::{associated_token::AssociatedToken, token::{Token, TokenAccount}};
+use anchor_spl::token::*;
 use crate::{
   state::*, 
   error::ManagerError,
-  instructions::Deposit,
-  utils::accounts::validate_manager_market_config_pda
+  utils::accounts::validate_manager_market_config_pda,
+  generate_manager_config_seeds,
+  memory_tracker::MemoryTracker,
 };
 
 use pathfinder::{
-    cpi::{accrue_interest, deposit},
-    math::{min_u64, to_assets_up, zero_floor_sub},
-    state::{LenderShares, Market, Config},
+    cpi::{
+        accrue_interest,
+        deposit,
+        withdraw
+    },
+    math::{
+        min_u64,
+        to_assets_down,
+        to_assets_up,
+        zero_floor_sub
+    },
     program::Pathfinder,
+    state::{
+        Config,
+        LenderShares,
+        Market
+    }
 };
 pub trait PathActions<'info, 'c: 'info> {
 
@@ -40,7 +55,7 @@ pub trait PathActions<'info, 'c: 'info> {
       let mut shares: u64 = 0;
 
       // if queue_index is greater than queue.supply_queue.len()
-      // we've processed all markets in the supply queue
+      // we've processed all markets in the supply queue, only markets in withdraw_queue remain
       if queue_index >= supply_queue.len() {
         break;
       }
@@ -145,5 +160,187 @@ pub trait PathActions<'info, 'c: 'info> {
 
     Ok(())
   }
+
+
+  #[inline(never)]
+  fn process_market_withdrawal(
+    assets: u64,
+    user: &Signer<'info>,
+    manager_config: &Account<'info, ManagerVaultConfig>,
+    market: &Account<'info, Market>,
+    lender_shares: &Account<'info, LenderShares>,
+    pathfinder_config: &Account<'info ,Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
+    vault_ata_quote: &Account<'info, TokenAccount>,
+    quote_mint: &Account<'info, Mint>,
+    manager_ata_quote: &Account<'info, TokenAccount>,
+    token_program: &Program<'info, Token>,
+    system_program: &Program<'info, System>,
+    associated_token_program: &Program<'info, AssociatedToken>,
+  ) -> Result<u64> {
+ 
+      let (supply_assets, _) = Self::_accrued_supply_balance(
+          user,
+          market,
+          lender_shares,
+          pathfinder_config,
+          pathfinder_program
+      )?;
+
+      let to_withdraw = min_u64(
+          Self::_withdrawable(
+              market.total_deposits()?,
+              market.total_borrows()?,
+              supply_assets,
+              vault_ata_quote
+          )?,
+          assets
+      );
+
+      msg!("to_withdraw: {}", to_withdraw);
+
+      if to_withdraw > 0 {
+          let seeds = generate_manager_config_seeds!(manager_config);
+          let signer = &[&seeds[..]];
+
+          let withdraw_ctx = CpiContext::new_with_signer(
+              pathfinder_program.to_account_info(),
+              pathfinder::cpi::accounts::Withdraw {
+                  user: manager_config.to_account_info(),
+                  recipient: manager_config.to_account_info(),
+                  market: market.to_account_info(),
+                  config: pathfinder_config.to_account_info(),
+                  lender_shares: lender_shares.to_account_info(),
+                  vault_ata_quote: vault_ata_quote.to_account_info(),
+                  position_delegate: None::<AccountInfo>,
+                  recipient_ata_quote: manager_ata_quote.to_account_info(),
+                  quote_mint: quote_mint.to_account_info(),
+                  associated_token_program: associated_token_program.to_account_info(),
+                  token_program: token_program.to_account_info(),
+                  system_program: system_program.to_account_info(),
+              },
+              signer
+          );
+
+          let withdraw_args = pathfinder::instructions::WithdrawArgs {
+              amount: to_withdraw,
+              shares: 0,
+              owner: manager_config.key(),
+          };
+
+          if withdraw(withdraw_ctx, withdraw_args).is_ok() {
+              return Ok(to_withdraw);
+          }
+
+      }
+
+      Ok(0)
+  }
+
+  #[inline(never)]
+  fn _withdraw_path(
+    assets: u64,
+    withdraw_queue_index: u8,
+    user: &Signer<'info>,
+    manager_config: &Account<'info, ManagerVaultConfig>,
+    withdraw_queue: &Vec<Pubkey>,
+    quote_mint: &Account<'info, Mint>,
+    vault_ata_quote: &Account<'info, TokenAccount>,
+    manager_ata_quote: &Account<'info, TokenAccount>,
+    market: &Account<'info, Market>,
+    lender_shares: &Account<'info, LenderShares>,
+    pathfinder_config: &Account<'info, Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
+    token_program: &Program<'info, Token>,
+    system_program: &Program<'info, System>,
+    associated_token_program: &Program<'info, AssociatedToken>,
+  ) -> Result<()> {
+
+    let mut assets = assets;
+
+    // Validate the market at the given index matches
+    require!(
+        (withdraw_queue_index as usize) < withdraw_queue.len() && withdraw_queue[withdraw_queue_index as usize] == market.key(),
+        ManagerError::MarketNotFound
+    );
+
+    let withdrawn = Self::process_market_withdrawal(
+        assets,
+        user,
+        manager_config,
+        &market,
+        &lender_shares,
+        pathfinder_config,
+        pathfinder_program,
+        vault_ata_quote,
+        quote_mint,
+        manager_ata_quote,
+        token_program,
+        system_program,
+        associated_token_program,
+      )?;
+
+    assets = assets.checked_sub(withdrawn).ok_or(ManagerError::MathUnderflow)?;
+
+    msg!("withdrawn: {}", withdrawn);
+    msg!("assets remaining: {}", assets);
+
+    if assets != 0 { 
+      return err!(ManagerError::NotEnoughLiquidity);
+    };
+
+    Ok(())
+  }
+
+  fn _withdrawable(
+      total_supply_assets: u64,
+      total_borrow_assets: u64,
+      supply_assets: u64,
+      vault_ata_quote: &Account<'info, TokenAccount>
+  ) -> Result<u64> {
+
+    let available_in_market = total_supply_assets
+      .checked_sub(total_borrow_assets)
+      .ok_or(ManagerError::MathUnderflow)?;
+
+    // Inside a flashloan callback, liquidity on Morpho Blue may be limited to the singleton's balance.
+    let available_liquidity = min_u64(
+      available_in_market,
+      vault_ata_quote.amount 
+    );
+
+    return Ok(min_u64(supply_assets, available_liquidity));
+  }
+
+  fn _accrued_supply_balance(
+    user: &Signer<'info>,
+    market: &Account<'info, Market>,
+    lender_shares: &Account<'info, LenderShares>,
+    pathfinder_config: &Account<'info, Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
+  ) -> Result<(u64, u64)> {
+
+    // accrue interest for market
+    let accrue_ctx = CpiContext::new(
+      pathfinder_program.to_account_info(),
+      pathfinder::cpi::accounts::AccrueInterest {
+        user: user.to_account_info(),
+        market: market.to_account_info(),
+        config: pathfinder_config.to_account_info(),
+      }
+    );
+
+    accrue_interest(accrue_ctx)?;
+
+    let shares = lender_shares.shares;
+    let assets = to_assets_down(
+      shares,
+      market.total_deposits()?,
+      market.total_shares
+    )?;
+
+    Ok((assets, shares))
+  }
+
 }
 

@@ -86,7 +86,7 @@ pub struct PendingState {
 }
 
 #[macro_export]
-macro_rules! generate_manager_vault_seeds {
+macro_rules! generate_manager_config_seeds {
     ($vault:expr) => {{
         &[
             MANAGER_CONFIG_SEED_PREFIX,

@@ -114,6 +114,13 @@ pub mod assistant_to_the_regional_manager {
     ) -> Result<()> {
         Deposit::handle(ctx, args)
     }
+
+    pub fn withdraw<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, Withdraw<'info>>,
+        args: WithdrawArgs
+    ) -> Result<()> {
+        Withdraw::handle(ctx, args)
+    }
 }
 
 

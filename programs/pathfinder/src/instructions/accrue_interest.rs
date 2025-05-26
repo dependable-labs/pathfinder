@@ -47,6 +47,8 @@ impl<'info> AccrueInterest<'info> {
 }
 
 pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -> Result<()> {
+
+
   let clock = Clock::get()?;
   let current_timestamp = clock.unix_timestamp as u64;
 
@@ -62,42 +64,46 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
 
   let total_borrows = market.total_borrows()?;
 
-  // Get interest rate from IRM
-  let (avg_rate, end_rate_at_target) = get_rate(market)?;
-  market.rate_at_target = end_rate_at_target.to_u128()?;
+  // Only proceed with interest accrual if there are borrows
+  if total_borrows > 0 {
 
-  // Calculate interest factor using taylor series
-  let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
-  let interest = Decimal::from_raw_u64(total_borrows).w_mul_down(interest_factor)?.to_u64()?;
+    // Get interest rate from IRM
+    let (avg_rate, end_rate_at_target) = get_rate(market)?;
+    market.rate_at_target = end_rate_at_target.to_u128()?;
 
-  // Update indexes with interest
-  market.borrow_index = Decimal::from_raw_u128(market.borrow_index)
-      .w_mul_down(interest_factor.try_add(Decimal::one())?)?
-      .to_u128()?;
+    // Calculate interest factor using taylor series
+    let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
+    let interest = Decimal::from_raw_u64(total_borrows).w_mul_down(interest_factor)?.to_u64()?;
 
-  // Update deposit index with interest
-  market.deposit_index = Decimal::from_raw_u128(market.deposit_index)
-      .w_mul_down(interest_factor.try_add(Decimal::one())?)?
-      .to_u128()?;
+    // Update indexes with interest
+    market.borrow_index = Decimal::from_raw_u128(market.borrow_index)
+        .w_mul_down(interest_factor.try_add(Decimal::one())?)?
+        .to_u128()?;
 
-  // Handle fee if set
-  if config.fee_factor != 0 {
-    let fee_amount = Decimal::from_raw_u64(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?.to_u64()?;
+    // Update deposit index with interest
+    market.deposit_index = Decimal::from_raw_u128(market.deposit_index)
+        .w_mul_down(interest_factor.try_add(Decimal::one())?)?
+        .to_u128()?;
 
-    // calculate fee shares using total deposits (prior to applying interest)
-    let deposits_sub_fee = market.total_deposits()?.checked_sub(fee_amount).unwrap();
-    let fee_shares = to_shares_down(fee_amount, deposits_sub_fee, market.total_shares)?;
+    // Handle fee if set
+    if config.fee_factor != 0 {
+      let fee_amount = Decimal::from_raw_u64(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?.to_u64()?;
 
-    // Update fee shares
-    market.fee_shares = market
-      .fee_shares
-      .checked_add(fee_shares)
-      .ok_or(MarketError::MathOverflow)?;
+      // calculate fee shares using total deposits (prior to applying interest)
+      let deposits_sub_fee = market.total_deposits()?.checked_sub(fee_amount).unwrap();
+      let fee_shares = to_shares_down(fee_amount, deposits_sub_fee, market.total_shares)?;
 
-    market.total_shares = market
-      .total_shares
-      .checked_add(fee_shares)
-      .ok_or(MarketError::MathOverflow)?;
+      // Update fee shares
+      market.fee_shares = market
+        .fee_shares
+        .checked_add(fee_shares)
+        .ok_or(MarketError::MathOverflow)?;
+
+      market.total_shares = market
+        .total_shares
+        .checked_add(fee_shares)
+        .ok_or(MarketError::MathOverflow)?;
+    }
   }
 
   market.last_accrual_timestamp = current_timestamp;

@@ -26,6 +26,46 @@ pub enum RemainingAccountsPattern{
 }
 pub trait VaultAccounting<'info, 'c: 'info>{
 
+  fn validate_account_lengths(
+    market_accounts: &[AccountInfo<'info>],
+    withdraw_queue: &[Pubkey],
+    step_size: usize,
+  ) -> Result<()> {
+    // Checks that full withdraw queue is provided
+    // Protects against edgecase supplyqueue.len() > withdraw_queue.len()
+    // Guardian must set a new supply queue without the removed market prior to depositors calling deposit.
+    require!(
+        market_accounts.len() / step_size == withdraw_queue.len(),
+        ManagerError::InvalidWithdrawQueue
+    );
+
+    Ok(())
+}
+
+fn validate_market_order(
+    market_info: &AccountInfo<'info>,
+    withdraw_queue: &[Pubkey],
+    queue_index: usize,
+    processing_mode: RemainingAccountsPattern,
+    withdraw_queue_set: &HashSet<Pubkey>,
+) -> Result<()> {
+    match processing_mode {
+      RemainingAccountsPattern::PairGrouping => {
+          require!(
+              withdraw_queue[queue_index] == market_info.key(),
+              ManagerError::InvalidWithdrawQueue
+          );
+      }
+      RemainingAccountsPattern::TripleGrouping => {
+          require!(
+              withdraw_queue_set.contains(&market_info.key()),
+              ManagerError::MarketNotInQueue
+          );
+      }
+    }
+    Ok(())
+  }
+  #[inline(never)]
   fn total_assets(
     manager_config: &Account<'info, ManagerVaultConfig>,
     withdraw_queue: &Vec<anchor_lang::prelude::Pubkey>,
@@ -35,65 +75,97 @@ pub trait VaultAccounting<'info, 'c: 'info>{
     processing_mode: RemainingAccountsPattern
   ) -> Result<u64> {
 
+    // Determine step size based on processing mode
     let step_size = match processing_mode {
-      RemainingAccountsPattern::TripleGrouping => 3,
-      RemainingAccountsPattern::PairGrouping => 2
+        RemainingAccountsPattern::TripleGrouping => 3,
+        RemainingAccountsPattern::PairGrouping => 2
     };
 
-    let mut assets: u64 = 0;
+    // Validate account lengths
+    Self::validate_account_lengths(market_accounts, withdraw_queue, step_size)?;
 
-    // checking against set errors on duplicate and ensures all withdraw_queue accounts are accounted for
+    // Create set of valid market pubkeys for quick lookup
     let withdraw_queue_set: HashSet<_> = withdraw_queue
       .iter()
       .map(|market| market.key())
       .collect();
 
-    // order of withdraw queue accounts is not guaranteed
+    // Process markets
+    let mut assets: u64 = 0;
+    let mut queue_index = 0;
+
     for i in (0..market_accounts.len()).step_by(step_size) {
 
-      let market_info = &market_accounts[i];
-      let lender_shares_info = &market_accounts[i + 1];
+      // Validate market order
+      Self::validate_market_order(
+          &market_accounts[i],
+          withdraw_queue,
+          queue_index,
+          processing_mode,
+          &withdraw_queue_set,
+      )?;
 
-      // check to ensure market is in withdraw queue
-      // Also protects against edgecase supplyqueue.len() > withdraw_queue.len()
-      // The guardian must set a new supply queue without the removed market prior to depositors calling deposit.
-      // drastically reduces complexity of the deposit account checking logic
-      if !withdraw_queue_set.contains(&market_info.key()) {
-        return err!(ManagerError::MarketNotInQueue);
-      }
+      // Get market assets
+      let market_assets = Self::get_market_assets(
+          &market_accounts[i],
+          &market_accounts[i + 1],
+          manager_config,
+          pathfinder_config,
+          pathfinder_program
+      )?;
 
-      // validate market account
+      assets = assets
+        .checked_add(market_assets)
+        .ok_or(ManagerError::MathOverflow)?;
+
+      queue_index += 1;
+    }
+    
+    Ok(assets)
+  }
+
+  // Helper function to process individual market assets
+  fn get_market_assets(
+      market_info: &'info AccountInfo<'info>,
+      lender_shares_info: &'info AccountInfo<'info>,
+      manager_config: &Account<'info, ManagerVaultConfig>,
+      pathfinder_config: &Account<'info, Config>,
+      pathfinder_program: &Program<'info, Pathfinder>,
+  ) -> Result<u64> {
+      // 1. Validate market account
       let market_account = Account::<Market>::try_from(market_info)?;
       validate_pathfinder_market_pda(&market_info.key(), &market_account)?;
 
-      // validate lender shares account
-      validate_pathfinder_lender_shares_pda(&market_info.key(), &manager_config.key(), &lender_shares_info.key())?;
-      let lender_shares_account = if lender_shares_info.data_is_empty() {
-        // if the lender shares account is empty market doesn't have position
-        // skip the expected assets calculation
-        continue;
-      } else {
-        Account::<LenderShares>::try_from(&lender_shares_info)?
-      };
+      // 2. Validate lender shares account
+      validate_pathfinder_lender_shares_pda(
+          &market_info.key(),
+          &manager_config.key(),
+          &lender_shares_info.key()
+      )?;
 
+      // 3. Skip if no position in market
+      if lender_shares_info.data_is_empty() {
+          return Ok(0);
+      }
+
+      // 4. Get lender shares
+      let lender_shares_account = Account::<LenderShares>::try_from(lender_shares_info)?;
+
+      // 5. Calculate expected assets
       let view_market_ctx = CpiContext::new(
-        pathfinder_program.to_account_info(),
-        pathfinder::cpi::accounts::ViewMarket {
-          market: market_info.to_account_info(),
-          config: pathfinder_config.to_account_info(),
-        },
+          pathfinder_program.to_account_info(),
+          pathfinder::cpi::accounts::ViewMarket {
+              market: market_info.to_account_info(),
+              config: pathfinder_config.to_account_info(),
+          },
       );
 
       let expected_assets = view_expected_supply_assets(
-        view_market_ctx,
-        lender_shares_account.shares)?;
+          view_market_ctx,
+          lender_shares_account.shares
+      )?;
 
-      assets = assets
-        .checked_add(expected_assets.get())
-        .ok_or(ManagerError::MathOverflow)?;
-    }
-
-    Ok(assets)
+      Ok(expected_assets.get())
   }
 
   // Computes and returns the fee shares (`feeShares`) to mint and the new vault's total assets

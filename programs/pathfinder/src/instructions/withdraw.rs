@@ -24,10 +24,9 @@ pub struct Withdraw<'info> {
     seeds = [CONFIG_SEED_PREFIX],
     bump = config.bump,
   )]
-  pub config: Box<Account<'info, Config>>,
+  pub config: Account<'info, Config>,
 
   /// CHECK: needed for associated token constraint
-  #[account(mut)]
   pub recipient: AccountInfo<'info>,
 
   #[account(
@@ -52,7 +51,7 @@ pub struct Withdraw<'info> {
     ],
     bump = market.bump,
   )]
-  pub market: Box<Account<'info, Market>>,
+  pub market: Account<'info, Market>,
 
   #[account(
     mut,
@@ -64,14 +63,14 @@ pub struct Withdraw<'info> {
     ],
     bump
   )]
-  pub lender_shares: Box<Account<'info, LenderShares>>,
+  pub lender_shares: Account<'info, LenderShares>,
 
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
     associated_token::authority = config,
   )]
-  pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+  pub vault_ata_quote: Account<'info, TokenAccount>,
 
   #[account(
     init_if_needed,
@@ -79,10 +78,10 @@ pub struct Withdraw<'info> {
     associated_token::authority = recipient,
     associated_token::mint = quote_mint,
   )]
-  pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
+  pub recipient_ata_quote: Account<'info, TokenAccount>,
 
   #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Box<Account<'info, Mint>>,
+  pub quote_mint: Account<'info, Mint>,
 
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
@@ -135,6 +134,8 @@ pub fn process_withdrawal_and_transfer<'info>(
   recipient_ata_quote: &Account<'info, TokenAccount>,
   token_program: &Program<'info, Token>,
 ) -> Result<()> {
+  msg!("Initial shares: {}, assets: {}", shares, assets);
+
   // Process withdrawal amounts
   if (*shares == 0 && *assets == 0) || (*shares != 0 && *assets != 0) {
     return err!(MarketError::AssetShareValueMismatch);
@@ -144,11 +145,14 @@ pub fn process_withdrawal_and_transfer<'info>(
 
   let total_deposits = market.total_deposits()?;
 
+  msg!("Total deposits: {}, total shares: {}", total_deposits, market.total_shares);
+
   if *assets > 0 {
     *shares = to_shares_up(*assets, total_deposits, market.total_shares)?;
   } else {
     *assets = to_assets_down(*shares, total_deposits, market.total_shares)?;
   }
+  msg!("Calculated shares to withdraw: {}", shares);
 
   // Update market total shares
   market.total_shares = market
@@ -156,17 +160,21 @@ pub fn process_withdrawal_and_transfer<'info>(
     .checked_sub(*shares)
     .ok_or(error!(MarketError::MathUnderflow))?;
 
+  msg!("New market total shares: {}", market.total_shares);
+
   if is_fee_recipient {
     market.fee_shares = market
       .fee_shares
       .checked_sub(*shares)
       .ok_or(error!(MarketError::MathOverflow))?;
   } else if let Some(shares_account) = lender_shares {
+    msg!("Current lender shares before withdrawal: {}", shares_account.shares);
     // Update user shares
     shares_account.shares = shares_account
       .shares
       .checked_sub(*shares)
       .ok_or(error!(MarketError::MathUnderflow))?;
+    msg!("Final lender shares after withdrawal: {}", shares_account.shares);
   }
 
   // Transfer tokens

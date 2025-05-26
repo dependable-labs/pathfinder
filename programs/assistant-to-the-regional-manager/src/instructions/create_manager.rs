@@ -1,6 +1,6 @@
 use anchor_spl::{
-  token::{Mint, Token},
-  metadata::Metadata,
+  token::*,
+  associated_token::AssociatedToken,
 };
 use anchor_lang::prelude::*;
 use crate::{
@@ -65,14 +65,22 @@ pub struct CreateManager<'info> {
       ],
       bump
   )]
-  pub fee_recipient_shares: Account<'info, SupplyShares>,
+  pub fee_recipient_shares: Box<Account<'info, SupplyShares>>,
+
+  #[account(
+      init,
+      payer = user,
+      associated_token::authority = config,
+      associated_token::mint = quote_mint,
+  )]
+  pub manager_ata_quote: Account<'info, TokenAccount>,
 
   #[account(constraint = quote_mint.is_initialized == true)]
   pub quote_mint: Box<Account<'info, Mint>>,
 
+  pub associated_token_program: Program<'info, AssociatedToken>,
   pub system_program: Program<'info, System>,
   pub token_program: Program<'info, Token>,
-  pub token_metadata_program: Program<'info, Metadata>,
   pub rent: Sysvar<'info, Rent>,
 }
 
@@ -117,8 +125,8 @@ impl<'info> CreateManager<'info> {
 
     queue.set_inner(QueueState {
       bump: ctx.bumps.queue,
-      supply_queue: Vec::new(),
-      withdraw_queue: Vec::new(),
+      supply_queue: Vec::with_capacity(MAX_QUEUE_LENGTH),
+      withdraw_queue: Vec::with_capacity(MAX_QUEUE_LENGTH),
     });
 
     fee_recipient_shares.set_inner(SupplyShares {
