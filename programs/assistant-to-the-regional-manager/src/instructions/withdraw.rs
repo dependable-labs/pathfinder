@@ -16,8 +16,7 @@ use crate::{
         path_actions::PathActions,
     },
     generate_manager_config_seeds,
-    error::*,
-    memory_tracker::MemoryTracker,
+    error::*
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -121,9 +120,6 @@ impl<'info, 'c: 'info> PathActions<'info, 'c> for Withdraw<'info> {}
 impl<'info, 'c: 'info> Withdraw<'info> {
 
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: WithdrawArgs) -> Result<()> {
-        let tracker = MemoryTracker::new();
-
-        tracker.log_memory_usage("Start of withdraw");
 
         let Withdraw {
             user,
@@ -164,7 +160,6 @@ impl<'info, 'c: 'info> Withdraw<'info> {
 
         // Update last total assets
         manager_config.last_total_assets = new_total_assets;
-        msg!("last_total_assets: {}", manager_config.last_total_assets);
  
         Self::_withdraw_path(
             args.assets,
@@ -189,17 +184,23 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             .checked_sub(args.assets)
             .ok_or(ManagerError::MathOverflow)?;
 
+        // check if the assets are greater than the max assets
+        let max_assets = Self::max_withdraw(
+            &user_shares,
+            &manager_config,
+        )?;
 
-        // withdraw from manager -> user
-        // uint256 maxAssets = maxWithdraw(owner);
-        // if (assets > maxAssets) {
-        //     revert ERC4626ExceededMaxWithdraw(owner, assets, maxAssets);
-        // }
+        require!(
+            args.assets <= max_assets,
+            ManagerError::ExceededMaxWithdraw
+        );
 
-        let shares = mul_div_up(
-            args.assets as u128,
-            manager_config.total_shares as u128 + 10_u128.pow(manager_config.decimals_offset as u32),
-            manager_config.last_total_assets as u128 + 1
+        let shares = Self::_convert_to_shares(
+            args.assets,
+            manager_config.total_shares,
+            manager_config.last_total_assets,
+            manager_config.decimals_offset,
+            true
         )?;
 
         user_shares.shares = user_shares.shares

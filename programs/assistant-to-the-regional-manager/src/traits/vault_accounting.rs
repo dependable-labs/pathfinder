@@ -4,7 +4,7 @@ use anchor_lang::Bumps;
 
 use crate::{
   error::ManagerError,
-  state::ManagerVaultConfig,
+  state::{ManagerVaultConfig, SupplyShares},
 };
 
 use pathfinder::{
@@ -203,7 +203,7 @@ fn validate_market_order(
         // The fee assets is subtracted from the total assets in this calculation to compensate for the fact
         // that total assets is already increased by the total interest (including the fee assets).
         fee_shares =
-            Self::_convert_to_shares_with_totals(
+            Self::_convert_to_shares(
                 fee_assets,
                 manager_config.total_shares,
                 new_total_assets.checked_sub(fee_assets).unwrap(),
@@ -215,13 +215,47 @@ fn validate_market_order(
     Ok((fee_shares, new_total_assets))
   }
 
+  fn max_withdraw(
+    owner_supply: &Account<'info, SupplyShares>,
+    manager_config: &Account<'info, ManagerVaultConfig>,
+  ) -> Result<u64> {
+    Self::_convert_to_assets(
+      owner_supply.shares,
+      manager_config.last_total_assets,
+      manager_config.total_shares,
+      manager_config.decimals_offset,
+      false
+    )
+  }
+
+  fn _convert_to_assets(
+    shares: u64,
+    last_total_assets: u64,
+    total_shares: u64,
+    decimals_offset: u8,
+    round_up: bool,
+  ) -> Result<u64> {
+    if round_up {
+      Ok(mul_div_up(
+        shares as u128,
+        (last_total_assets + 1) as u128,
+        (total_shares + 10_u64.pow(decimals_offset as u32)) as u128
+      )?)
+    } else {
+      Ok(mul_div_down(
+        shares as u128,
+        (last_total_assets + 1) as u128,
+        (total_shares + 10_u64.pow(decimals_offset as u32)) as u128
+      )?)
+    }
+  }
 
   // Returns the amount of shares that the vault would exchange for the amount of `assets` provided.
   // It assumes that the arguments `newTotalSupply` and `newTotalAssets` are up to date.
-  fn _convert_to_shares_with_totals(
+  fn _convert_to_shares(
       assets: u64,
-      new_total_supply: u64,
-      new_total_assets: u64,
+      total_shares: u64,
+      total_assets: u64,
       decimals_offset: u8,
       round_up: bool,
   ) -> Result<u64> {
@@ -229,15 +263,15 @@ fn validate_market_order(
     if round_up {
       Ok(mul_div_up(
         assets as u128,
-        (new_total_supply + 10_u64.pow(decimals_offset as u32)) as u128,
-        (new_total_assets + 1) as u128
+        (total_shares + 10_u64.pow(decimals_offset as u32)) as u128,
+        (total_assets + 1) as u128
       )?)
     } else {
       Ok(mul_div_down(
         assets as u128,
-        (new_total_supply + 10_u64.pow(decimals_offset as u32)) as u128,
-        (new_total_assets + 1) as u128
-        )?)
+        (total_shares + 10_u64.pow(decimals_offset as u32)) as u128,
+        (total_assets + 1) as u128
+      )?)
     }
   }
 }

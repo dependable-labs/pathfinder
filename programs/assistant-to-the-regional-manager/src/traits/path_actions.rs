@@ -5,8 +5,7 @@ use crate::{
   state::*, 
   error::ManagerError,
   utils::accounts::validate_manager_market_config_pda,
-  generate_manager_config_seeds,
-  memory_tracker::MemoryTracker,
+  generate_manager_config_seeds
 };
 
 use pathfinder::{

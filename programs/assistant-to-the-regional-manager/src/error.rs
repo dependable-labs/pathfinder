@@ -111,4 +111,7 @@ pub enum ManagerError {
 
     #[msg("Market not found")]
     MarketNotFound,
+
+    #[msg("Exceeded max withdraw")]
+    ExceededMaxWithdraw,
 }
