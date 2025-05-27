@@ -102,4 +102,16 @@ pub enum ManagerError {
 
     #[msg("Zero fee recipient")]
     ZeroFeeRecipient,
+
+    #[msg("Not enough liquidity")]
+    NotEnoughLiquidity,
+
+    #[msg("Invalid withdraw queue")]
+    InvalidWithdrawQueue,
+
+    #[msg("Market not found")]
+    MarketNotFound,
+
+    #[msg("Exceeded max withdraw")]
+    ExceededMaxWithdraw,
 }

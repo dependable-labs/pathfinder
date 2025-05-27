@@ -362,13 +362,7 @@ export class TestUtils {
         feeRecipient: UserFixture,
         authority: UserFixture,
       }[],
-  ): Promise<{
-    solMarket?: MarketFixture,
-    wbtcMarket?: MarketFixture,
-    pepeMarket?: MarketFixture,
-    dogeMarket?: MarketFixture,
-    metaMarket?: MarketFixture
-  }> {
+  ): Promise<Record<string, MarketFixture>> {
     const markets: {[key: string]: MarketFixture} = {};
     for (const marketConfig of marketConfigs) {
       const market = await this.createMarket(marketConfig);

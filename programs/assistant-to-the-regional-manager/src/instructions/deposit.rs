@@ -133,7 +133,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
         // It is updated again in `_deposit`.
         config.last_total_assets = new_total_assets;
 
-        let shares = Self::_convert_to_shares_with_totals(
+        let shares = Self::_convert_to_shares(
             args.assets,
             config.total_shares,
             new_total_assets,

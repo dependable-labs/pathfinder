@@ -126,8 +126,10 @@ export class ManagerFixture {
         config: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
         queue: this.queue.key,
+        managerAtaQuote: this.quoteAta.key,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
       })
       .signers([user.key.payer])
       .rpc();
@@ -618,6 +620,67 @@ export class ManagerFixture {
     // }
 
     await this.provider.context.banksClient.processTransaction(tx);
+  }
+
+  async withdrawCustomCU({
+      user,
+      recipient,
+      withdrawQueueIndex,
+      assets,
+      markets,
+      customCU,
+  }: {
+    user: UserFixture;
+    recipient: UserFixture;
+    withdrawQueueIndex: number;
+    assets: anchor.BN;
+    markets: MarketFixture[];
+    customCU: number;
+  }): Promise <void> {
+
+    let remainingAcc = derivePairGroupRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
+    const budgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+      units: customCU,
+    });
+
+    let tx = await this.program.methods
+      .withdraw({
+        assets,
+        withdrawQueueIndex
+      })
+      .accounts({
+        user: user.key.publicKey,
+        recipient: recipient.key.publicKey,
+        managerConfig: this.managerVaultConfigAcc.key,
+        queue: this.queue.key,
+        feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        receiverShares: deriveSupplyShares(recipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        userShares: deriveSupplyShares(user.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
+        managerAtaQuote: this.get_ata(this.quoteMint),
+        pathfinderConfig: markets[withdrawQueueIndex].get_config().key,
+        vaultAtaQuote: markets[withdrawQueueIndex].quoteAta.key,
+        quoteMint: this.quoteMint,
+        market: markets[withdrawQueueIndex].marketAcc.key,
+        lenderShares: markets[withdrawQueueIndex].get_lender_shares(this.managerVaultConfigAcc.key).key,
+        recipientAtaQuote: recipient.quoteAta,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        // NOTE: remaining accounts are [market, lender_shares, ...]
+      })
+      .remainingAccounts(remainingAcc)
+      .signers([user.key.payer])
+      .transaction();
+     
+    tx = tx.add(
+      budgetInstruction,
+    )
+    tx.recentBlockhash = (await this.provider.context.banksClient.getLatestBlockhash())[0]
+    tx.sign(user.key.payer);
+    tx.feePayer = user.key.publicKey;
+
+    await this.provider.context.banksClient.processTransaction(tx);
+
   }
 
   async deposit({

@@ -24,10 +24,9 @@ pub struct Withdraw<'info> {
     seeds = [CONFIG_SEED_PREFIX],
     bump = config.bump,
   )]
-  pub config: Box<Account<'info, Config>>,
+  pub config: Account<'info, Config>,
 
   /// CHECK: needed for associated token constraint
-  #[account(mut)]
   pub recipient: AccountInfo<'info>,
 
   #[account(
@@ -52,7 +51,7 @@ pub struct Withdraw<'info> {
     ],
     bump = market.bump,
   )]
-  pub market: Box<Account<'info, Market>>,
+  pub market: Account<'info, Market>,
 
   #[account(
     mut,
@@ -64,14 +63,14 @@ pub struct Withdraw<'info> {
     ],
     bump
   )]
-  pub lender_shares: Box<Account<'info, LenderShares>>,
+  pub lender_shares: Account<'info, LenderShares>,
 
   #[account(
     mut,
     associated_token::mint = market.quote_mint,
     associated_token::authority = config,
   )]
-  pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+  pub vault_ata_quote: Account<'info, TokenAccount>,
 
   #[account(
     init_if_needed,
@@ -79,10 +78,10 @@ pub struct Withdraw<'info> {
     associated_token::authority = recipient,
     associated_token::mint = quote_mint,
   )]
-  pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
+  pub recipient_ata_quote: Account<'info, TokenAccount>,
 
   #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Box<Account<'info, Mint>>,
+  pub quote_mint: Account<'info, Mint>,
 
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
@@ -135,6 +134,7 @@ pub fn process_withdrawal_and_transfer<'info>(
   recipient_ata_quote: &Account<'info, TokenAccount>,
   token_program: &Program<'info, Token>,
 ) -> Result<()> {
+
   // Process withdrawal amounts
   if (*shares == 0 && *assets == 0) || (*shares != 0 && *assets != 0) {
     return err!(MarketError::AssetShareValueMismatch);
