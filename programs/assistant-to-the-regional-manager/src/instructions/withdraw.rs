@@ -86,13 +86,6 @@ pub struct Withdraw<'info> {
     )]
     pub recipient_ata_quote: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        associated_token::authority = manager_config,
-        associated_token::mint = quote_mint,
-    )]
-    pub manager_ata_quote: Account<'info, TokenAccount>,
-
     // pathfinder accounts
     #[account(mut)]
     pub market: Account<'info, Market>,
@@ -129,7 +122,6 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             fee_recipient_shares,
             user_shares,
             recipient_ata_quote,
-            manager_ata_quote,
             quote_mint,
             market,
             pathfinder_config,
@@ -160,29 +152,6 @@ impl<'info, 'c: 'info> Withdraw<'info> {
 
         // Update last total assets
         manager_config.last_total_assets = new_total_assets;
- 
-        Self::_withdraw_path(
-            args.assets,
-            args.withdraw_queue_index,
-            &user,
-            &manager_config,
-            &queue.withdraw_queue,
-            &quote_mint,
-            &vault_ata_quote,
-            &manager_ata_quote,
-            &market,
-            &lender_shares,
-            &pathfinder_config,
-            &pathfinder_program,
-            &token_program,
-            &system_program,
-            &associated_token_program,
-        )?;
-        
-        // Update last total assets
-        manager_config.last_total_assets = manager_config.last_total_assets
-            .checked_sub(args.assets)
-            .ok_or(ManagerError::MathOverflow)?;
 
         // check if the assets are greater than the max assets
         let max_assets = Self::max_withdraw(
@@ -194,6 +163,11 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             args.assets <= max_assets,
             ManagerError::ExceededMaxWithdraw
         );
+ 
+        // Update last total assets
+        manager_config.last_total_assets = manager_config.last_total_assets
+            .checked_sub(args.assets)
+            .ok_or(ManagerError::MathOverflow)?;
 
         let shares = Self::_convert_to_shares(
             args.assets,
@@ -207,23 +181,25 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             .checked_sub(shares)
             .ok_or(ManagerError::MathUnderflow)?;
 
-        // transfer tokens to recipient
-        let seeds = generate_manager_config_seeds!(manager_config);
-        let signer = &[&seeds[..]];
-
-        transfer(
-        CpiContext::new_with_signer(
-            token_program.to_account_info(),
-            Transfer {
-            from: manager_ata_quote.to_account_info(),
-            to: recipient_ata_quote.to_account_info(),
-            authority: manager_config.to_account_info(),
-            },
-            signer,
-        ),
-        args.assets,
+        Self::_withdraw_path(
+            args.assets,
+            args.withdraw_queue_index,
+            &user,
+            &recipient,
+            &manager_config,
+            &queue.withdraw_queue,
+            &quote_mint,
+            &vault_ata_quote,
+            &recipient_ata_quote,
+            &market,
+            &lender_shares,
+            &pathfinder_config,
+            &pathfinder_program,
+            &token_program,
+            &system_program,
+            &associated_token_program,
         )?;
-
+        
         Ok(())
     }
 } 

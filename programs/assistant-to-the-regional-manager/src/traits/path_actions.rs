@@ -165,6 +165,7 @@ pub trait PathActions<'info, 'c: 'info> {
   fn process_market_withdrawal(
     assets: u64,
     user: &Signer<'info>,
+    recipient: &AccountInfo<'info>,
     manager_config: &Account<'info, ManagerVaultConfig>,
     market: &Account<'info, Market>,
     lender_shares: &Account<'info, LenderShares>,
@@ -172,7 +173,7 @@ pub trait PathActions<'info, 'c: 'info> {
     pathfinder_program: &Program<'info, Pathfinder>,
     vault_ata_quote: &Account<'info, TokenAccount>,
     quote_mint: &Account<'info, Mint>,
-    manager_ata_quote: &Account<'info, TokenAccount>,
+    recipient_ata_quote: &Account<'info, TokenAccount>,
     token_program: &Program<'info, Token>,
     system_program: &Program<'info, System>,
     associated_token_program: &Program<'info, AssociatedToken>,
@@ -196,8 +197,6 @@ pub trait PathActions<'info, 'c: 'info> {
           assets
       );
 
-      msg!("to_withdraw: {}", to_withdraw);
-
       if to_withdraw > 0 {
           let seeds = generate_manager_config_seeds!(manager_config);
           let signer = &[&seeds[..]];
@@ -206,13 +205,13 @@ pub trait PathActions<'info, 'c: 'info> {
               pathfinder_program.to_account_info(),
               pathfinder::cpi::accounts::Withdraw {
                   user: manager_config.to_account_info(),
-                  recipient: manager_config.to_account_info(),
+                  recipient: recipient.to_account_info(),
                   market: market.to_account_info(),
                   config: pathfinder_config.to_account_info(),
                   lender_shares: lender_shares.to_account_info(),
                   vault_ata_quote: vault_ata_quote.to_account_info(),
                   position_delegate: None::<AccountInfo>,
-                  recipient_ata_quote: manager_ata_quote.to_account_info(),
+                  recipient_ata_quote: recipient_ata_quote.to_account_info(),
                   quote_mint: quote_mint.to_account_info(),
                   associated_token_program: associated_token_program.to_account_info(),
                   token_program: token_program.to_account_info(),
@@ -241,11 +240,12 @@ pub trait PathActions<'info, 'c: 'info> {
     assets: u64,
     withdraw_queue_index: u8,
     user: &Signer<'info>,
+    recipient: &AccountInfo<'info>,
     manager_config: &Account<'info, ManagerVaultConfig>,
     withdraw_queue: &Vec<Pubkey>,
     quote_mint: &Account<'info, Mint>,
     vault_ata_quote: &Account<'info, TokenAccount>,
-    manager_ata_quote: &Account<'info, TokenAccount>,
+    recipient_ata_quote: &Account<'info, TokenAccount>,
     market: &Account<'info, Market>,
     lender_shares: &Account<'info, LenderShares>,
     pathfinder_config: &Account<'info, Config>,
@@ -266,6 +266,7 @@ pub trait PathActions<'info, 'c: 'info> {
     let withdrawn = Self::process_market_withdrawal(
         assets,
         user,
+        recipient,
         manager_config,
         &market,
         &lender_shares,
@@ -273,18 +274,13 @@ pub trait PathActions<'info, 'c: 'info> {
         pathfinder_program,
         vault_ata_quote,
         quote_mint,
-        manager_ata_quote,
+        recipient_ata_quote,
         token_program,
         system_program,
         associated_token_program,
       )?;
 
-    assets = assets.checked_sub(withdrawn).ok_or(ManagerError::MathUnderflow)?;
-
-    msg!("withdrawn: {}", withdrawn);
-    msg!("assets remaining: {}", assets);
-
-    if assets != 0 { 
+    if assets != withdrawn {
       return err!(ManagerError::NotEnoughLiquidity);
     };
 

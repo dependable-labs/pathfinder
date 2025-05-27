@@ -67,14 +67,6 @@ pub struct CreateManager<'info> {
   )]
   pub fee_recipient_shares: Box<Account<'info, SupplyShares>>,
 
-  #[account(
-      init,
-      payer = user,
-      associated_token::authority = config,
-      associated_token::mint = quote_mint,
-  )]
-  pub manager_ata_quote: Account<'info, TokenAccount>,
-
   #[account(constraint = quote_mint.is_initialized == true)]
   pub quote_mint: Box<Account<'info, Mint>>,
 
