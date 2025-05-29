@@ -36,12 +36,12 @@ describe("Repay", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 10 ** 5),
       conf: new anchor.BN(10 * 1e5),
       expo: -5,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -172,8 +172,6 @@ describe("Repay", () => {
 
     // Verify market total borrow assets is zero
     assert.equal(finalBorrows.toNumber(), new anchor.BN(0));
-
-    console.log("deposits here", finalDeposits.toNumber());
 
     // Verify market total deposits has increased
     assert.equal(finalDeposits.toNumber(), 1000.001598199 * 1e9);

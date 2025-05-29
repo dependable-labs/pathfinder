@@ -38,12 +38,12 @@ describe("Deposit Collateral", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9), // upperbound: 110 * 1e9, lowerbound: 90 * 1e9
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 

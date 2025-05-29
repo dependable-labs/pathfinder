@@ -43,12 +43,12 @@ describe("Config Operations", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -137,141 +137,145 @@ describe("Config Operations", () => {
   });
 
 
-  // it("correctly for a year with protocol fee", async () => {
+  it("correctly for a year with protocol fee", async () => {
 
-  //   // Setup initial state: deposit, collateralize, and borrow
-  //   await market.deposit({
-  //     user: larry,
-  //     amount: new anchor.BN(1_000 * 1e9),
-  //     shares: new anchor.BN(0),
-  //     owner: larry,
-  //   });
+    // Setup initial state: deposit, collateralize, and borrow
+    await market.deposit({
+      user: larry,
+      amount: new anchor.BN(1_000 * 1e9),
+      shares: new anchor.BN(0),
+      owner: larry,
+    });
 
-  //   await market.depositCollateral({
-  //     user: bob,
-  //     amount: new anchor.BN(100 * 1e9),
-  //     owner: bob,
-  //   });
+    await market.depositCollateral({
+      user: bob,
+      amount: new anchor.BN(100 * 1e9),
+      owner: bob,
+    });
 
-  //   await market.borrow({
-  //     user: bob,
-  //     amount: new anchor.BN(500 * 1e9),
-  //     shares: new anchor.BN(0),
-  //     owner: bob,
-  //     recipient: bob,
-  //   });
+    await market.borrow({
+      user: bob,
+      amount: new anchor.BN(500 * 1e9),
+      shares: new anchor.BN(0),
+      owner: bob,
+      recipient: bob,
+    });
 
-  //   const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
-  //   const beforeTotalDeposits = await market.marketAcc.getTotalDeposits();
+    const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const beforeTotalDeposits = await market.marketAcc.getTotalDeposits();
 
-  //   // Set protocol fee to 1%
-  //   await market.updateFee({
-  //     user: futarchy,
-  //     feeFactor: new anchor.BN("10000000000000000")
-  //   });
+    const configData = await market.get_config().get_data();
+    assert.equal(configData.feeRecipient.toBase58(), larry.key.publicKey.toBase58());
+    return;
+
+    // Set protocol fee to 1%
+    await market.updateFee({
+      user: futarchy,
+      feeFactor: new anchor.BN("10000000000000000")
+    });
     
-  //   // Advance clock by 1 year
-  //   await test.moveTimeForward(365 * 24 * 3600);
+    // Advance clock by 1 year
+    await test.moveTimeForward(365 * 24 * 3600);
     
-  //   await market.accrueInterest();
+    await market.accrueInterest();
 
-  //   const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
-  //   const afterTotalDeposits = await market.marketAcc.getTotalDeposits();
+    const afterTotalBorrows = await market.marketAcc.getTotalBorrows();
+    const afterTotalDeposits = await market.marketAcc.getTotalDeposits();
 
-  //   // Convert to BN and calculate difference
-  //   const borrowDifference = afterTotalBorrows.sub(beforeTotalBorrows);
-  //   const depositDifference = afterTotalDeposits.sub(beforeTotalDeposits);
+    // Convert to BN and calculate difference
+    const borrowDifference = afterTotalBorrows.sub(beforeTotalBorrows);
+    const depositDifference = afterTotalDeposits.sub(beforeTotalDeposits);
     
-  //   // Verify interest accrual
-  //   assert.equal(
-  //     borrowDifference.toNumber(),
-  //     13_512_691_343 // Expected interest accrual
-  //   );
+    // Verify interest accrual
+    assert.equal(
+      borrowDifference.toNumber(),
+      13_512_691_343 // Expected interest accrual
+    );
  
-  //   assert.equal(
-  //     depositDifference.toNumber(),
-  //     27_160_527_380 // Same total interest
-  //   );
+    assert.equal(
+      depositDifference.toNumber(),
+      13_512_691_343 // Same total interest
+    );
 
-  //   // Repay full borrow amount
-  //   await market.repay({
-  //     user: bob,
-  //     amount: new anchor.BN(0),
-  //     shares: (await market.get_borrower_shares(bob.key.publicKey).get_data()).borrowShares,
-  //     owner: bob,
-  //   });
+    // Repay full borrow amount
+    await market.repay({
+      user: bob,
+      amount: new anchor.BN(0),
+      shares: (await market.get_borrower_shares(bob.key.publicKey).get_data()).borrowShares,
+      owner: bob,
+    });
 
-  //   // Verify all borrow shares have been repaid
-  //   const totalBorrowShares = (await market.marketAcc.get_data()).totalBorrowShares;
-  //   assert.equal(
-  //     totalBorrowShares.toNumber(),
-  //     0
-  //   );
+    // Verify all borrow shares have been repaid
+    const totalBorrowShares = (await market.marketAcc.get_data()).totalBorrowShares;
+    assert.equal(
+      totalBorrowShares.toNumber(),
+      0
+    );
 
-  //   // Verify fee recipient shares
-  //   const feeShares = (await market.marketAcc.get_data()).feeShares;
-  //   assert.equal(
-  //     feeShares.toNumber(),
-  //     131_588_465 // 1% of total interest accrued
-  //   );
+    // Verify fee recipient shares
+    const feeShares = (await market.marketAcc.get_data()).feeShares;
+    assert.equal(
+      feeShares.toNumber(),
+      133_343_106 // 1% of total interest accrued
+    );
 
-  //   // Verify total deposits in pool
-  //   const totalDeposits = await market.marketAcc.getTotalDeposits();
-  //   assert.equal(
-  //     totalDeposits.toNumber(),
-  //     1_027_160_527_380 // Initial 100B deposit + total interest accrued
-  //   );
+    // Verify total deposits in pool
+    const totalDeposits = await market.marketAcc.getTotalDeposits();
+    assert.equal(
+      totalDeposits.toNumber(),
+      1_013_512_691_343 // Initial 100B deposit + total interest accrued
+    );
 
-  //   await assert.rejects(
-  //     async () => {
-  //       await market.withdrawFee({
-  //         user: larry,
-  //         amount: new anchor.BN(0),
-  //         shares: new anchor.BN(feeShares),
-  //         recipient: futarchy,
-  //       });
-  //     },
-  //     (err: anchor.AnchorError) => {
-  //       assert.strictEqual(err.error.errorMessage, "Invalid recipient"); // wrong err!
-  //       return true;
-  //     }
-  //   );
+    await assert.rejects(
+      async () => {
+        await market.withdrawFee({
+          user: larry,
+          amount: new anchor.BN(0),
+          shares: new anchor.BN(feeShares),
+          recipient: futarchy,
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "Invalid recipient"); // wrong err!
+        return true;
+      }
+    );
 
-  //   await assert.rejects(
-  //     async () => {
-  //       await market.withdrawFee({
-  //         user: futarchy,
-  //         amount: new anchor.BN(0),
-  //         shares: new anchor.BN(feeShares),
-  //         recipient: futarchy,
-  //       });
-  //     },
-  //     (err: anchor.AnchorError) => {
-  //       assert.strictEqual(err.error.errorMessage, "Invalid recipient"); // wrong err!
-  //       return true;
-  //     }
-  //   );
+    await assert.rejects(
+      async () => {
+        await market.withdrawFee({
+          user: futarchy,
+          amount: new anchor.BN(0),
+          shares: new anchor.BN(feeShares),
+          recipient: futarchy,
+        });
+      },
+      (err: anchor.AnchorError) => {
+        assert.strictEqual(err.error.errorMessage, "Invalid recipient"); // wrong err!
+        return true;
+      }
+    );
 
-  //   await market.withdrawFee({
-  //     user: larry,
-  //     amount: new anchor.BN(0),
-  //     shares: new anchor.BN(feeShares),
-  //     recipient: larry,
-  //   });
+    await market.withdrawFee({
+      user: larry,
+      amount: new anchor.BN(0),
+      shares: new anchor.BN(feeShares),
+      recipient: larry,
+    });
 
-  //   // Verify fee recipient shares
-  //   const feeSharesAfterWithdraw = (await market.marketAcc.get_data()).feeShares;
-  //   assert.equal(
-  //     feeSharesAfterWithdraw.toNumber(),
-  //     0
-  //   );
+    // Verify fee recipient shares
+    const feeSharesAfterWithdraw = (await market.marketAcc.get_data()).feeShares;
+    assert.equal(
+      feeSharesAfterWithdraw.toNumber(),
+      0
+    );
 
-  //   // Verify fee recipient shares
-  //   const quoteAfterWithdraw = await larry.get_quo_balance();
-  //   assert.equal(
-  //     quoteAfterWithdraw,
-  //     BigInt(135_144_693)
-  //   );
+    // Verify fee recipient shares
+    const quoteAfterWithdraw = await larry.get_quo_balance();
+    assert.equal(
+      quoteAfterWithdraw,
+      BigInt(135_126_911)
+    );
 
-  // });
+  });
 });

@@ -48,52 +48,52 @@ describe("withdraw", () => {
 
     let marketConfigs = [
       {
+        user: futarchy,
         symbol: "BONK",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 1e9),
         conf: new anchor.BN(100 / 10 * 1e9),
         expo: -9,
-        feeRecipient: futarchy,
         authority: futarchy,
       }, {
+        user: futarchy,
         symbol: "META",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 1e9),
         conf: new anchor.BN(100 / 10 * 1e9),
         expo: -9,
-        feeRecipient: futarchy,
         authority: futarchy,
       }, {
+        user: futarchy,
         symbol: "SOL",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 1e9),
         conf: new anchor.BN(100 / 10 * 1e9),
         expo: -9,
-        feeRecipient: futarchy,
         authority: futarchy,
       }, {
+        user: futarchy,
         symbol: "WBTC",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 1e9),
         conf: new anchor.BN(100 / 10 * 1e9),
         expo: -9,
-        feeRecipient: futarchy,
         authority: futarchy,
       }, {
+        user: futarchy,
         symbol: "PEPE",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 1e9),
         conf: new anchor.BN(100 / 10 * 1e9),
         expo: -9,
-        feeRecipient: futarchy,
         authority: futarchy,
       }, {
+        user: futarchy,
         symbol: "DOGE",
         ltvFactor: new anchor.BN(0),
         price: new anchor.BN(100 * 1e9),
         conf: new anchor.BN(100 / 10 * 1e9),
         expo: -9,
-        feeRecipient: futarchy,
         authority: futarchy,
     }];
     

@@ -39,12 +39,12 @@ describe("Accrue Interest", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -229,12 +229,12 @@ describe("Accrue Interest", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e6),
       price: new anchor.BN(100 * 1e6),
       conf: new anchor.BN(10 * 1e6),
       expo: -6,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -307,12 +307,12 @@ describe("Accrue Interest", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -384,12 +384,12 @@ describe("Accrue Interest", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e6),
       conf: new anchor.BN(10 * 1e6),
       expo: -6,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 

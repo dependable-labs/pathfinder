@@ -45,12 +45,12 @@ describe("Liquidate", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(8 * 1e8), // 80% LTV
       price: new anchor.BN(1e5), // $1.00
       conf: new anchor.BN(1 * 10 ** 4), // $0.01 confidence interval
       expo: -5,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
