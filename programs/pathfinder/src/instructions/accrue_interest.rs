@@ -68,18 +68,22 @@ pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -
 
   // Calculate interest factor using taylor series
   let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
-  let interest = Decimal::from_raw_u64(market.total_borrows).w_mul_down(interest_factor)?.to_u64()?;
+  let interest = Decimal::from_raw_u128(market.total_borrows).w_mul_down(interest_factor)?.to_u128()?;
 
   market.total_borrows = market.total_borrows.checked_add(interest).ok_or(MarketError::MathOverflow)?;
   market.total_deposits = market.total_deposits.checked_add(interest).ok_or(MarketError::MathOverflow)?;
 
   // Handle fee if set
   if config.fee_factor != 0 {
-    let fee_amount = Decimal::from_raw_u64(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?.to_u64()?;
+    let fee_amount = Decimal::from_raw_u128(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?;
 
     // calculate fee shares using total deposits (prior to applying interest)
-    let deposits_sub_fee = market.total_deposits.checked_sub(fee_amount).unwrap();
-    let fee_shares = to_shares_down(fee_amount, deposits_sub_fee, market.total_shares)?;
+    let deposits_sub_fee = market.total_deposits.checked_sub(fee_amount.to_u128()?).unwrap();
+    let fee_shares = to_shares_down(
+      fee_amount.to_u64()?,
+      deposits_sub_fee as u64,
+      market.total_shares,
+    )?;
 
     // Update fee shares
     market.fee_shares = market

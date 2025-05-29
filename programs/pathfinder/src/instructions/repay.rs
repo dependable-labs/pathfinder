@@ -95,9 +95,9 @@ impl<'info> Repay<'info> {
     accrue_interest(market, config)?;
 
     if assets > 0 {
-      shares = to_shares_down(assets, market.total_borrows, market.total_borrow_shares)?;
+      shares = to_shares_down(assets, market.total_borrows as u64, market.total_borrow_shares)?;
     } else {
-      assets = to_assets_up(shares, market.total_borrows, market.total_borrow_shares)?;
+      assets = to_assets_up(shares, market.total_borrows as u64, market.total_borrow_shares)?;
     }
 
     // Update market shares
@@ -115,7 +115,7 @@ impl<'info> Repay<'info> {
     // Update market total borrows
     market.total_borrows = market
       .total_borrows
-      .checked_sub(assets)
+      .checked_sub(assets as u128)
       .ok_or(MarketError::MathUnderflow)?;
 
     // Create CpiContext for the transfer

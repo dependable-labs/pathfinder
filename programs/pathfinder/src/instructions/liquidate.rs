@@ -148,12 +148,12 @@ impl<'info> Liquidate<'info> {
 
       repay_shares = to_shares_up(
         Decimal::from_raw_u64(collateral_quoted).w_div_up(liquidation_incentive_factor)?.to_u64()?,
-        market.total_borrows,
+        market.total_borrows as u64,
         market.total_borrow_shares,
       )?;
     } else {
       let shares_to_collateral =
-        to_assets_down(repay_shares, market.total_borrows, market.total_borrow_shares)?;
+        to_assets_down(repay_shares, market.total_borrows as u64, market.total_borrow_shares)?;
 
       let collateral_with_incentive = Decimal::from_raw_u64(shares_to_collateral)
       .w_mul_down(liquidation_incentive_factor)?
@@ -166,7 +166,7 @@ impl<'info> Liquidate<'info> {
       )?;
     }
 
-    let repaid_quote = to_assets_up(repay_shares, market.total_borrows, market.total_borrow_shares)?;
+    let repaid_quote = to_assets_up(repay_shares, market.total_borrows as u64, market.total_borrow_shares)?;
 
     // Verify liquidator has sufficient quote tokens
     require_gte!(
@@ -190,14 +190,14 @@ impl<'info> Liquidate<'info> {
       .checked_sub(collateral_amount)
       .ok_or(MarketError::MathUnderflow)?;
 
-    market.total_borrows = zero_floor_sub(market.total_borrows, repaid_quote);
+    market.total_borrows = zero_floor_sub(market.total_borrows as u64, repaid_quote as u64) as u128;
 
     // bad debt exists in the system
     if borrower_shares.collateral_amount == 0 {
       let bad_debt_shares = borrower_shares.borrow_shares;
       let bad_debt = min_u64(
-          market.total_borrows,
-          to_assets_up(bad_debt_shares, market.total_borrows, market.total_borrow_shares)?,
+          market.total_borrows as u64,
+          to_assets_up(bad_debt_shares, market.total_borrows as u64, market.total_borrow_shares)?,
       );
 
       market.total_borrow_shares = market
@@ -206,11 +206,11 @@ impl<'info> Liquidate<'info> {
         .ok_or(MarketError::MathUnderflow)?;
 
       market.total_borrows = market.total_borrows
-        .checked_sub(bad_debt)
+        .checked_sub(bad_debt as u128)
         .ok_or(MarketError::MathUnderflow)?;
 
       market.total_deposits = market.total_deposits
-        .checked_sub(bad_debt)
+        .checked_sub(bad_debt as u128)
         .ok_or(MarketError::MathUnderflow)?;
 
       borrower_shares.borrow_shares = 0;
