@@ -39,16 +39,12 @@ export class splAccountFixture extends AccountFixture {
 export class marketAccountFixture extends AccountFixture {
   public async getTotalDeposits(): Promise<anchor.BN> {
     const market = await this.get_data();
-    return market.depositIndex
-                    .mul(market.totalShares)
-                    .div(new anchor.BN("1000000000000000000"));
+    return market.totalDeposits;
   }
 
   public async getTotalBorrows(): Promise<anchor.BN> {
     const market = await this.get_data();
-    return market.borrowIndex
-                    .mul(market.totalBorrowShares)
-                    .div(new anchor.BN("1000000000000000000"));
+    return market.totalBorrows;
   }
 }
 

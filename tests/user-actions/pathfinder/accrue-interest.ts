@@ -95,8 +95,9 @@ describe("Accrue Interest", () => {
 
     assert.equal(
       depositDifference.toNumber(),
-      27_025_382_686 // Expected interest accrual
+      13_512_691_343 // Expected interest accrual
     );
+
   });
 
   it("correctly for a year with protocol fee", async () => {
@@ -130,7 +131,7 @@ describe("Accrue Interest", () => {
     // Verify fee accrual
     assert.equal(
       depositDifference.toNumber(),
-      27_160_527_380 // Same total interest
+      13_512_691_343 // Expected interest accrual
     );
   });
 

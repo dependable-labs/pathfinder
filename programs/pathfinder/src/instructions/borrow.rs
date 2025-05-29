@@ -122,12 +122,10 @@ impl<'info> Borrow<'info> {
 
     accrue_interest(market, config)?;
 
-    let total_borrows = market.total_borrows()?;
-
     if assets > 0 {
-      shares = to_shares_up(assets, total_borrows, market.total_borrow_shares)?;
+      shares = to_shares_up(assets, market.total_borrows, market.total_borrow_shares)?;
     } else {
-      assets = to_assets_down(shares, total_borrows, market.total_borrow_shares)?;
+      assets = to_assets_down(shares, market.total_borrows, market.total_borrow_shares)?;
     }
 
     // check if user is solvent after borrowing
@@ -153,6 +151,12 @@ impl<'info> Borrow<'info> {
     borrower_shares.borrow_shares = borrower_shares
       .borrow_shares
       .checked_add(shares)
+      .ok_or(MarketError::MathOverflow)?;
+
+    // Update market total borrows
+    market.total_borrows = market
+      .total_borrows
+      .checked_add(assets)
       .ok_or(MarketError::MathOverflow)?;
 
     // transfer tokens to borrower
@@ -186,10 +190,8 @@ pub fn is_solvent(
   // price is low end of confidence interval
   let price = oracle_get_price(&market.oracle, &oracle_ai, false)?;
 
-  let total_borrows = market.total_borrows()?;
-
   // Calculate borrowed amount by converting borrow shares to assets, rounding up
-  let borrowed = to_assets_up(borrow_shares, total_borrows, market.total_borrow_shares)?;
+  let borrowed = to_assets_up(borrow_shares, market.total_borrows, market.total_borrow_shares)?;
 
   // Calculate max borrow amount based on collateral value and LTV factor
   let max_borrow = (collateral_amount as u128)

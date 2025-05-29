@@ -54,8 +54,8 @@ describe("Create Market Operations", () => {
 
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-    assert.equal(marketAccountData.depositIndex.toString(), "1000000000000000000");
-    assert.equal(marketAccountData.borrowIndex.toString(), "1000000000000000000");
+    assert.equal(marketAccountData.totalDeposits.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrows.toNumber(), 0);
     assert.equal(await market.quoteAta.getTokenBalance(), 0);
     let deposits = await market.marketAcc.getTotalDeposits();
     assert.equal(deposits.toNumber(), 0);

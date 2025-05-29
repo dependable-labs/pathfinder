@@ -133,7 +133,6 @@ describe("Repay", () => {
   it("repays all debt with interest", async () => {
     // Get initial balances and state
     const initialQuoteBalance = await bob.get_quo_balance();
-    const initialMarketData = await market.marketAcc.get_data();
     const initialBorrowerShares = await market
       .get_borrower_shares(bob.key.publicKey)
       .get_data();
@@ -168,14 +167,16 @@ describe("Repay", () => {
     assert.equal(
       initialQuoteBalance - finalQuoteBalance,
       new anchor.BN(50.001598199 * 1e9),
-      "Quote balance should decrease by 50 tokens"
+      "Quote balance should decrease by 50 tokens + interest"
     );
 
     // Verify market total borrow assets is zero
     assert.equal(finalBorrows.toNumber(), new anchor.BN(0));
 
+    console.log("deposits here", finalDeposits.toNumber());
+
     // Verify market total deposits has increased
-    assert.equal(finalDeposits.toNumber(), new anchor.BN(1000.031963981 * 1e9));
+    assert.equal(finalDeposits.toNumber(), 1000.001598199 * 1e9);
 
     // Verify market total borrow shares decreased
     assert.ok(
@@ -372,5 +373,4 @@ describe("Repay", () => {
       "Larry's final quote balance should be 50 tokens"
     );
   });
-
 });

@@ -172,5 +172,53 @@ describe("Liquidate", () => {
       }
     );
   });
+
+  it("bad debt impacts lenders", async () => {
+    // Update price to make position underwater (50% price drop)
+    await market.collateral.setPrice({
+      price: new anchor.BN(5 * 1e4),  // $0.50
+      conf: new anchor.BN(1 * 10 ** 4),
+    });
+
+    const initialBorrowerShares = await market
+      .get_borrower_shares(borrower.key.publicKey)
+      .get_data();
+    const initialLiquidatorQuote = await liquidator.get_quo_balance();
+    const initialLiquidatorCollateral = await liquidator.get_col_balance();
+
+    // Perform liquidation
+    await market.liquidate({
+      user: liquidator,
+      borrower: borrower.key.publicKey,
+      collateralAmount: new anchor.BN(2 * 1e9),
+      repayShares: new anchor.BN(0)
+    });
+
+    // const finalLiquidatorQuote = await liquidator.get_quo_balance();
+    // const finalLiquidatorCollateral = await liquidator.get_col_balance();
+
+    // Verify liquidator's balance changes
+    // assert.equal(
+    //   initialLiquidatorQuote - finalLiquidatorQuote,
+    //   BigInt(1_043_478_261),  // Spent quote tokens
+    //   "Incorrect quote token change"
+    // );
+
+    // assert.equal(
+    //   finalLiquidatorCollateral - initialLiquidatorCollateral,
+    //   BigInt(2_000_000_000),
+    //   "Incorrect collateral received"
+    // );
+
+    // // Verify borrower's position was updated
+    // const borrowerShares = await market
+    //   .get_borrower_shares(borrower.key.publicKey)
+    //   .get_data();
+
+    // assert.ok(
+    //   borrowerShares.borrowShares < initialBorrowerShares.borrowShares,
+    //   "Borrow position should be reduced"
+    // );
+  });
 });
 

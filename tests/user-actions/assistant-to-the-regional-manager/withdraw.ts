@@ -259,7 +259,6 @@ describe("withdraw", () => {
     const bonkMarketAcc = await bonkMarket.marketAcc.get_data();
     assert.equal(bonkMarketAcc.totalShares.toNumber(), 100_000 * 1e9);
     assert.equal(bonkMarketAcc.totalBorrowShares.toNumber(), 0);
-    assert.equal(bonkMarketAcc.borrowIndex.toString(), "1000000000000000000");
 
     const postManagerVaultDataMeta = await metaMarket
       .get_lender_shares(manager.managerVaultConfigAcc.key)

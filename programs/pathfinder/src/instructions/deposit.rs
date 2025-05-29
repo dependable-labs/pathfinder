@@ -97,12 +97,10 @@ impl<'info> Deposit<'info> {
 
     accrue_interest(market, config)?;
 
-    let total_deposits = market.total_deposits()?;
-
     if assets > 0 {
-      shares = to_shares_down(assets, total_deposits, market.total_shares)?;
+      shares = to_shares_down(assets, market.total_deposits, market.total_shares)?;
     } else {
-      assets = to_assets_up(shares, total_deposits, market.total_shares)?;
+      assets = to_assets_up(shares, market.total_deposits, market.total_shares)?;
     }
 
     // Update market shares
@@ -115,6 +113,12 @@ impl<'info> Deposit<'info> {
     lender_shares.shares = lender_shares
       .shares
       .checked_add(shares)
+      .ok_or(MarketError::MathOverflow)?;
+
+    // Update market total deposits
+    market.total_deposits = market
+      .total_deposits
+      .checked_add(assets)
       .ok_or(MarketError::MathOverflow)?;
 
     // Create CpiContext for the transfer
