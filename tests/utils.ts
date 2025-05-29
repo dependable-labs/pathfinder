@@ -354,12 +354,12 @@ export class TestUtils {
 
   public async createMarkets(
       marketConfigs: {
+        user: UserFixture,
         symbol: string,
         ltvFactor: anchor.BN,
         price: anchor.BN,
         conf: anchor.BN,
         expo: number,
-        feeRecipient: UserFixture,
         authority: UserFixture,
       }[],
   ): Promise<Record<string, MarketFixture>> {
@@ -375,21 +375,21 @@ export class TestUtils {
 
   public async createMarket(
     {
+      user,
       symbol,
       ltvFactor,
       price,
       conf,
       expo,
-      feeRecipient,
       authority,
       oracleSource = OracleSource.PythPull,
     }: {
+      user: UserFixture,
       symbol: string,
       ltvFactor: anchor.BN,
       price: anchor.BN,
       conf: anchor.BN,
       expo: number,
-      feeRecipient: UserFixture,
       authority: UserFixture,
       oracleSource?: OracleSource,
     }
@@ -416,12 +416,11 @@ export class TestUtils {
       this.collateralMint,
       symbol as SupportedCollateral,
       collateral,
-      feeRecipient,
       authority
     );
 
     await marketFix.create({
-      user: feeRecipient,
+      user: user,
     });
 
     return marketFix;

@@ -142,12 +142,10 @@ pub fn process_withdrawal_and_transfer<'info>(
 
   accrue_interest(market, config)?;
 
-  let total_deposits = market.total_deposits()?;
-
   if *assets > 0 {
-    *shares = to_shares_up(*assets, total_deposits, market.total_shares)?;
+    *shares = to_shares_up(*assets, market.total_deposits as u64, market.total_shares)?;
   } else {
-    *assets = to_assets_down(*shares, total_deposits, market.total_shares)?;
+    *assets = to_assets_down(*shares, market.total_deposits as u64, market.total_shares)?;
   }
 
   // Update market total shares
@@ -168,6 +166,12 @@ pub fn process_withdrawal_and_transfer<'info>(
       .checked_sub(*shares)
       .ok_or(error!(MarketError::MathUnderflow))?;
   }
+
+  // Update market total deposits
+  market.total_deposits = market
+    .total_deposits
+    .checked_sub(*assets as u128)
+    .ok_or(error!(MarketError::MathUnderflow))?;
 
   // Transfer tokens
   let seeds = generate_config_seeds!(config);

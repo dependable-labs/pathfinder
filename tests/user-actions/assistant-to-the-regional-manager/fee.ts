@@ -45,12 +45,12 @@ describe("set_fee", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 

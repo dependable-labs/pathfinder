@@ -95,14 +95,14 @@ impl<'info> CreateMarket<'info> {
       bump: ctx.bumps.market,
 
       // deposit accounting
+      total_deposits: 0,
       total_shares: 0,
-      deposit_index: WAD,
       quote_mint: quote_mint.key(),
       quote_mint_decimals: quote_mint.decimals,
 
       // borrows accounting
+      total_borrows: 0,
       total_borrow_shares: 0,
-      borrow_index: WAD,
       total_collateral: 0,
       collateral_mint: collateral_mint.key(),
       collateral_mint_decimals: collateral_mint.decimals,

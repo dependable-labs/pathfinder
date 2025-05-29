@@ -43,19 +43,19 @@ describe("Create Market Operations", () => {
   it("creates a market", async () => {
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
       price: new anchor.BN(100 * 1e5),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -5,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
     const marketAccountData = await market.marketAcc.get_data();
     assert.equal(marketAccountData.totalShares.toNumber(), 0);
-    assert.equal(marketAccountData.depositIndex.toString(), "1000000000000000000");
-    assert.equal(marketAccountData.borrowIndex.toString(), "1000000000000000000");
+    assert.equal(marketAccountData.totalDeposits.toNumber(), 0);
+    assert.equal(marketAccountData.totalBorrows.toNumber(), 0);
     assert.equal(await market.quoteAta.getTokenBalance(), 0);
     let deposits = await market.marketAcc.getTotalDeposits();
     assert.equal(deposits.toNumber(), 0);
@@ -64,12 +64,12 @@ describe("Create Market Operations", () => {
   it("fails to create a duplicate market", async () => {
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0),
       price: new anchor.BN(100 * 1e5),
       conf: new anchor.BN(100 / 10 * 1e9),
       expo: -5,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 

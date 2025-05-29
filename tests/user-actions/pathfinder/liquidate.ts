@@ -45,12 +45,12 @@ describe("Liquidate", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(8 * 1e8), // 80% LTV
-      price: new anchor.BN(1e5), // $1.00
+      price: new anchor.BN(1e9), // $1.00
       conf: new anchor.BN(1 * 10 ** 4), // $0.01 confidence interval
-      expo: -5,
-      feeRecipient: futarchy,
+      expo: -9,
       authority: futarchy,
     });
 
@@ -82,7 +82,7 @@ describe("Liquidate", () => {
   it("liquidates an underwater position", async () => {
     // Update price to make position underwater (50% price drop)
     await market.collateral.setPrice({
-      price: new anchor.BN(5 * 1e4),  // $0.50
+      price: new anchor.BN(5 * 1e8),  // $0.50
       conf: new anchor.BN(1 * 10 ** 4),
     });
 
@@ -106,7 +106,7 @@ describe("Liquidate", () => {
     // Verify liquidator's balance changes
     assert.equal(
       initialLiquidatorQuote - finalLiquidatorQuote,
-      BigInt(1_043_478_261),  // Spent quote tokens
+      BigInt(869_582_609),  // Spent quote tokens
       "Incorrect quote token change"
     );
 
@@ -147,7 +147,7 @@ describe("Liquidate", () => {
   it("fails if liquidator lacks sufficient quote tokens", async () => {
     // Update price to make position underwater (50% price drop)
     await market.collateral.setPrice({
-      price: new anchor.BN(5 * 1e4),  // $0.50
+      price: new anchor.BN(5 * 1e8),  // $0.50
       conf: new anchor.BN(1 * 10 ** 4),
     });
 
@@ -170,6 +170,80 @@ describe("Liquidate", () => {
         assert.strictEqual(err.error.errorMessage, "Insufficient balance");
         return true;
       }
+    );
+  });
+
+  it("bad debt impacts lenders", async () => {
+
+    // Get initial total deposits
+    const initialTotalDeposits = await market.marketAcc.getTotalDeposits();
+    assert.equal(
+      initialTotalDeposits.toNumber(),
+      1_000 * 1e9,
+      "Initial total deposits should be 1000 tokens"
+    );
+
+    // Get initial borrower collateral amount
+    const initialBorrowerCollateral = await market
+      .get_borrower_shares(borrower.key.publicKey)
+      .get_data();
+    assert.equal(
+      initialBorrowerCollateral.collateralAmount.toNumber(),
+      100 * 1e9,
+      "Initial borrower collateral should be 100 tokens"
+    );
+
+    // Update price to make position underwater (50% price drop)
+    await market.collateral.setPrice({
+      price: new anchor.BN(5 * 1e8),  // $0.050
+      conf: new anchor.BN(1 * 10 ** 4),
+    });
+
+    const initialBorrowerShares = await market
+      .get_borrower_shares(borrower.key.publicKey)
+      .get_data();
+    const initialLiquidatorQuote = await liquidator.get_quo_balance();
+    const initialLiquidatorCollateral = await liquidator.get_col_balance();
+
+    // Perform liquidation
+    await market.liquidate({
+      user: liquidator,
+      borrower: borrower.key.publicKey,
+      collateralAmount: new anchor.BN(100 * 1e9),
+      repayShares: new anchor.BN(0)
+    });
+
+    const finalTotalDeposits = await market.marketAcc.getTotalDeposits();
+    assert.equal(
+      finalTotalDeposits.toNumber(),
+      973.479130435 * 1e9,
+      "Total deposits should be less than 1000 tokens to account for bad debt"
+    );
+
+    const finalLiquidatorQuote = await liquidator.get_quo_balance();
+    const finalLiquidatorCollateral = await liquidator.get_col_balance();
+
+    // Verify liquidator's balance changes
+    assert.equal(
+      initialLiquidatorQuote - finalLiquidatorQuote,
+      43.479130435 * 1e9,  // Spent quote tokens
+      "Incorrect quote token change"
+    );
+
+    assert.equal(
+      finalLiquidatorCollateral - initialLiquidatorCollateral,
+      100 * 1e9,
+      "Incorrect collateral received"
+    );
+
+    // Verify borrower's position was updated
+    const borrowerShares = await market
+      .get_borrower_shares(borrower.key.publicKey)
+      .get_data();
+
+    assert.ok(
+      borrowerShares.borrowShares < initialBorrowerShares.borrowShares,
+      "Borrow position should be reduced"
     );
   });
 });

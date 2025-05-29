@@ -44,12 +44,12 @@ describe("Oracle", () => {
     // switchboard price is hard data gathered from mainnet
     // 0.000017905 * 1e9 = 17905
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
       oracleSource: OracleSource.SwitchboardPull,
     });
@@ -91,12 +91,12 @@ describe("Oracle", () => {
     // matching pyth & switchboard price
     // 0.000017905 * 1e9 = 17905
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(17905),
       conf: new anchor.BN(0),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -127,12 +127,12 @@ describe("Oracle", () => {
     // switchboard price is hard data gathered from mainnet
     // 0.000017905 * 1e9 = 17905
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
       oracleSource: OracleSource.SwitchboardPull,
     });
@@ -168,12 +168,12 @@ describe("Oracle", () => {
   it("pyth confidence exceeds price in solvent check", async () => {
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(17905),
       conf: new anchor.BN(0),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 

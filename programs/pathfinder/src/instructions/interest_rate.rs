@@ -32,12 +32,10 @@ pub const MIN_RATE_AT_TARGET: i128 = WAD_INT / 1000 / YEAR_SECONDS;
 pub const MAX_RATE_AT_TARGET: i128 = 2 * WAD_INT / YEAR_SECONDS;
 
 pub fn get_rate(market: &Account<Market>) -> Result<(Decimal, Decimal)> {
-  let total_deposits = market.total_deposits()?;
-  let total_borrows = market.total_borrows()?;
 
   // Safe "unchecked" cast because the utilization is smaller than 1 (scaled by WAD).
-  let utilization: i128 = if total_deposits > 0 {
-    w_div_down(total_borrows, total_deposits)? as i128
+  let utilization: i128 = if market.total_deposits > 0 {
+    w_div_down(market.total_borrows as u64, market.total_deposits as u64)? as i128
   } else {
     0
   };

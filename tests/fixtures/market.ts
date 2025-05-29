@@ -16,7 +16,6 @@ export class MarketFixture {
   public quoteAta: splAccountFixture;
   public controller: ControllerFixture;
   public collateral: CollateralFixture;
-  public configFeeRecipient: UserFixture;
   public configAuthority: UserFixture;
 
   public constructor(
@@ -26,7 +25,6 @@ export class MarketFixture {
     public _collateralMint: PublicKey,
     public _collateralSymbol: SupportedCollateral,
     public _collateral: CollateralFixture,
-    public _configFeeRecipient: UserFixture,
     public _configAuthority: UserFixture,
   ) {
     this.collateral = _collateral;
@@ -49,7 +47,6 @@ export class MarketFixture {
       this.get_ata(this.quoteMint),
       _program,
     );
-    this.configFeeRecipient = _configFeeRecipient;
     this.configAuthority = _configAuthority;
 
   }

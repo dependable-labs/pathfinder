@@ -43,12 +43,12 @@ describe("Config Operations", () => {
     });
 
     market = await test.createMarket({
+      user: futarchy,
       symbol: "BONK",
       ltvFactor: new anchor.BN(0.8 * 1e9),
       price: new anchor.BN(100 * 1e9),
       conf: new anchor.BN(10 * 1e9),
       expo: -9,
-      feeRecipient: futarchy,
       authority: futarchy,
     });
 
@@ -164,6 +164,9 @@ describe("Config Operations", () => {
     const beforeTotalBorrows = await market.marketAcc.getTotalBorrows();
     const beforeTotalDeposits = await market.marketAcc.getTotalDeposits();
 
+    const configData = await market.get_config().get_data();
+    assert.equal(configData.feeRecipient.toBase58(), larry.key.publicKey.toBase58());
+
     // Set protocol fee to 1%
     await market.updateFee({
       user: futarchy,
@@ -190,7 +193,7 @@ describe("Config Operations", () => {
  
     assert.equal(
       depositDifference.toNumber(),
-      27_160_527_380 // Same total interest
+      13_512_691_343 // Same total interest
     );
 
     // Repay full borrow amount
@@ -212,14 +215,14 @@ describe("Config Operations", () => {
     const feeShares = (await market.marketAcc.get_data()).feeShares;
     assert.equal(
       feeShares.toNumber(),
-      131_588_465 // 1% of total interest accrued
+      133_343_106 // 1% of total interest accrued
     );
 
     // Verify total deposits in pool
     const totalDeposits = await market.marketAcc.getTotalDeposits();
     assert.equal(
       totalDeposits.toNumber(),
-      1_027_160_527_380 // Initial 100B deposit + total interest accrued
+      1_013_512_691_343 // Initial 100B deposit + total interest accrued
     );
 
     await assert.rejects(
@@ -270,7 +273,7 @@ describe("Config Operations", () => {
     const quoteAfterWithdraw = await larry.get_quo_balance();
     assert.equal(
       quoteAfterWithdraw,
-      BigInt(135_144_693)
+      BigInt(135_126_911)
     );
 
   });

@@ -106,7 +106,7 @@ pub trait PathActions<'info, 'c: 'info> {
       // convert supply shares to assets, rounding up
       let supply_assets = to_assets_up(
         deposit_shares,
-        market_account.total_deposits()?,
+        market_account.total_deposits as u64,
         market_account.total_shares
       )?;
 
@@ -189,8 +189,8 @@ pub trait PathActions<'info, 'c: 'info> {
 
       let to_withdraw = min_u64(
           Self::_withdrawable(
-              market.total_deposits()?,
-              market.total_borrows()?,
+              market.total_deposits as u64,
+              market.total_borrows as u64,
               supply_assets,
               vault_ata_quote
           )?,
@@ -330,7 +330,7 @@ pub trait PathActions<'info, 'c: 'info> {
     let shares = lender_shares.shares;
     let assets = to_assets_down(
       shares,
-      market.total_deposits()?,
+      market.total_deposits as u64,
       market.total_shares
     )?;
 
