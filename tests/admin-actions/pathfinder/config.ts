@@ -166,7 +166,6 @@ describe("Config Operations", () => {
 
     const configData = await market.get_config().get_data();
     assert.equal(configData.feeRecipient.toBase58(), larry.key.publicKey.toBase58());
-    return;
 
     // Set protocol fee to 1%
     await market.updateFee({

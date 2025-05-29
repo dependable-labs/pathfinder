@@ -114,8 +114,11 @@ impl<'info> Liquidate<'info> {
     {
       return err!(MarketError::AssetShareValueMismatch);
     }
+    msg!("liquidation: after asset share value mismatch check");
 
     accrue_interest(market, config)?;
+
+    msg!("liquidation: after accrue interest");
 
     if is_solvent(
       market,
@@ -127,6 +130,8 @@ impl<'info> Liquidate<'info> {
       return err!(MarketError::BorrowerIsSolvent);
     }
 
+    msg!("liquidation: after solvency check");
+
     let cursor_factor = Decimal::one()
       .try_sub(Decimal::from_raw_u64(LIQUIDATION_CURSOR))?
       .w_mul_down(Decimal::one().try_sub(Decimal::from_raw_u64(market.ltv_factor))?)?;
@@ -136,6 +141,7 @@ impl<'info> Liquidate<'info> {
       Decimal::from_raw_u64(MAX_LIQUIDATION_INCENTIVE_FACTOR),
       Decimal::one().w_div_down(cursor_factor)?,
     );
+    msg!("liquidation: after liquidation incentive factor");
 
     let colalteral_price = oracle_get_price(&market.oracle, &oracle_ai, true)?;
 
@@ -166,6 +172,8 @@ impl<'info> Liquidate<'info> {
       )?;
     }
 
+    msg!("liquidation: after collateral amount");
+
     let repaid_quote = to_assets_up(repay_shares, market.total_borrows as u64, market.total_borrow_shares)?;
 
     // Verify liquidator has sufficient quote tokens
@@ -180,6 +188,8 @@ impl<'info> Liquidate<'info> {
       .checked_sub(repay_shares)
       .ok_or(MarketError::MathUnderflow)?;
 
+    msg!("liquidation: after repay shares");
+
     market.total_borrow_shares = market
       .total_borrow_shares
       .checked_sub(repay_shares)
@@ -191,6 +201,8 @@ impl<'info> Liquidate<'info> {
       .ok_or(MarketError::MathUnderflow)?;
 
     market.total_borrows = zero_floor_sub(market.total_borrows as u64, repaid_quote as u64) as u128;
+
+    msg!("liquidation: after total borrows");
 
     // bad debt exists in the system
     if borrower_shares.collateral_amount == 0 {
