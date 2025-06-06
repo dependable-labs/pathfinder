@@ -57,8 +57,6 @@ impl<'info, 'c: 'info> SetSupplyQueue<'info> {
           ..
         } = ctx.accounts;
 
-        msg!("Setting supply queue to {:?}", args.market_ids.len());
-
         // Check queue length doesn't exceed max
         if args.market_ids.len() > MAX_QUEUE_LENGTH {
           return err!(ManagerError::MaxQueueLengthExceeded);
