@@ -1,25 +1,20 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
-use pathfinder::{
-    state::Config,
-    program::Pathfinder,
-};
+use pathfinder::{program::Pathfinder, state::Config};
 
 use crate::{
+    error::*,
     state::*,
     traits::{
-        vault_accounting::{VaultAccounting, RemainingAccountsPattern},
         path_actions::PathActions,
+        vault_accounting::{RemainingAccountsPattern, VaultAccounting},
     },
-    error::*
 };
-
-
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct DepositArgs {
     pub assets: u64,
-    pub receiver: Pubkey
+    pub receiver: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -39,7 +34,7 @@ pub struct Deposit<'info> {
         bump = config.bump,
     )]
     pub config: Box<Account<'info, ManagerVaultConfig>>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -49,7 +44,7 @@ pub struct Deposit<'info> {
         bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -85,7 +80,6 @@ pub struct Deposit<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub pathfinder_program: Program<'info, Pathfinder>,
-
     // NOTE: remaining accounts are pathfinder market, lender shares, and manager market config accounts.
     // These are not specified here but are passed in the context
     // the accounts are ordered by supply queue in threes [market, lender_shares, manager_market_config, ...]
@@ -96,9 +90,7 @@ pub struct Deposit<'info> {
 impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> PathActions<'info, 'c> for Deposit<'info> {}
 impl<'info, 'c: 'info> Deposit<'info> {
-
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: DepositArgs) -> Result<()> {
-
         let Deposit {
             user,
             config,
@@ -120,14 +112,15 @@ impl<'info, 'c: 'info> Deposit<'info> {
             ctx.remaining_accounts,
             pathfinder_config,
             pathfinder_program,
-            RemainingAccountsPattern::TripleGrouping
+            RemainingAccountsPattern::TripleGrouping,
         )?;
 
         if fee_shares != 0 {
-            fee_recipient_shares.shares = fee_recipient_shares.shares
+            fee_recipient_shares.shares = fee_recipient_shares
+                .shares
                 .checked_add(fee_shares)
                 .ok_or(ManagerError::MathOverflow)?;
-        } 
+        }
 
         // Update `lastTotalAssets` to avoid an inconsistent state in a re-entrant context.
         // It is updated again in `_deposit`.
@@ -138,9 +131,9 @@ impl<'info, 'c: 'info> Deposit<'info> {
             config.total_shares,
             new_total_assets,
             config.decimals_offset,
-            false
+            false,
         )?;
- 
+
         Self::_supply_path(
             args.assets,
             &user,
@@ -155,15 +148,17 @@ impl<'info, 'c: 'info> Deposit<'info> {
             &system_program,
         )?;
 
-        receiver_shares.shares = receiver_shares.shares
+        receiver_shares.shares = receiver_shares
+            .shares
             .checked_add(shares)
             .ok_or(ManagerError::MathOverflow)?;
 
         // Update last total assets
-        config.last_total_assets = config.last_total_assets
+        config.last_total_assets = config
+            .last_total_assets
             .checked_add(args.assets)
             .ok_or(ManagerError::MathOverflow)?;
 
         Ok(())
     }
-} 
+}

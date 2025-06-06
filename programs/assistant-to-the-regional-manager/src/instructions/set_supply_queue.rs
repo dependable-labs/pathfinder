@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
 
-use crate::state::*;
 use crate::error::*;
-use crate::utils::accounts::{validate_manager_market_config_pda};
+use crate::state::*;
+use crate::utils::accounts::validate_manager_market_config_pda;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetSupplyQueueArgs {
@@ -44,47 +44,44 @@ pub struct SetSupplyQueue<'info> {
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-
     // NOTE: remaining accounts are market configs.
     // These are not specified here but are passed in the context
 }
 
 impl<'info, 'c: 'info> SetSupplyQueue<'info> {
-    pub fn handle(ctx: Context<'_, '_, 'c, 'info, SetSupplyQueue<'info>>, args: SetSupplyQueueArgs) -> Result<()> {
-        let SetSupplyQueue {
-          config,
-          queue,
-          ..
-        } = ctx.accounts;
+    pub fn handle(
+        ctx: Context<'_, '_, 'c, 'info, SetSupplyQueue<'info>>,
+        args: SetSupplyQueueArgs,
+    ) -> Result<()> {
+        let SetSupplyQueue { config, queue, .. } = ctx.accounts;
 
         // Check queue length doesn't exceed max
         if args.market_ids.len() > MAX_QUEUE_LENGTH {
-          return err!(ManagerError::MaxQueueLengthExceeded);
+            return err!(ManagerError::MaxQueueLengthExceeded);
         }
 
         // Verify all markets in queue are authorized
         for (i, path_market_pubkey) in args.market_ids.iter().enumerate() {
+            let market_config_info = &ctx.remaining_accounts[i];
 
-          let market_config_info = &ctx.remaining_accounts[i];
+            // retreive configs for each market account
+            let manager_market_config_account =
+                Account::<ManagerMarketConfig>::try_from(&market_config_info)?;
 
-          // retreive configs for each market account
-          let manager_market_config_account = Account::<ManagerMarketConfig>::try_from(&market_config_info)?;
+            validate_manager_market_config_pda(
+                &market_config_info.key(),
+                &path_market_pubkey,
+                &config.key(),
+            )?;
 
-          validate_manager_market_config_pda(
-            &market_config_info.key(),
-            &path_market_pubkey,
-            &config.key()
-          )?;
-
-          if manager_market_config_account.cap == 0 {
-            return err!(ManagerError::UnauthorizedMarket);
-          }
+            if manager_market_config_account.cap == 0 {
+                return err!(ManagerError::UnauthorizedMarket);
+            }
         }
 
         // Update supply queue
         queue.supply_queue = args.market_ids;
 
         Ok(())
-
     }
 }

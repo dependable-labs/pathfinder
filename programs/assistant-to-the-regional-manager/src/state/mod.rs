@@ -12,23 +12,23 @@ pub use pending_type::*;
 // owner of postitions in pathfinder markets
 #[account]
 pub struct ManagerVaultConfig {
-  pub bump: u8,
-  pub name: String,
-  pub symbol: String,
-  pub quote_mint: Pubkey,
-  pub curator: Pubkey,
-  pub guardian: Pubkey,
-  pub owner: Pubkey,
-  pub pending_guardian: PendingPubkey,
-  pub fee_recipient: Pubkey,
-  pub skim_recipient: Pubkey,
-  pub timelock: u64,
-  pub pending_timelock: PendingU64,
-  pub fee: u64,  // Using u64 instead of u96
-  pub decimals_offset: u8,
-  pub pathfinder_program: Pubkey,  // The PATHFINDER immutable
-  pub last_total_assets: u64,
-  pub total_shares: u64
+    pub bump: u8,
+    pub name: String,
+    pub symbol: String,
+    pub quote_mint: Pubkey,
+    pub curator: Pubkey,
+    pub guardian: Pubkey,
+    pub owner: Pubkey,
+    pub pending_guardian: PendingPubkey,
+    pub fee_recipient: Pubkey,
+    pub skim_recipient: Pubkey,
+    pub timelock: u64,
+    pub pending_timelock: PendingU64,
+    pub fee: u64, // Using u64 instead of u96
+    pub decimals_offset: u8,
+    pub pathfinder_program: Pubkey, // The PATHFINDER immutable
+    pub last_total_assets: u64,
+    pub total_shares: u64,
 }
 
 // Allocator Account - Stores allocator permissions
@@ -38,14 +38,14 @@ pub struct ManagerVaultConfig {
 // Derived for each allocator address
 #[account]
 pub struct AllocatorState {
-  pub bump: u8,
-  pub is_allocator: bool,
+    pub bump: u8,
+    pub is_allocator: bool,
 }
 
 #[account]
 pub struct SupplyShares {
-  pub bump: u8,
-  pub shares: u64,
+    pub bump: u8,
+    pub shares: u64,
 }
 
 // Market Config Account - Stores configuration for each market
@@ -54,11 +54,11 @@ pub struct SupplyShares {
 // in queue methods MarketConfigs are passed as remaining accounts
 #[account]
 pub struct ManagerMarketConfig {
-  pub bump: u8,
-  pub enabled: bool,
-  pub cap: u64,                  // Supply cap for this market
-  pub removable_at: u64,         // Timestamp when market can be removed
-  pub pending_cap: PendingU64,   // Pending cap for this market
+    pub bump: u8,
+    pub enabled: bool,
+    pub cap: u64,                // Supply cap for this market
+    pub removable_at: u64,       // Timestamp when market can be removed
+    pub pending_cap: PendingU64, // Pending cap for this market
 }
 
 // Queue Account - Stores supply and withdraw queues
@@ -68,9 +68,9 @@ pub struct ManagerMarketConfig {
 // ["managerqueue", vault_address]
 #[account]
 pub struct QueueState {
-  pub bump: u8,
-  pub supply_queue: Vec<Pubkey>,    // Vector of market IDs
-  pub withdraw_queue: Vec<Pubkey>,  // Vector of market IDs
+    pub bump: u8,
+    pub supply_queue: Vec<Pubkey>,   // Vector of market IDs
+    pub withdraw_queue: Vec<Pubkey>, // Vector of market IDs
 }
 
 // Pending State Account - Stores pending changes
@@ -80,9 +80,9 @@ pub struct QueueState {
 // Single account for pending changes
 #[account]
 pub struct PendingState {
-  pub bump: u8,
-  pub pending_guardian: Option<Pubkey>,
-  pub pending_timelock: Option<u64>,
+    pub bump: u8,
+    pub pending_guardian: Option<Pubkey>,
+    pub pending_timelock: Option<u64>,
 }
 
 #[macro_export]

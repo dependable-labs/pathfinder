@@ -1,7 +1,7 @@
-use anchor_lang::prelude::*;
-use crate::{state::*, error::*};
 use crate::instructions::timelock::after_timelock;
-use crate::traits::{owner::OwnerProtection, guardian::GuardianProtection};
+use crate::traits::{guardian::GuardianProtection, owner::OwnerProtection};
+use crate::{error::*, state::*};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct RevokePendingGuardian<'info> {
@@ -23,7 +23,6 @@ pub struct RevokePendingGuardian<'info> {
 impl<'info> GuardianProtection<'info> for RevokePendingGuardian<'info> {}
 
 impl<'info> RevokePendingGuardian<'info> {
-
     pub fn validate(&self) -> Result<()> {
         self.is_guardian(&self.user, &self.config)?;
         Ok(())
@@ -31,7 +30,7 @@ impl<'info> RevokePendingGuardian<'info> {
 
     pub fn handle(ctx: Context<RevokePendingGuardian>) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        
+
         config.pending_guardian.value = Pubkey::default();
         config.pending_guardian.valid_at = 0;
 
@@ -46,12 +45,11 @@ pub struct SubmitGuardianArgs {
 
 #[derive(Accounts)]
 #[instruction(args: SubmitGuardianArgs)]
-pub struct SubmitGuardian<'info> { 
+pub struct SubmitGuardian<'info> {
+    pub user: Signer<'info>,
 
-  pub user: Signer<'info>,
-
-  // vault
-  #[account(
+    // vault
+    #[account(
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
@@ -61,49 +59,48 @@ pub struct SubmitGuardian<'info> {
     ],
     bump,
   )]
-  pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> OwnerProtection<'info> for SubmitGuardian<'info> {}
 
 impl<'info> SubmitGuardian<'info> {
+    pub fn validate(&self, args: &SubmitGuardianArgs) -> Result<()> {
+        self.is_owner(&self.user, &self.config)?;
 
-  pub fn validate(&self, args: &SubmitGuardianArgs) -> Result<()> {
-    self.is_owner(&self.user, &self.config)?;
-
-    Ok(())
-  }
-
-  pub fn handle(ctx: Context<SubmitGuardian>, args: SubmitGuardianArgs) -> Result<()> {
-    let config = &mut ctx.accounts.config;
-
-    if args.new_guardian == config.guardian {
-        return err!(ManagerError::AlreadySet);
+        Ok(())
     }
 
-    if config.pending_guardian.valid_at != 0 {
-        return err!(ManagerError::AlreadyPending);
-    }
+    pub fn handle(ctx: Context<SubmitGuardian>, args: SubmitGuardianArgs) -> Result<()> {
+        let config = &mut ctx.accounts.config;
 
-    if config.guardian == Pubkey::default() {
-        set_guardian(config, args.new_guardian)?;
-    } else {
-        let timelock = config.timelock;
-        config.pending_guardian.update(args.new_guardian, timelock)?;
-    }
+        if args.new_guardian == config.guardian {
+            return err!(ManagerError::AlreadySet);
+        }
 
-    Ok(())
-  }
+        if config.pending_guardian.valid_at != 0 {
+            return err!(ManagerError::AlreadyPending);
+        }
+
+        if config.guardian == Pubkey::default() {
+            set_guardian(config, args.new_guardian)?;
+        } else {
+            let timelock = config.timelock;
+            config
+                .pending_guardian
+                .update(args.new_guardian, timelock)?;
+        }
+
+        Ok(())
+    }
 }
 
-
 #[derive(Accounts)]
-pub struct AcceptGuardian<'info> { 
+pub struct AcceptGuardian<'info> {
+    pub user: Signer<'info>,
 
-  pub user: Signer<'info>,
-
-  // vault
-  #[account(
+    // vault
+    #[account(
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
@@ -113,20 +110,20 @@ pub struct AcceptGuardian<'info> {
     ],
     bump,
   )]
-  pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> AcceptGuardian<'info> {
-  pub fn handle(ctx: Context<AcceptGuardian>) -> Result<()> {
-    let config = &mut ctx.accounts.config;
-    let pending_guardian = config.pending_guardian.value;
+    pub fn handle(ctx: Context<AcceptGuardian>) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        let pending_guardian = config.pending_guardian.value;
 
-    after_timelock(config.pending_guardian.valid_at)?;
+        after_timelock(config.pending_guardian.valid_at)?;
 
-    set_guardian(config, pending_guardian)?;
+        set_guardian(config, pending_guardian)?;
 
-    Ok(())
-  }
+        Ok(())
+    }
 }
 
 /// Sets the guardian to the new guardian address

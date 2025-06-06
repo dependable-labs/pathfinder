@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use pathfinder::state::Market;
 
-use crate::state::*;
 use crate::error::*;
+use crate::state::*;
 use crate::traits::curator::CuratorProtection;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -28,7 +28,7 @@ pub struct SubmitCap<'info> {
         bump = config.bump,
     )]
     pub config: Box<Account<'info, ManagerVaultConfig>>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -64,7 +64,6 @@ pub struct SubmitCap<'info> {
 impl<'info> CuratorProtection<'info> for SubmitCap<'info> {}
 
 impl<'info> SubmitCap<'info> {
-
     pub fn validate(&self, args: &SubmitCapArgs) -> Result<()> {
         self.is_curator(&self.user, &self.config)?;
         Ok(())
@@ -92,7 +91,7 @@ impl<'info> SubmitCap<'info> {
         }
 
         let current_cap = market_config.cap;
-        
+
         // Check if new cap is same as current
         if args.supply_cap == current_cap {
             return err!(ManagerError::AlreadySet);
@@ -104,21 +103,21 @@ impl<'info> SubmitCap<'info> {
             set_cap(queue, market_config, market_id, args.supply_cap)?;
         } else {
             // Otherwise set as pending cap
-            market_config.pending_cap.update(args.supply_cap, config.timelock)?;
+            market_config
+                .pending_cap
+                .update(args.supply_cap, config.timelock)?;
         }
 
         Ok(())
     }
 }
 
-
 pub fn set_cap(
     queue: &mut QueueState,
     market_config: &mut ManagerMarketConfig,
     market_id: Pubkey,
-    new_cap: u64
+    new_cap: u64,
 ) -> Result<()> {
-
     if new_cap > 0 {
         if !market_config.enabled {
             queue.withdraw_queue.push(market_id);
@@ -145,4 +144,3 @@ pub fn set_cap(
 
     Ok(())
 }
-
