@@ -39,6 +39,10 @@ pub mod pathfinder {
     Deposit::handle(ctx, args)
   }
 
+  pub fn init_lender_shares(ctx: Context<InitLenderShares>, args: InitLenderSharesArgs) -> Result<()> {
+    InitLenderShares::handle(ctx, args)
+  }
+
   #[access_control(ctx.accounts.validate())]
   pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
     Borrow::handle(ctx, args)

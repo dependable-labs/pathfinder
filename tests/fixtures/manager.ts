@@ -373,28 +373,27 @@ export class ManagerFixture {
 
   async removeFromWithdrawQueue({
     user,
-    marketId,
+    market,
   }: {
     user: UserFixture;
-    marketId: PublicKey;
+    market: MarketFixture;
   }): Promise<void> {
-
-    const market = this.get_market(marketId);
 
     await this.program.methods
       .removeFromWithdrawQueue({
-        marketId,
+        marketId: market.marketAcc.key,
       })
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
-        marketConfig: this.get_market_config(marketId).key,
+        marketConfig: this.get_market_config(market.marketAcc.key).key,
         quoteMint: this.quoteMint,
         queue: this.queue.key,
-        lenderShares: null,
-        // TODO: test once deposits are functional
-        // lenderShares: market.get_lender_shares(ASSISTANT_TO_THE_REGIONAL_MANAGER_PROGRAM_ID).key,
+        pathfinderMarket: market.marketAcc.key,
+        pathfinderConfig: market.get_config().key,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        lenderShares: market.get_lender_shares(this.managerVaultConfigAcc.key).key,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -756,8 +755,6 @@ export class ManagerFixture {
       deriveAllocatorAccount(this.managerVaultConfigAcc.key, user, this.program.programId),
       this.program,
     );
-
-    console.log("allocator here:", await allocator.get_data());
 
     if (await allocator.get_data() == undefined) {
       return null;
