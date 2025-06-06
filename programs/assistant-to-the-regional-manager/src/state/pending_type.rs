@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::error::ManagerError;
+use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
 pub struct PendingU64 {
@@ -23,27 +23,27 @@ pub trait PendingUpdate<T> {
 }
 
 impl PendingUpdate<u64> for PendingU64 {
-  fn update(&mut self, new_value: u64, timelock: u64) -> Result<()> {
-    let current_time = Clock::get()?.unix_timestamp as u64;
+    fn update(&mut self, new_value: u64, timelock: u64) -> Result<()> {
+        let current_time = Clock::get()?.unix_timestamp as u64;
 
-    self.value = new_value;
-    self.valid_at = current_time
-        .checked_add(timelock)
-        .ok_or(ManagerError::MathOverflow)?;
+        self.value = new_value;
+        self.valid_at = current_time
+            .checked_add(timelock)
+            .ok_or(ManagerError::MathOverflow)?;
 
-    Ok(())
-  }
+        Ok(())
+    }
 }
 
 impl PendingUpdate<Pubkey> for PendingPubkey {
-  fn update(&mut self, new_value: Pubkey, timelock: u64) -> Result<()> {
-    let current_time = Clock::get()?.unix_timestamp as u64;
+    fn update(&mut self, new_value: Pubkey, timelock: u64) -> Result<()> {
+        let current_time = Clock::get()?.unix_timestamp as u64;
 
-    self.value = new_value;
-    self.valid_at = current_time
-        .checked_add(timelock)
-        .ok_or(ManagerError::MathOverflow)?;
+        self.value = new_value;
+        self.valid_at = current_time
+            .checked_add(timelock)
+            .ok_or(ManagerError::MathOverflow)?;
 
-    Ok(())
-  }
+        Ok(())
+    }
 }

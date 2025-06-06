@@ -1,23 +1,19 @@
+use crate::{error::ManagerError, state::*, traits::owner::OwnerProtection};
 use anchor_lang::prelude::*;
-use crate::{
-  state::*,
-  traits::owner::OwnerProtection,
-  error::ManagerError
-};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetAllocatorArgs {
-  pub allocator: Pubkey,
-  pub is_allocator: bool,
+    pub allocator: Pubkey,
+    pub is_allocator: bool,
 }
 
 #[derive(Accounts)]
 #[instruction(args: SetAllocatorArgs)]
-pub struct SetAllocator<'info> { 
-  #[account(mut)]
-  pub user: Signer<'info>,
+pub struct SetAllocator<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
 
-  #[account(
+    #[account(
     init_if_needed,
     payer = user,
     space = 8 + std::mem::size_of::<AllocatorState>(),
@@ -28,10 +24,10 @@ pub struct SetAllocator<'info> {
     ],
     bump,
   )]
-  pub allocator: Box<Account<'info, AllocatorState>>,
+    pub allocator: Box<Account<'info, AllocatorState>>,
 
-  // vault
-  #[account(
+    // vault
+    #[account(
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
@@ -41,35 +37,30 @@ pub struct SetAllocator<'info> {
     ],
     bump,
   )]
-  pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub config: Box<Account<'info, ManagerVaultConfig>>,
 
-  pub system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>,
 }
 
 impl<'info> OwnerProtection<'info> for SetAllocator<'info> {}
 
 impl<'info> SetAllocator<'info> {
+    pub fn validate(&self, args: &SetAllocatorArgs) -> Result<()> {
+        require!(
+            self.allocator.is_allocator != args.is_allocator,
+            ManagerError::AlreadySet
+        );
 
-  pub fn validate(&self, args: &SetAllocatorArgs) -> Result<()> {
-    require!(
-        self.allocator.is_allocator != args.is_allocator,
-        ManagerError::AlreadySet
-    );
+        self.is_owner(&self.user, &self.config)?;
 
-    self.is_owner(&self.user, &self.config)?;
+        Ok(())
+    }
 
-    Ok(())
-  }
+    pub fn handle(ctx: Context<SetAllocator>, args: SetAllocatorArgs) -> Result<()> {
+        let SetAllocator { allocator, .. } = ctx.accounts;
 
-  pub fn handle(ctx: Context<SetAllocator>, args: SetAllocatorArgs) -> Result<()> {
+        allocator.is_allocator = args.is_allocator;
 
-    let SetAllocator {
-      allocator,
-      ..
-    } = ctx.accounts;
-
-    allocator.is_allocator = args.is_allocator;
-
-    Ok(())
-  }
+        Ok(())
+    }
 }

@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::{error::ManagerError, state::PATHFINDER_PROGRAM_ID};
+use anchor_lang::prelude::*;
 use pathfinder::state::Market;
 
 pub fn validate_manager_market_config_pda(
@@ -13,32 +13,35 @@ pub fn validate_manager_market_config_pda(
             manager_config.key().as_ref(),
             market.key().as_ref(),
         ],
-        &crate::ID
+        &crate::ID,
     );
 
-    require!(ai.key() == expected_pda, ManagerError::InvalidManagerMarketConfig);
+    require!(
+        ai.key() == expected_pda,
+        ManagerError::InvalidManagerMarketConfig
+    );
     Ok(())
 }
 
-
 // Validates that a Market PDA matches expected values
-pub fn validate_pathfinder_market_pda(
-    ai: &Pubkey,
-    market: &Market,
-) -> Result<()> {
-    let expected_pda= Pubkey::create_program_address(
+pub fn validate_pathfinder_market_pda(ai: &Pubkey, market: &Market) -> Result<()> {
+    let expected_pda = Pubkey::create_program_address(
         &[
             pathfinder::state::MARKET_SEED_PREFIX,
             market.quote_mint.key().as_ref(),
             market.collateral_mint.key().as_ref(),
             market.ltv_factor.to_le_bytes().as_ref(),
             market.oracle.id.to_bytes().as_ref(),
-            &[market.bump]
+            &[market.bump],
         ],
-        &PATHFINDER_PROGRAM_ID
-    ).map_err(|_| ManagerError::InvalidPathfinderMarketConfig)?;
+        &PATHFINDER_PROGRAM_ID,
+    )
+    .map_err(|_| ManagerError::InvalidPathfinderMarketConfig)?;
 
-    require!(ai.key() == expected_pda, ManagerError::InvalidPathfinderMarketConfig);
+    require!(
+        ai.key() == expected_pda,
+        ManagerError::InvalidPathfinderMarketConfig
+    );
     Ok(())
 }
 
@@ -48,16 +51,18 @@ pub fn validate_pathfinder_lender_shares_pda(
     manager_config_info: &Pubkey,
     lender_shares_info: &Pubkey,
 ) -> Result<()> {
-
     let (expected_pda, _) = Pubkey::find_program_address(
         &[
             pathfinder::state::MARKET_SHARES_SEED_PREFIX,
             market_info.key().as_ref(),
             manager_config_info.key().as_ref(),
         ],
-        &PATHFINDER_PROGRAM_ID
+        &PATHFINDER_PROGRAM_ID,
     );
 
-    require!(lender_shares_info.key() == expected_pda, ManagerError::InvalidLenderShares);
+    require!(
+        lender_shares_info.key() == expected_pda,
+        ManagerError::InvalidLenderShares
+    );
     Ok(())
 }

@@ -1,22 +1,19 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::*,
-};
+use anchor_spl::{associated_token::AssociatedToken, token::*};
 use pathfinder::{
-    state::{Config, Market, LenderShares},
-    program::Pathfinder,
     math::mul_div_up,
+    program::Pathfinder,
+    state::{Config, LenderShares, Market},
 };
 
 use crate::{
+    error::*,
+    generate_manager_config_seeds,
     state::*,
     traits::{
-        vault_accounting::{VaultAccounting, RemainingAccountsPattern},
         path_actions::PathActions,
+        vault_accounting::{RemainingAccountsPattern, VaultAccounting},
     },
-    generate_manager_config_seeds,
-    error::*
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -45,7 +42,7 @@ pub struct Withdraw<'info> {
         bump = manager_config.bump,
     )]
     pub manager_config: Account<'info, ManagerVaultConfig>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -55,7 +52,7 @@ pub struct Withdraw<'info> {
         bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -101,7 +98,6 @@ pub struct Withdraw<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub pathfinder_program: Program<'info, Pathfinder>,
-
     // NOTE: remaining accounts are pathfinder market, lender shares, and manager market config accounts.
     // These are not specified here but are passed in the context
     // the accounts are ordered by supply queue in threes [market, lender_shares, ...]
@@ -111,9 +107,7 @@ pub struct Withdraw<'info> {
 impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for Withdraw<'info> {}
 impl<'info, 'c: 'info> PathActions<'info, 'c> for Withdraw<'info> {}
 impl<'info, 'c: 'info> Withdraw<'info> {
-
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: WithdrawArgs) -> Result<()> {
-
         let Withdraw {
             user,
             recipient,
@@ -134,18 +128,18 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             ..
         } = ctx.accounts;
 
-
         let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(
             manager_config,
             &queue.withdraw_queue,
             ctx.remaining_accounts,
             pathfinder_config,
             pathfinder_program,
-            RemainingAccountsPattern::PairGrouping
+            RemainingAccountsPattern::PairGrouping,
         )?;
 
         if fee_shares > 0 {
-            fee_recipient_shares.shares = fee_recipient_shares.shares
+            fee_recipient_shares.shares = fee_recipient_shares
+                .shares
                 .checked_add(fee_shares)
                 .ok_or(ManagerError::MathOverflow)?;
         }
@@ -154,18 +148,13 @@ impl<'info, 'c: 'info> Withdraw<'info> {
         manager_config.last_total_assets = new_total_assets;
 
         // check if the assets are greater than the max assets
-        let max_assets = Self::max_withdraw(
-            &user_shares,
-            &manager_config,
-        )?;
+        let max_assets = Self::max_withdraw(&user_shares, &manager_config)?;
 
-        require!(
-            args.assets <= max_assets,
-            ManagerError::ExceededMaxWithdraw
-        );
- 
+        require!(args.assets <= max_assets, ManagerError::ExceededMaxWithdraw);
+
         // Update last total assets
-        manager_config.last_total_assets = manager_config.last_total_assets
+        manager_config.last_total_assets = manager_config
+            .last_total_assets
             .checked_sub(args.assets)
             .ok_or(ManagerError::MathOverflow)?;
 
@@ -174,10 +163,11 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             manager_config.total_shares,
             manager_config.last_total_assets,
             manager_config.decimals_offset,
-            true
+            true,
         )?;
 
-        user_shares.shares = user_shares.shares
+        user_shares.shares = user_shares
+            .shares
             .checked_sub(shares)
             .ok_or(ManagerError::MathUnderflow)?;
 
@@ -199,7 +189,7 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             &system_program,
             &associated_token_program,
         )?;
-        
+
         Ok(())
     }
-} 
+}

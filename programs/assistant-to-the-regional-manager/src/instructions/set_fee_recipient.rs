@@ -1,16 +1,13 @@
 use anchor_lang::prelude::*;
 
-use crate::state::*;
 use crate::error::*;
+use crate::state::*;
 use crate::traits::{
     owner::OwnerProtection,
-    vault_accounting::{VaultAccounting, RemainingAccountsPattern}
+    vault_accounting::{RemainingAccountsPattern, VaultAccounting},
 };
 
-use pathfinder::{
-    state::Config,
-    program::Pathfinder,
-};
+use pathfinder::{program::Pathfinder, state::Config};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetFeeRecipientArgs {
@@ -59,7 +56,7 @@ pub struct SetFeeRecipient<'info> {
         bump
     )]
     pub new_fee_recipient_shares: Account<'info, SupplyShares>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -76,7 +73,6 @@ pub struct SetFeeRecipient<'info> {
 
     pub system_program: Program<'info, System>,
     pub pathfinder_program: Program<'info, Pathfinder>,
-
     // NOTE: remaining accounts are pathfinder market, lender shares, and manager market config accounts.
     // These are not specified here but are passed in the context
     // the accounts are ordered by supply queue in pairs [market, lender_shares ...]
@@ -87,7 +83,6 @@ impl<'info> OwnerProtection<'info> for SetFeeRecipient<'info> {}
 impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for SetFeeRecipient<'info> {}
 
 impl<'info, 'c: 'info> SetFeeRecipient<'info> {
-
     pub fn validate(&self, args: &SetFeeRecipientArgs) -> Result<()> {
         self.is_owner(&self.user, &self.config)?;
 
@@ -107,13 +102,13 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
     }
 
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: SetFeeRecipientArgs) -> Result<()> {
-        let SetFeeRecipient { 
+        let SetFeeRecipient {
             config,
             fee_recipient_shares,
             new_fee_recipient_shares,
             queue,
             pathfinder_config,
-            pathfinder_program ,
+            pathfinder_program,
             ..
         } = ctx.accounts;
 
@@ -123,17 +118,19 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
             ctx.remaining_accounts,
             pathfinder_config,
             pathfinder_program,
-            RemainingAccountsPattern::PairGrouping
+            RemainingAccountsPattern::PairGrouping,
         )?;
 
         if fee_shares > 0 {
-            fee_recipient_shares.shares = fee_recipient_shares.shares
+            fee_recipient_shares.shares = fee_recipient_shares
+                .shares
                 .checked_add(fee_shares)
                 .ok_or(ManagerError::MathOverflow)?;
         }
 
         // Update last total assets
-        config.last_total_assets = config.last_total_assets
+        config.last_total_assets = config
+            .last_total_assets
             .checked_add(new_total_assets)
             .ok_or(ManagerError::MathOverflow)?;
 

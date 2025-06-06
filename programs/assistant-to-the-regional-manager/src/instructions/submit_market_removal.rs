@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
-use crate::state::*;
 use crate::error::*;
+use crate::state::*;
+use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SubmitMarketRemovalArgs {
@@ -24,7 +24,7 @@ pub struct SubmitMarketRemoval<'info> {
         bump = config.bump,
     )]
     pub config: Box<Account<'info, ManagerVaultConfig>>,
-    
+
     #[account(
         mut,
         seeds = [
@@ -50,27 +50,17 @@ pub struct SubmitMarketRemoval<'info> {
 }
 
 impl<'info> SubmitMarketRemoval<'info> {
-
     pub fn validate(&self, args: &SubmitMarketRemovalArgs) -> Result<()> {
-        let SubmitMarketRemoval {
-            market_config,
-            ..
-        } = self;
+        let SubmitMarketRemoval { market_config, .. } = self;
 
         require!(
             market_config.removable_at == 0,
             ManagerError::AlreadyPending
         );
 
-        require!(
-            market_config.cap == 0,
-            ManagerError::NonZeroCap
-        );
+        require!(market_config.cap == 0, ManagerError::NonZeroCap);
 
-        require!(
-            market_config.enabled,
-            ManagerError::MarketNotEnabled
-        );
+        require!(market_config.enabled, ManagerError::MarketNotEnabled);
 
         require!(
             market_config.pending_cap.valid_at == 0,
@@ -79,7 +69,6 @@ impl<'info> SubmitMarketRemoval<'info> {
 
         Ok(())
     }
-
 
     pub fn handle(ctx: Context<SubmitMarketRemoval>, args: SubmitMarketRemovalArgs) -> Result<()> {
         let SubmitMarketRemoval {

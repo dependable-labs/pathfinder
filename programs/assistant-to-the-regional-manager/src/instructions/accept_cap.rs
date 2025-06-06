@@ -1,7 +1,7 @@
-use anchor_lang::prelude::*;
 use crate::instructions::submit_cap::set_cap;
-use crate::state::*;
 use crate::instructions::timelock::after_timelock;
+use crate::state::*;
+use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct AcceptCapArgs {
@@ -25,7 +25,7 @@ pub struct AcceptCap<'info> {
         bump = config.bump,
     )]
     pub config: Box<Account<'info, ManagerVaultConfig>>,
-    
+
     #[account(
         mut,
         seeds = [
