@@ -6,48 +6,48 @@ use crate::traits::authority::AuthorityProtection;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateFeeArgs {
-  pub new_fee_factor: u64,
+    pub new_fee_factor: u64,
 }
 
 #[derive(Accounts)]
 #[instruction(args: UpdateFeeArgs)]
 pub struct UpdateFee<'info> {
-  #[account(mut)]
-  pub user: Signer<'info>,
+    #[account(mut)]
+    pub user: Signer<'info>,
 
-  #[account(
-    mut,
-    seeds = [CONFIG_SEED_PREFIX],
-    bump = config.bump,
-  )]
-  pub config: Box<Account<'info, Config>>,
-  pub system_program: Program<'info, System>,
+    #[account(
+      mut,
+      seeds = [CONFIG_SEED_PREFIX],
+      bump = config.bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
+    pub system_program: Program<'info, System>,
 }
 
 impl<'info> AuthorityProtection<'info> for UpdateFee<'info> {}
 
 impl<'info> UpdateFee<'info> {
-  pub fn validate(&self, args: &UpdateFeeArgs) -> Result<()> {
-    self.is_authority(&self.user, &self.config)?;
+    pub fn validate(&self, args: &UpdateFeeArgs) -> Result<()> {
+        self.is_authority(&self.user, &self.config)?;
 
-    require!(
-      args.new_fee_factor <= MAX_FEE_FACTOR,
-      MarketError::FeeExceedsMax
-    );
+        require!(
+            args.new_fee_factor <= MAX_FEE_FACTOR,
+            MarketError::FeeExceedsMax
+        );
 
-    require!(
-      args.new_fee_factor != self.config.fee_factor,
-      MarketError::FeeAlreadySet
-    );
-    
-    Ok(())
-  }
+        require!(
+            args.new_fee_factor != self.config.fee_factor,
+            MarketError::FeeAlreadySet
+        );
 
-  pub fn handle(ctx: Context<Self>, args: UpdateFeeArgs) -> Result<()> {
-    let UpdateFee { config, .. } = ctx.accounts;
+        Ok(())
+    }
 
-    config.fee_factor = args.new_fee_factor;
+    pub fn handle(ctx: Context<Self>, args: UpdateFeeArgs) -> Result<()> {
+        let UpdateFee { config, .. } = ctx.accounts;
 
-    Ok(())
-  }
+        config.fee_factor = args.new_fee_factor;
+
+        Ok(())
+    }
 }

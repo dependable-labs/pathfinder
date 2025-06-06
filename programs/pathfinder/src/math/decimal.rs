@@ -12,10 +12,10 @@
 #![allow(clippy::ptr_offset_with_cast)]
 #![allow(clippy::manual_range_contains)]
 
-use anchor_lang::prelude::*;
-use crate::math::*;
-use std::{convert::TryFrom, fmt};
 use crate::error::MarketError;
+use crate::math::*;
+use anchor_lang::prelude::*;
+use std::{convert::TryFrom, fmt};
 
 // U256 with 256 bits consisting of 4 x 64-bit words
 mod uint_types {
@@ -64,7 +64,7 @@ impl Decimal {
     pub fn to_u128(&self) -> Result<u128> {
         Ok(u128::try_from(self.0).map_err(|_| MarketError::MathOverflow)?)
     }
- 
+
     /// Returns (x * y) / WAD rounded down
     pub fn w_mul_down(&self, rhs: Decimal) -> Result<Decimal> {
         Ok(self.mul_div_down(rhs, Decimal::one())?)
@@ -83,17 +83,24 @@ impl Decimal {
     /// Performs multiplication followed by division, rounding down.
     pub fn mul_div_down(&self, b: Decimal, c: Decimal) -> Result<Decimal> {
         // a * b / c
-        Ok(Decimal(self.0
-            .checked_mul(b.0)
-            .ok_or(error!(MarketError::MathOverflow))?
-            .checked_div(c.0)
-            .ok_or(error!(MarketError::MathOverflow))?))
+        Ok(Decimal(
+            self.0
+                .checked_mul(b.0)
+                .ok_or(error!(MarketError::MathOverflow))?
+                .checked_div(c.0)
+                .ok_or(error!(MarketError::MathOverflow))?,
+        ))
     }
 
     pub fn mul_div_up(&self, b: Decimal, c: Decimal) -> Result<Decimal> {
         // (a * b + (c - 1)) / c
-        let product = self.0.checked_mul(b.0).ok_or(error!(MarketError::MathOverflow))?;
-        let c_minus_one = c.0.checked_sub(U256::from(1u64)).ok_or(error!(MarketError::MathUnderflow))?;
+        let product = self
+            .0
+            .checked_mul(b.0)
+            .ok_or(error!(MarketError::MathOverflow))?;
+        let c_minus_one =
+            c.0.checked_sub(U256::from(1u64))
+                .ok_or(error!(MarketError::MathUnderflow))?;
         let numerator = product
             .checked_add(c_minus_one)
             .ok_or(error!(MarketError::MathOverflow))?;
@@ -107,25 +114,19 @@ impl Decimal {
 
     pub fn try_add(&self, rhs: Decimal) -> Result<Decimal> {
         Ok(Decimal(
-            self.0
-                .checked_add(rhs.0)
-                .ok_or(MarketError::MathOverflow)?,
+            self.0.checked_add(rhs.0).ok_or(MarketError::MathOverflow)?,
         ))
     }
 
     pub fn try_sub(&self, rhs: Decimal) -> Result<Decimal> {
         Ok(Decimal(
-            self.0
-                .checked_sub(rhs.0)
-                .ok_or(MarketError::MathOverflow)?,
+            self.0.checked_sub(rhs.0).ok_or(MarketError::MathOverflow)?,
         ))
     }
 
     pub fn try_mul(&self, rhs: Decimal) -> Result<Decimal> {
         Ok(Decimal(
-            self.0
-                .checked_mul(rhs.0)
-                .ok_or(MarketError::MathOverflow)?
+            self.0.checked_mul(rhs.0).ok_or(MarketError::MathOverflow)?,
         ))
     }
 }
@@ -185,17 +186,15 @@ mod test {
 
     #[test]
     fn test_to_scaled_val() {
-        assert_eq!(
-            Decimal(U256::from(u128::MAX)).to_u128().unwrap(),
-            u128::MAX
-        );
+        assert_eq!(Decimal(U256::from(u128::MAX)).to_u128().unwrap(), u128::MAX);
 
         assert_eq!(
             Decimal(U256::from(u128::MAX))
                 .try_add(Decimal(U256::from(1)))
                 .unwrap()
                 .to_u128(),
-            Err(error!(MarketError::MathOverflow)));
+            Err(error!(MarketError::MathOverflow))
+        );
     }
 
     #[test]
@@ -206,5 +205,4 @@ mod test {
             "0.000000000000000001"
         );
     }
-
 }

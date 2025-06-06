@@ -9,209 +9,221 @@ use crate::{accrue_interest::accrue_interest, generate_config_seeds, state::*};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct BorrowArgs {
-  pub amount: u64,
-  pub shares: u64,
-  pub owner: Pubkey,
+    pub amount: u64,
+    pub shares: u64,
+    pub owner: Pubkey,
 }
 
 #[derive(Accounts)]
 #[instruction(args: BorrowArgs)]
 pub struct Borrow<'info> {
-  #[account(mut)]
-  pub user: Signer<'info>,
+    #[account(mut)]
+    pub user: Signer<'info>,
 
-  #[account(
-    mut,
-    seeds = [CONFIG_SEED_PREFIX],
-    bump = config.bump,
-  )]
-  pub config: Box<Account<'info, Config>>,
+    #[account(
+      mut,
+      seeds = [CONFIG_SEED_PREFIX],
+      bump = config.bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
 
-  /// CHECK: needed for associated token constraint
-  #[account(mut)]
-  pub recipient: AccountInfo<'info>,
+    /// CHECK: needed for associated token constraint
+    #[account(mut)]
+    pub recipient: AccountInfo<'info>,
 
-  #[account(
-    mut,
-    constraint = position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
-    seeds = [
-      DELEGATE_SEED_PREFIX,
-      args.owner.key().as_ref(),
-    ],
-    bump = position_delegate.bump
-  )]
-  pub position_delegate: Option<Box<Account<'info, PositionDelegate>>>,
+    #[account(
+      mut,
+      constraint = position_delegate.delegate == user.key() @ MarketError::UnauthorizedDelegate,
+      seeds = [
+        DELEGATE_SEED_PREFIX,
+        args.owner.key().as_ref(),
+      ],
+      bump = position_delegate.bump
+    )]
+    pub position_delegate: Option<Box<Account<'info, PositionDelegate>>>,
 
-  #[account(
-    mut,
-    seeds = [
-      MARKET_SEED_PREFIX,
-      &market.quote_mint.key().as_ref(),
-      &market.collateral_mint.key().as_ref(),
-      &market.ltv_factor.to_le_bytes(),
-      &market.oracle.id.to_bytes(),
-    ],
-    bump = market.bump,
-  )]
-  pub market: Box<Account<'info, Market>>,
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SEED_PREFIX,
+        &market.quote_mint.key().as_ref(),
+        &market.collateral_mint.key().as_ref(),
+        &market.ltv_factor.to_le_bytes(),
+        &market.oracle.id.to_bytes(),
+      ],
+      bump = market.bump,
+    )]
+    pub market: Box<Account<'info, Market>>,
 
-  // borrower shares
-  #[account(
-    mut,
-    constraint = args.owner.key() == user.key() || position_delegate.is_some() @ MarketError::UnauthorizedDelegate,
-    seeds = [
-      BORROWER_SHARES_SEED_PREFIX,
-      market.key().as_ref(),
-      args.owner.key().as_ref()
-    ],
-    bump,
-  )]
-  pub borrower_shares: Box<Account<'info, BorrowerShares>>,
+    // borrower shares
+    #[account(
+      mut,
+      constraint = args.owner.key() == user.key() || position_delegate.is_some() @ MarketError::UnauthorizedDelegate,
+      seeds = [
+        BORROWER_SHARES_SEED_PREFIX,
+        market.key().as_ref(),
+        args.owner.key().as_ref()
+      ],
+      bump,
+    )]
+    pub borrower_shares: Box<Account<'info, BorrowerShares>>,
 
-  #[account(
-    mut,
-    associated_token::mint = market.quote_mint,
-    associated_token::authority = config,
-  )]
-  pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
+    #[account(
+      mut,
+      associated_token::mint = market.quote_mint,
+      associated_token::authority = config,
+    )]
+    pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
 
-  #[account(
-    init_if_needed,
-    payer = user,
-    associated_token::authority = recipient,
-    associated_token::mint = quote_mint,
-  )]
-  pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
+    #[account(
+      init_if_needed,
+      payer = user,
+      associated_token::authority = recipient,
+      associated_token::mint = quote_mint,
+    )]
+    pub recipient_ata_quote: Box<Account<'info, TokenAccount>>,
 
-  #[account(constraint = quote_mint.key() == market.quote_mint.key())]
-  pub quote_mint: Box<Account<'info, Mint>>,
+    #[account(constraint = quote_mint.key() == market.quote_mint.key())]
+    pub quote_mint: Box<Account<'info, Mint>>,
 
-  pub token_program: Program<'info, Token>,
-  pub associated_token_program: Program<'info, AssociatedToken>,
-  /// CHECK: needed for dynamic oracle account
-  pub oracle_ai: AccountInfo<'info>, // oracle account
-  pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    /// CHECK: needed for dynamic oracle account
+    pub oracle_ai: AccountInfo<'info>, // oracle account
+    pub system_program: Program<'info, System>,
 }
 
 impl<'info> Borrow<'info> {
-  pub fn validate(&self) -> Result<()> {
-    Ok(())
-  }
-
-  pub fn handle(ctx: Context<Self>, args: BorrowArgs) -> Result<()> {
-    let Borrow {
-      config,
-      market,
-      borrower_shares,
-      recipient_ata_quote,
-      vault_ata_quote,
-      token_program,
-      oracle_ai,
-      ..
-    } = ctx.accounts;
-
-    let mut shares = args.shares;
-    let mut assets = args.amount;
-
-    // Validate that either shares or amount is zero, but not both
-    if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
-      return err!(MarketError::AssetShareValueMismatch);
+    pub fn validate(&self) -> Result<()> {
+        Ok(())
     }
 
-    msg!("borrowing {}", assets);
+    pub fn handle(ctx: Context<Self>, args: BorrowArgs) -> Result<()> {
+        let Borrow {
+            config,
+            market,
+            borrower_shares,
+            recipient_ata_quote,
+            vault_ata_quote,
+            token_program,
+            oracle_ai,
+            ..
+        } = ctx.accounts;
 
-    accrue_interest(market, config)?;
+        let mut shares = args.shares;
+        let mut assets = args.amount;
 
-    if assets > 0 {
-      shares = to_shares_up(assets, market.total_borrows as u64, market.total_borrow_shares)?;
-    } else {
-      assets = to_assets_down(shares, market.total_borrows as u64, market.total_borrow_shares)?;
+        // Validate that either shares or amount is zero, but not both
+        if (shares == 0 && assets == 0) || (shares != 0 && assets != 0) {
+            return err!(MarketError::AssetShareValueMismatch);
+        }
+
+        msg!("borrowing {}", assets);
+
+        accrue_interest(market, config)?;
+
+        if assets > 0 {
+            shares = to_shares_up(
+                assets,
+                market.total_borrows as u64,
+                market.total_borrow_shares,
+            )?;
+        } else {
+            assets = to_assets_down(
+                shares,
+                market.total_borrows as u64,
+                market.total_borrow_shares,
+            )?;
+        }
+
+        // check if user is solvent after borrowing
+        let updated_shares = borrower_shares.borrow_shares.checked_add(shares).unwrap();
+
+        if !is_solvent(
+            market,
+            &oracle_ai,
+            updated_shares,
+            borrower_shares.collateral_amount,
+            market.collateral_mint_decimals,
+        )? {
+            return err!(MarketError::NotSolvent);
+        }
+
+        // Update market shares
+        market.total_borrow_shares = market
+            .total_borrow_shares
+            .checked_add(shares)
+            .ok_or(MarketError::MathOverflow)?;
+
+        // Update user shares
+        borrower_shares.borrow_shares = borrower_shares
+            .borrow_shares
+            .checked_add(shares)
+            .ok_or(MarketError::MathOverflow)?;
+
+        // Update market total borrows
+        market.total_borrows = market
+            .total_borrows
+            .checked_add(assets as u128)
+            .ok_or(MarketError::MathOverflow)?;
+
+        // transfer tokens to borrower
+        let seeds = generate_config_seeds!(config);
+        let signer = &[&seeds[..]];
+
+        transfer(
+            CpiContext::new_with_signer(
+                token_program.to_account_info(),
+                Transfer {
+                    from: vault_ata_quote.to_account_info(),
+                    to: recipient_ata_quote.to_account_info(),
+                    authority: config.to_account_info(),
+                },
+                signer,
+            ),
+            assets,
+        )?;
+
+        Ok(())
     }
-
-    // check if user is solvent after borrowing
-    let updated_shares = borrower_shares.borrow_shares.checked_add(shares).unwrap();
-
-    if !is_solvent(
-      market,
-      &oracle_ai,
-      updated_shares,
-      borrower_shares.collateral_amount,
-      market.collateral_mint_decimals,
-    )? {
-      return err!(MarketError::NotSolvent);
-    }
-
-    // Update market shares
-    market.total_borrow_shares = market
-      .total_borrow_shares
-      .checked_add(shares)
-      .ok_or(MarketError::MathOverflow)?;
-
-    // Update user shares
-    borrower_shares.borrow_shares = borrower_shares
-      .borrow_shares
-      .checked_add(shares)
-      .ok_or(MarketError::MathOverflow)?;
-
-    // Update market total borrows
-    market.total_borrows = market
-      .total_borrows
-      .checked_add(assets as u128)
-      .ok_or(MarketError::MathOverflow)?;
-
-    // transfer tokens to borrower
-    let seeds = generate_config_seeds!(config);
-    let signer = &[&seeds[..]];
-
-    transfer(
-      CpiContext::new_with_signer(
-        token_program.to_account_info(),
-        Transfer {
-          from: vault_ata_quote.to_account_info(),
-          to: recipient_ata_quote.to_account_info(),
-          authority: config.to_account_info(),
-        },
-        signer,
-      ),
-      assets,
-    )?;
-
-    Ok(())
-  }
 }
 
 pub fn is_solvent(
-  market: &Account<Market>,
-  oracle_ai: &AccountInfo,
-  borrow_shares: u64,
-  collateral_amount: u64,
-  collateral_decimals: u8,
+    market: &Account<Market>,
+    oracle_ai: &AccountInfo,
+    borrow_shares: u64,
+    collateral_amount: u64,
+    collateral_decimals: u8,
 ) -> Result<bool> {
-  // price is low end of confidence interval
-  let price = oracle_get_price(&market.oracle, &oracle_ai, false)?;
+    // price is low end of confidence interval
+    let price = oracle_get_price(&market.oracle, &oracle_ai, false)?;
 
-  // Calculate borrowed amount by converting borrow shares to assets, rounding up
-  let borrowed = to_assets_up(borrow_shares, market.total_borrows as u64, market.total_borrow_shares)?;
+    // Calculate borrowed amount by converting borrow shares to assets, rounding up
+    let borrowed = to_assets_up(
+        borrow_shares,
+        market.total_borrows as u64,
+        market.total_borrow_shares,
+    )?;
 
-  // Calculate max borrow amount based on collateral value and LTV factor
-  let max_borrow = (collateral_amount as u128)
-    .checked_mul(price.price as u128) // Multiply collateral amount by price
-    .ok_or(MarketError::MathOverflow)?
-    .checked_div(price.scale as u128) // Scale down by oracle price scale
-    .ok_or(MarketError::MathOverflow)?
-    .checked_mul(market.ltv_factor as u128) // Apply LTV factor
-    .ok_or(MarketError::MathOverflow)?
-    .checked_div(10_u128.pow(collateral_decimals as u32)) // Scale by collateral decimals
-    .ok_or(MarketError::MathOverflow)?;
+    // Calculate max borrow amount based on collateral value and LTV factor
+    let max_borrow = (collateral_amount as u128)
+        .checked_mul(price.price as u128) // Multiply collateral amount by price
+        .ok_or(MarketError::MathOverflow)?
+        .checked_div(price.scale as u128) // Scale down by oracle price scale
+        .ok_or(MarketError::MathOverflow)?
+        .checked_mul(market.ltv_factor as u128) // Apply LTV factor
+        .ok_or(MarketError::MathOverflow)?
+        .checked_div(10_u128.pow(collateral_decimals as u32)) // Scale by collateral decimals
+        .ok_or(MarketError::MathOverflow)?;
 
-  // User is solvent if max borrow amount >= borrowed amount
-  Ok(max_borrow >= (borrowed as u128))
+    // User is solvent if max borrow amount >= borrowed amount
+    Ok(max_borrow >= (borrowed as u128))
 }
 
 pub fn borrow(ctx: Context<Borrow>, args: BorrowArgs) -> Result<()> {
-  // Run validation first
-  ctx.accounts.validate()?;
+    // Run validation first
+    ctx.accounts.validate()?;
 
-  // Then proceed with handling
-  Borrow::handle(ctx, args)
+    // Then proceed with handling
+    Borrow::handle(ctx, args)
 }

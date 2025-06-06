@@ -8,96 +8,106 @@ use crate::state::*;
 
 #[derive(Accounts)]
 pub struct AccrueInterest<'info> {
-  #[account(mut)]
-  pub user: Signer<'info>,
+    #[account(mut)]
+    pub user: Signer<'info>,
 
-  #[account(
-    mut,
-    seeds = [CONFIG_SEED_PREFIX],
-    bump = config.bump,
-  )]
-  pub config: Box<Account<'info, Config>>,
+    #[account(
+      mut,
+      seeds = [CONFIG_SEED_PREFIX],
+      bump = config.bump,
+    )]
+    pub config: Box<Account<'info, Config>>,
 
-  #[account(
-    mut,
-    seeds = [
-      MARKET_SEED_PREFIX,
-      &market.quote_mint.key().as_ref(),
-      &market.collateral_mint.key().as_ref(),
-      &market.ltv_factor.to_le_bytes(),
-      &market.oracle.id.to_bytes(),
-    ],
-    bump = market.bump,
-  )]
-  pub market: Box<Account<'info, Market>>,
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SEED_PREFIX,
+        &market.quote_mint.key().as_ref(),
+        &market.collateral_mint.key().as_ref(),
+        &market.ltv_factor.to_le_bytes(),
+        &market.oracle.id.to_bytes(),
+      ],
+      bump = market.bump,
+    )]
+    pub market: Box<Account<'info, Market>>,
 }
 
 impl<'info> AccrueInterest<'info> {
-  pub fn validate(&self) -> Result<()> {
-    Ok(())
-  }
+    pub fn validate(&self) -> Result<()> {
+        Ok(())
+    }
 
-  pub fn handle(ctx: Context<Self>) -> Result<()> {
-    let AccrueInterest { market, config, .. } = ctx.accounts;
+    pub fn handle(ctx: Context<Self>) -> Result<()> {
+        let AccrueInterest { market, config, .. } = ctx.accounts;
 
-    accrue_interest(market, config)?;
+        accrue_interest(market, config)?;
 
-    Ok(())
-  }
+        Ok(())
+    }
 }
 
 pub fn accrue_interest(market: &mut Account<Market>, config: &Account<Config>) -> Result<()> {
+    let clock = Clock::get()?;
+    let current_timestamp = clock.unix_timestamp as u64;
 
+    // Ensure time has passed since last accrual
+    if current_timestamp <= market.last_accrual_timestamp {
+        return Ok(());
+    }
 
-  let clock = Clock::get()?;
-  let current_timestamp = clock.unix_timestamp as u64;
+    // Calculate time elapsed since last accrual
+    let elapsed = current_timestamp
+        .checked_sub(market.last_accrual_timestamp)
+        .ok_or(MarketError::MathUnderflow)?;
 
-  // Ensure time has passed since last accrual
-  if current_timestamp <= market.last_accrual_timestamp {
-    return Ok(());
-  }
+    // Get interest rate from IRM
+    let (avg_rate, end_rate_at_target) = get_rate(market)?;
+    market.rate_at_target = end_rate_at_target.to_u128()?;
 
-  // Calculate time elapsed since last accrual
-  let elapsed = current_timestamp
-    .checked_sub(market.last_accrual_timestamp)
-    .ok_or(MarketError::MathUnderflow)?;
+    // Calculate interest factor using taylor series
+    let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
+    let interest = Decimal::from_raw_u128(market.total_borrows)
+        .w_mul_down(interest_factor)?
+        .to_u128()?;
 
-  // Get interest rate from IRM
-  let (avg_rate, end_rate_at_target) = get_rate(market)?;
-  market.rate_at_target = end_rate_at_target.to_u128()?;
+    market.total_borrows = market
+        .total_borrows
+        .checked_add(interest)
+        .ok_or(MarketError::MathOverflow)?;
+    market.total_deposits = market
+        .total_deposits
+        .checked_add(interest)
+        .ok_or(MarketError::MathOverflow)?;
 
-  // Calculate interest factor using taylor series
-  let interest_factor = w_taylor_compounded(avg_rate, Decimal::from_raw_u64(elapsed))?;
-  let interest = Decimal::from_raw_u128(market.total_borrows).w_mul_down(interest_factor)?.to_u128()?;
+    // Handle fee if set
+    if config.fee_factor != 0 {
+        let fee_amount = Decimal::from_raw_u128(interest)
+            .w_mul_down(Decimal::from_raw_u64(config.fee_factor))?;
 
-  market.total_borrows = market.total_borrows.checked_add(interest).ok_or(MarketError::MathOverflow)?;
-  market.total_deposits = market.total_deposits.checked_add(interest).ok_or(MarketError::MathOverflow)?;
+        // calculate fee shares using total deposits (prior to applying interest)
+        let deposits_sub_fee = market
+            .total_deposits
+            .checked_sub(fee_amount.to_u128()?)
+            .unwrap();
+        let fee_shares = to_shares_down(
+            fee_amount.to_u64()?,
+            deposits_sub_fee as u64,
+            market.total_shares,
+        )?;
 
-  // Handle fee if set
-  if config.fee_factor != 0 {
-    let fee_amount = Decimal::from_raw_u128(interest).w_mul_down(Decimal::from_raw_u64(config.fee_factor))?;
+        // Update fee shares
+        market.fee_shares = market
+            .fee_shares
+            .checked_add(fee_shares)
+            .ok_or(MarketError::MathOverflow)?;
 
-    // calculate fee shares using total deposits (prior to applying interest)
-    let deposits_sub_fee = market.total_deposits.checked_sub(fee_amount.to_u128()?).unwrap();
-    let fee_shares = to_shares_down(
-      fee_amount.to_u64()?,
-      deposits_sub_fee as u64,
-      market.total_shares,
-    )?;
+        market.total_shares = market
+            .total_shares
+            .checked_add(fee_shares)
+            .ok_or(MarketError::MathOverflow)?;
+    }
 
-    // Update fee shares
-    market.fee_shares = market
-      .fee_shares
-      .checked_add(fee_shares)
-      .ok_or(MarketError::MathOverflow)?;
+    market.last_accrual_timestamp = current_timestamp;
 
-    market.total_shares = market
-      .total_shares
-      .checked_add(fee_shares)
-      .ok_or(MarketError::MathOverflow)?;
-  }
-
-  market.last_accrual_timestamp = current_timestamp;
-
-  Ok(())
+    Ok(())
 }
