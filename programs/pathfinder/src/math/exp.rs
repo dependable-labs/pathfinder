@@ -27,30 +27,32 @@ pub const WEXP_UPPER_VALUE: i128 = 2_652_147_089_148_298_802_378_047_488;
 
 /// @dev Returns an approximation of exp.
 pub fn w_exp(x: i128) -> Result<i128> {
-  // If x < ln(1e-18) then exp(x) < 1e-18 so it is rounded to zero.
-  if x < LN_WEI_INT {
-    return Ok(0);
-  }
+    // If x < ln(1e-18) then exp(x) < 1e-18 so it is rounded to zero.
+    if x < LN_WEI_INT {
+        return Ok(0);
+    }
 
-  // `wExp` is clipped to avoid overflowing when multiplied with 1 ether.
-  if x >= WEXP_UPPER_BOUND { return Ok(WEXP_UPPER_VALUE); }
+    // `wExp` is clipped to avoid overflowing when multiplied with 1 ether.
+    if x >= WEXP_UPPER_BOUND {
+        return Ok(WEXP_UPPER_VALUE);
+    }
 
-  // Decompose x as x = q * ln(2) + r with q an integer and -ln(2)/2 <= r <= ln(2)/2.
-  // q = x / ln(2) rounded half toward zero.
-  let rounding_adjustment = if x < 0 { -(LN_2_INT / 2) } else { LN_2_INT / 2 };
-  // Safe unchecked because x is bounded.
-  let q = (x + rounding_adjustment) / LN_2_INT;
-  // Safe unchecked because |q * ln(2) - x| <= ln(2)/2.
-  let r = x - q * LN_2_INT;
+    // Decompose x as x = q * ln(2) + r with q an integer and -ln(2)/2 <= r <= ln(2)/2.
+    // q = x / ln(2) rounded half toward zero.
+    let rounding_adjustment = if x < 0 { -(LN_2_INT / 2) } else { LN_2_INT / 2 };
+    // Safe unchecked because x is bounded.
+    let q = (x + rounding_adjustment) / LN_2_INT;
+    // Safe unchecked because |q * ln(2) - x| <= ln(2)/2.
+    let r = x - q * LN_2_INT;
 
-  // Compute e^r with a 2nd-order Taylor polynomial.
-  // Safe unchecked because |r| < 1e18.
-  let exp_r = WAD_INT + r + (r * r) / WAD_INT / 2;
+    // Compute e^r with a 2nd-order Taylor polynomial.
+    // Safe unchecked because |r| < 1e18.
+    let exp_r = WAD_INT + r + (r * r) / WAD_INT / 2;
 
-  // Return e^x = 2^q * e^r.
-  if q >= 0 {
-    Ok(exp_r << q as u128)
-  } else {
-    Ok(exp_r >> -q as u128)
-  }
+    // Return e^x = 2^q * e^r.
+    if q >= 0 {
+        Ok(exp_r << q as u128)
+    } else {
+        Ok(exp_r >> -q as u128)
+    }
 }
