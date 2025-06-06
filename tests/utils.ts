@@ -21,6 +21,7 @@ export const COMMITMENT: { commitment: Finality } = { commitment: "confirmed" };
 
 export const TWENTY_FIVE_HOUR_TIMELOCK = new anchor.BN(25 * 60 * 60);
 export const ONE_DAY_TIMELOCK = new anchor.BN(24 * 60 * 60);
+export const MAX_QUEUE_LENGTH = new anchor.BN(6);
 
 export const PATHFINDER_PROGRAM_ID = new PublicKey("7ALFC87zvuPvpp9h5Stq9SSP3kTCUJfhtirEZVJmZYy4");
 export const ASSISTANT_TO_THE_REGIONAL_MANAGER_PROGRAM_ID = new PublicKey("ATRMG4WfodAcWb6K7mA2sFPLXBAKwppvxAQcp7t3Yd8v");
@@ -431,7 +432,7 @@ export class TestUtils {
       this.managerProgram,
       this.provider,
       this.quoteMint,
-      markets // a manager has a one to many relationship with markets but for testing purposes we can just pass in one market
+      markets
     );
   }
 

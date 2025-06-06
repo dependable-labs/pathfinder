@@ -68,7 +68,6 @@ impl<'info, 'c: 'info> SetSupplyQueue<'info> {
           let market_config_info = &ctx.remaining_accounts[i];
 
           // retreive configs for each market account
-          // let manager_market_config = load_manager_market_config(market_config_info)?;
           let manager_market_config_account = Account::<ManagerMarketConfig>::try_from(&market_config_info)?;
 
           validate_manager_market_config_pda(

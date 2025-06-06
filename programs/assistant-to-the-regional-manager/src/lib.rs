@@ -66,7 +66,10 @@ pub mod assistant_to_the_regional_manager {
     }
 
     #[access_control(ctx.accounts.validate())]
-    pub fn remove_from_withdraw_queue(ctx: Context<RemoveFromWithdrawQueue>, args: RemoveFromWithdrawQueueArgs) -> Result<()> {
+    pub fn remove_from_withdraw_queue(
+        ctx: Context<RemoveFromWithdrawQueue>,
+        args: RemoveFromWithdrawQueueArgs
+    ) -> Result<()> {
         RemoveFromWithdrawQueue::handle(ctx, args)
     }
 

@@ -769,7 +769,7 @@ describe("deposit", () => {
     // remove one from withdraw queue
     await manager.removeFromWithdrawQueue({
       user: owen,
-      marketId: market.marketAcc.key,
+      market: market,
     });
 
     // Verify queue differences
@@ -882,7 +882,5 @@ describe("deposit", () => {
       .get_lender_shares(manager.managerVaultConfigAcc.key)
       .get_data();
     assert.equal(postManagerVaultDataMeta.shares.toNumber(), 100_000 * 1e9);
-
   });
-
 });

@@ -114,4 +114,13 @@ pub enum ManagerError {
 
     #[msg("Exceeded max withdraw")]
     ExceededMaxWithdraw,
+
+    #[msg("Invalid account owner")]
+    InvalidAccountOwner,
+
+    #[msg("Invalid seeds")]
+    InvalidSeeds,
+
+    #[msg("Invalid account data")]
+    InvalidAccountData,
 }

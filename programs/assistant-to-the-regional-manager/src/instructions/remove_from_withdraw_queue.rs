@@ -1,11 +1,21 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
-use pathfinder::state::LenderShares;
 
 use crate::state::*;
 use crate::error::*;
 
+use pathfinder::{
+  cpi::{
+    init_lender_shares,
+    accounts::InitLenderShares
+  },
+  state::{Market, LenderShares, Config, MARKET_SHARES_SEED_PREFIX},
+  program::Pathfinder,
+};
+
 use crate::traits::allocator::AllocatorProtection;
+
+use pathfinder::instructions::init_lender_shares::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct RemoveFromWithdrawQueueArgs {
@@ -62,9 +72,13 @@ pub struct RemoveFromWithdrawQueue<'info> {
     )]
     pub queue: Box<Account<'info, QueueState>>,
 
-    // TODO: if I can't derive this account since its owned by pathfinder
-    // how do I ensure this is the right lender_shares account?
-    pub lender_shares: Option<Account<'info, LenderShares>>,
+    // pathfinder accounts
+    /// CHECK this account must be passed but could be uninitialized
+    #[account(mut)]
+    pub lender_shares: AccountInfo<'info>,
+    pub pathfinder_market: Box<Account<'info, Market>>,
+    pub pathfinder_config: Box<Account<'info, Config>>,
+    pub pathfinder_program: Program<'info, Pathfinder>,
 
     #[account(constraint = quote_mint.is_initialized == true)]
     pub quote_mint: Box<Account<'info, Mint>>,
@@ -84,50 +98,129 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
   }
 
   pub fn handle(ctx: Context<RemoveFromWithdrawQueue>, args: RemoveFromWithdrawQueueArgs) -> Result<()> {
-    let RemoveFromWithdrawQueue {
-      queue,
-      market_config,
-      lender_shares,
-      ..
-    } = ctx.accounts;
+    let accounts = ctx.accounts;
+    
+    // Find and validate market position
+    let market_index = Self::find_market_in_queue(&accounts.queue, &args.market_id)?;
+    
+    // Validate market removal conditions
+    Self::validate_market_removal_conditions(&accounts.market_config)?;
+    
+    // Get lender shares (initialize if needed)
+    let shares: u64 = Self::get_initialize_lender_shares(&accounts)?;
+    
+    // Validate position removal conditions
+    Self::validate_position_removal_conditions(&accounts.market_config, shares)?;
 
-    // Find position of market to remove
-    for i in 0..queue.withdraw_queue.len() {
-      let curr_market_id = queue.withdraw_queue[i];
+    // remove from queue 
+    accounts.market_config.cap = 0; 
+    accounts.queue.withdraw_queue.remove(market_index);
+    
+    Ok(())
+  }
 
-      if curr_market_id == args.market_id {
+  fn find_market_in_queue(queue: &QueueState, market_id: &Pubkey) -> Result<usize> {
+    queue.withdraw_queue
+      .iter()
+      .position(|&id| id == *market_id)
+      .ok_or_else(|| error!(ManagerError::MarketNotInQueue))
+  }
 
-        if market_config.cap != 0 {
-          return err!(ManagerError::InvalidMarketRemovalNonZeroCap);
-        }
+  fn validate_market_removal_conditions(market_config: &ManagerMarketConfig) -> Result<()> {
+    require!(market_config.cap == 0, ManagerError::InvalidMarketRemovalNonZeroCap);
+    require!(market_config.pending_cap.valid_at == 0, ManagerError::PendingCap);
+    Ok(())
+  }
 
-        if market_config.pending_cap.valid_at != 0 {
-          return err!(ManagerError::PendingCap);
-        }
+  fn get_initialize_lender_shares(
+    accounts: &RemoveFromWithdrawQueue,
+  ) -> Result<u64> {
+    let lender_shares: LenderShares;
 
-        // Check if manager has position in market
-        if lender_shares.is_some() && lender_shares.as_ref().unwrap().shares != 0 {
-          if market_config.removable_at == 0 {
-              return err!(ManagerError::InvalidMarketRemovalNonZeroSupply);
-          }
-
-          let current_time = Clock::get()?.unix_timestamp as u64;
-          if current_time < market_config.removable_at {
-              return err!(ManagerError::InvalidMarketRemovalTimelockNotElapsed);
-          }
-        }
-
-        // clear market config
-        market_config.cap = 0;
-
-        // remove the item from the queue
-        queue.withdraw_queue.remove(i);
-
-        return Ok(());
-      }
+    if accounts.lender_shares.data_is_empty() {
+      Self::initialize_lender_shares(accounts)?;
+      lender_shares = Self::get_lender_shares_data(&accounts.lender_shares)?;
+    } else {
+      lender_shares = Self::validate_lender_shares(
+        &accounts.lender_shares,
+        &accounts.pathfinder_market,
+        &accounts.config,
+        &accounts.pathfinder_program
+      )?;
     }
 
-    // If we exit the loop without finding the market, it's not in the queue
-    return err!(ManagerError::MarketNotInQueue);
+    Ok(lender_shares.shares)
   }
+
+  fn initialize_lender_shares(accounts: &RemoveFromWithdrawQueue) -> Result<()> {
+    let cpi_ctx = CpiContext::new(
+      accounts.pathfinder_program.to_account_info(),
+      InitLenderShares {
+        user: accounts.user.to_account_info(),
+        config: accounts.pathfinder_config.to_account_info(),
+        market: accounts.pathfinder_market.to_account_info(),
+        lender_shares: accounts.lender_shares.to_account_info(),
+        system_program: accounts.system_program.to_account_info(),
+      }
+    );
+
+    init_lender_shares(cpi_ctx, InitLenderSharesArgs {
+      owner: accounts.config.key()
+    })
+  }
+
+  fn get_lender_shares_data(lender_shares: &AccountInfo) -> Result<LenderShares> {
+    let lender_shares_data = lender_shares.try_borrow_data()?;
+    let lender_shares_account = LenderShares::try_deserialize(&mut &lender_shares_data[..])?;
+    Ok(lender_shares_account)
+  }
+
+  fn validate_position_removal_conditions(
+    market_config: &ManagerMarketConfig, 
+    shares: u64
+  ) -> Result<()> {
+    if shares != 0 {
+      require!(market_config.removable_at != 0, ManagerError::InvalidMarketRemovalNonZeroSupply);
+      
+      let current_time = Clock::get()?.unix_timestamp as u64;
+      require!(
+        current_time >= market_config.removable_at, 
+        ManagerError::InvalidMarketRemovalTimelockNotElapsed
+      );
+    }
+    Ok(())
+  }
+
+  pub fn validate_lender_shares(
+    lender_shares: &AccountInfo,
+    pathfinder_market: &Account<Market>,
+    config: &Account<ManagerVaultConfig>,
+    pathfinder_program: &Program<Pathfinder>,
+  ) -> Result<LenderShares> {
+    // 1. Check program ownership
+    require!(
+        lender_shares.owner == &pathfinder_program.key(),
+        ManagerError::InvalidAccountOwner
+    );
+
+    // 2. Validate seed derivation
+    let expected_lender_shares = Pubkey::find_program_address(
+        &[
+            MARKET_SHARES_SEED_PREFIX,
+            pathfinder_market.key().as_ref(),
+            config.key().as_ref(),
+        ],
+        &pathfinder_program.key()
+    ).0;
+    
+    require!(
+        lender_shares.key() == expected_lender_shares,
+        ManagerError::InvalidSeeds
+    );
+
+    let lender_shares = Self::get_lender_shares_data(lender_shares)?;
+
+    Ok(lender_shares)
+  }
+
 }

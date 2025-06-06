@@ -17,6 +17,7 @@ pub use views::*;
 pub use withdraw::*;
 pub use withdraw_collateral::*;
 pub use withdraw_fee::*;
+pub use init_lender_shares::*;
 
 pub mod init;
 pub mod accrue_interest;
@@ -36,3 +37,4 @@ pub mod views;
 pub mod withdraw;
 pub mod withdraw_collateral;
 pub mod withdraw_fee;
+pub mod init_lender_shares;
