@@ -62,4 +62,10 @@ pub enum MarketError {
     InvalidOracle,
     #[msg("Stale oracle")]
     StaleOracle,
+
+    // account validation errors
+    #[msg("Invalid account owner")]
+    InvalidAccountOwner,
+    #[msg("Invalid account seeds")]
+    InvalidAccountSeeds,
 }
