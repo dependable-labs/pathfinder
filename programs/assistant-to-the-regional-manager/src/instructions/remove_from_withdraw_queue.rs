@@ -10,6 +10,7 @@ use pathfinder::{
     accounts::InitLenderShares
   },
   state::{Market, LenderShares, Config, MARKET_SHARES_SEED_PREFIX},
+  instructions::views::supply_balances::{validate_lender_shares, get_lender_shares_data},
   program::Pathfinder,
 };
 
@@ -114,6 +115,8 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
 
     // remove from queue 
     accounts.market_config.cap = 0; 
+    accounts.market_config.removable_at = 0;
+    accounts.market_config.enabled = false;
     accounts.queue.withdraw_queue.remove(market_index);
     
     Ok(())
@@ -139,13 +142,12 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
 
     if accounts.lender_shares.data_is_empty() {
       Self::initialize_lender_shares(accounts)?;
-      lender_shares = Self::get_lender_shares_data(&accounts.lender_shares)?;
+      lender_shares = get_lender_shares_data(&accounts.lender_shares)?;
     } else {
-      lender_shares = Self::validate_lender_shares(
+      lender_shares = validate_lender_shares(
         &accounts.lender_shares,
         &accounts.pathfinder_market,
-        &accounts.config,
-        &accounts.pathfinder_program
+        &accounts.config.key(),
       )?;
     }
 
@@ -169,11 +171,6 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
     })
   }
 
-  fn get_lender_shares_data(lender_shares: &AccountInfo) -> Result<LenderShares> {
-    let lender_shares_data = lender_shares.try_borrow_data()?;
-    let lender_shares_account = LenderShares::try_deserialize(&mut &lender_shares_data[..])?;
-    Ok(lender_shares_account)
-  }
 
   fn validate_position_removal_conditions(
     market_config: &ManagerMarketConfig, 
@@ -190,37 +187,4 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
     }
     Ok(())
   }
-
-  pub fn validate_lender_shares(
-    lender_shares: &AccountInfo,
-    pathfinder_market: &Account<Market>,
-    config: &Account<ManagerVaultConfig>,
-    pathfinder_program: &Program<Pathfinder>,
-  ) -> Result<LenderShares> {
-    // 1. Check program ownership
-    require!(
-        lender_shares.owner == &pathfinder_program.key(),
-        ManagerError::InvalidAccountOwner
-    );
-
-    // 2. Validate seed derivation
-    let expected_lender_shares = Pubkey::find_program_address(
-        &[
-            MARKET_SHARES_SEED_PREFIX,
-            pathfinder_market.key().as_ref(),
-            config.key().as_ref(),
-        ],
-        &pathfinder_program.key()
-    ).0;
-    
-    require!(
-        lender_shares.key() == expected_lender_shares,
-        ManagerError::InvalidSeeds
-    );
-
-    let lender_shares = Self::get_lender_shares_data(lender_shares)?;
-
-    Ok(lender_shares)
-  }
-
 }

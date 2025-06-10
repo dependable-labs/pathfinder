@@ -1,5 +1,10 @@
 use anchor_lang::prelude::*;
-use pathfinder::state::Market;
+use pathfinder::{
+    cpi::view_expected_supply_assets,
+    state::{Market, LenderShares, Config},
+    program::Pathfinder,
+    instructions::views::supply_balances::ViewMarketWithLenderSharesArgs,
+};
 
 use crate::error::*;
 use crate::state::*;
@@ -52,11 +57,15 @@ pub struct SubmitCap<'info> {
     )]
     pub market_config: Box<Account<'info, ManagerMarketConfig>>,
 
-    // errors if market account is not initialized
+    // pathfinder accounts
     #[account(
         owner = PATHFINDER_PROGRAM_ID,
     )]
     pub market: Account<'info, Market>,
+    /// CHECK: could be unintialized checked in Pathfinder::expected_supply_assets
+    pub lender_shares: AccountInfo<'info>,
+    pub pathfinder_config: Account<'info, Config>,
+    pub pathfinder_program: Program<'info, Pathfinder>,
 
     pub system_program: Program<'info, System>,
 }
@@ -75,6 +84,9 @@ impl<'info> SubmitCap<'info> {
             config,
             market,
             queue,
+            lender_shares,
+            pathfinder_config,
+            pathfinder_program,
             ..
         } = ctx.accounts;
 
@@ -100,7 +112,17 @@ impl<'info> SubmitCap<'info> {
         // If reducing cap, set immediately
         if args.supply_cap < current_cap {
             market_config.cap = args.supply_cap;
-            set_cap(queue, market_config, market_id, args.supply_cap)?;
+            set_cap(
+                args.supply_cap,
+                market_id,
+                queue,
+                market_config,
+                config,
+                market,
+                lender_shares,
+                pathfinder_config,
+                pathfinder_program,
+            )?;
         } else {
             // Otherwise set as pending cap
             market_config
@@ -112,12 +134,18 @@ impl<'info> SubmitCap<'info> {
     }
 }
 
-pub fn set_cap(
-    queue: &mut QueueState,
-    market_config: &mut ManagerMarketConfig,
-    market_id: Pubkey,
+pub fn set_cap<'info>(
     new_cap: u64,
+    market_id: Pubkey,
+    queue: &mut QueueState,
+    market_config: &mut Account<'info, ManagerMarketConfig>,
+    manager_config: &mut Account<'info, ManagerVaultConfig>,
+    market: &Account<'info, Market>,
+    lender_shares: &AccountInfo<'info>,
+    pathfinder_config: &Account<'info, Config>,
+    pathfinder_program: &Program<'info, Pathfinder>,
 ) -> Result<()> {
+
     if new_cap > 0 {
         if !market_config.enabled {
             queue.withdraw_queue.push(market_id);
@@ -128,9 +156,25 @@ pub fn set_cap(
 
             market_config.enabled = true;
 
+            let view_market_ctx = CpiContext::new(
+                pathfinder_program.to_account_info(),
+                pathfinder::cpi::accounts::ViewMarketWithLenderShares {
+                    market: market.to_account_info(),
+                    config: pathfinder_config.to_account_info(),
+                    lender_shares: lender_shares.to_account_info(),
+                },
+            );
+
             // Update last total assets without fee
-            // TODO: Implement total assets calculation
-            // config.last_total_assets += expected_supply_assets;
+            let expected_assets =
+                view_expected_supply_assets(view_market_ctx, ViewMarketWithLenderSharesArgs {
+                    owner: manager_config.key(),
+                })?;
+
+            manager_config.last_total_assets = manager_config
+                .last_total_assets
+                .checked_add(expected_assets.get())
+                .ok_or(ManagerError::MathOverflow)?;
         }
 
         market_config.removable_at = 0;

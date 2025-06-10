@@ -227,6 +227,32 @@ export function deriveQueueAccount(
   )[0];
 }
 
+export function deriveLenderShares(
+  marketId: PublicKey,
+  userKey: PublicKey,
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("lender_shares"),
+      marketId.toBuffer(),
+      userKey.toBuffer(),
+    ],
+    programId
+  )[0];
+}
+
+export function deriveMarketConfig(
+  programId: PublicKey
+) {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("config"),
+    ],
+    programId
+  )[0];
+}
+
 export function deriveAllocatorAccount(
   managerConfig: PublicKey,
   allocator: PublicKey,
@@ -372,6 +398,8 @@ export class TestUtils {
     }
     return markets;
   }
+
+
 
 
   public async createMarket(

@@ -126,11 +126,8 @@ pub mod pathfinder {
         ViewMarket::expected_total_shares(ctx)
     }
 
-    pub fn view_expected_supply_assets(
-        ctx: Context<ViewMarket>,
-        user_supply_shares: u64,
-    ) -> Result<u64> {
-        ViewMarket::expected_supply_assets(ctx, user_supply_shares)
+    pub fn view_expected_supply_assets(ctx: Context<ViewMarketWithLenderShares>, args: ViewMarketWithLenderSharesArgs) -> Result<u64> {
+        ViewMarketWithLenderShares::expected_supply_assets(ctx, args)
     }
 
     pub fn view_expected_borrow_assets(

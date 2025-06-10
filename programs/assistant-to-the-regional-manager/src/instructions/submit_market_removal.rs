@@ -73,7 +73,6 @@ impl<'info> SubmitMarketRemoval<'info> {
     pub fn handle(ctx: Context<SubmitMarketRemoval>, args: SubmitMarketRemovalArgs) -> Result<()> {
         let SubmitMarketRemoval {
             market_config,
-            queue,
             config,
             ..
         } = ctx.accounts;

@@ -16,6 +16,8 @@ import {
   derivePairGroupRemainingAccounts,
   PATHFINDER_PROGRAM_ID,
   deriveSupplyShares,
+  deriveLenderShares,
+  deriveMarketConfig,
 } from "../utils";
 
 export class ManagerFixture {
@@ -219,11 +221,13 @@ export class ManagerFixture {
         market: this.get_market(marketId).marketAcc.key,
         marketConfig: this.get_market_config(marketId).key,
         queue: this.queue.key,
+        lenderShares: this.get_market(marketId).get_lender_shares(this.managerVaultConfigAcc.key).key,
+        pathfinderConfig: this.get_market(marketId).get_config().key,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
-      .rpc(COMMITMENT); 
-    
+      .rpc(COMMITMENT);  
   }
 
   async submitCapCustom({
@@ -249,6 +253,9 @@ export class ManagerFixture {
         market: market,
         marketConfig: this.get_market_config(marketId).key,
         queue: this.queue.key,
+        lenderShares: deriveLenderShares(marketId, user.key.publicKey, this.program.programId),
+        pathfinderConfig: deriveMarketConfig(this.program.programId),
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])
@@ -272,6 +279,10 @@ export class ManagerFixture {
         config: this.managerVaultConfigAcc.key,
         marketConfig: this.get_market_config(marketId).key,
         queue: this.queue.key,
+        market: this.get_market(marketId).marketAcc.key,
+        lenderShares: this.get_market(marketId).get_lender_shares(this.managerVaultConfigAcc.key).key,
+        pathfinderConfig: this.get_market(marketId).get_config().key,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user.key.payer])

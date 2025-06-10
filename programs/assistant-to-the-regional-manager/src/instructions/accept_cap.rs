@@ -2,6 +2,10 @@ use crate::instructions::submit_cap::set_cap;
 use crate::instructions::timelock::after_timelock;
 use crate::state::*;
 use anchor_lang::prelude::*;
+use pathfinder::{
+    state::{Market, LenderShares, Config},
+    program::Pathfinder,
+};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct AcceptCapArgs {
@@ -47,6 +51,13 @@ pub struct AcceptCap<'info> {
     )]
     pub market_config: Box<Account<'info, ManagerMarketConfig>>,
 
+    // pathfinder accounts
+    pub market: Account<'info, Market>,
+    pub pathfinder_config: Account<'info, Config>,
+    /// CHECK: could be unintialized checked in Pathfinder::expected_supply_assets
+    pub lender_shares: AccountInfo<'info>,
+    pub pathfinder_program: Program<'info, Pathfinder>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -55,6 +66,11 @@ impl<'info> AcceptCap<'info> {
         let AcceptCap {
             market_config,
             queue,
+            config,
+            market,
+            lender_shares,
+            pathfinder_config,
+            pathfinder_program,
             ..
         } = ctx.accounts;
 
@@ -62,7 +78,17 @@ impl<'info> AcceptCap<'info> {
 
         // Set the new cap
         let pending_cap = market_config.pending_cap.value;
-        set_cap(queue, market_config, args.market_id, pending_cap)?;
+        set_cap(
+            pending_cap,
+            args.market_id,
+            queue,
+            market_config,
+            config,
+            &market,
+            &lender_shares,
+            &pathfinder_config,
+            &pathfinder_program,
+        )?;
 
         Ok(())
     }

@@ -14,6 +14,7 @@ use pathfinder::{
     math::{mul_div_down, mul_div_up, zero_floor_sub, WAD},
     program::Pathfinder,
     state::{Config, LenderShares, Market},
+    instructions::views::supply_balances::ViewMarketWithLenderSharesArgs,
 };
 use std::collections::HashSet;
 
@@ -147,14 +148,17 @@ pub trait VaultAccounting<'info, 'c: 'info> {
         // 5. Calculate expected assets
         let view_market_ctx = CpiContext::new(
             pathfinder_program.to_account_info(),
-            pathfinder::cpi::accounts::ViewMarket {
+            pathfinder::cpi::accounts::ViewMarketWithLenderShares {
                 market: market_info.to_account_info(),
                 config: pathfinder_config.to_account_info(),
+                lender_shares: lender_shares_info.to_account_info(),
             },
         );
 
         let expected_assets =
-            view_expected_supply_assets(view_market_ctx, lender_shares_account.shares)?;
+            view_expected_supply_assets(view_market_ctx, ViewMarketWithLenderSharesArgs {
+                owner: manager_config.key(),
+            })?;
 
         Ok(expected_assets.get())
     }

@@ -61,17 +61,6 @@ impl<'info> ViewMarket<'info> {
     Ok(total_shares)
   }
 
-  /// Returns the expected supply assets balance of a user after having accrued interest
-  /// Warning: Wrong for fee_recipient because their supply shares increase is not taken into account
-  /// Warning: Withdrawing using expected supply assets can lead to error due to rounding
-  pub fn expected_supply_assets(
-    ctx: Context<ViewMarket<'info>>,
-    user_supply_shares: u64,
-  ) -> Result<u64> {
-    let ViewMarket { market, config, .. } = ctx.accounts;
-    let (total_deposits, total_shares, _, _) = expected_market_balances(&market, &config)?;
-    to_assets_down(user_supply_shares, total_deposits, total_shares)
-  }
 
   /// Returns the expected borrow assets balance of a user after having accrued interest
   /// Warning: Expected balance is rounded up, so may be greater than market's expected total borrow assets
