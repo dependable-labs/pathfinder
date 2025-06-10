@@ -14,6 +14,7 @@ use pathfinder::{
     math::{mul_div_down, mul_div_up, zero_floor_sub, WAD},
     program::Pathfinder,
     state::{Config, LenderShares, Market},
+    instructions::views::supply_balances::ViewMarketWithLenderSharesArgs,
 };
 use std::collections::HashSet;
 
@@ -155,7 +156,7 @@ pub trait VaultAccounting<'info, 'c: 'info> {
         );
 
         let expected_assets =
-            view_expected_supply_assets(view_market_ctx, pathfinder::instructions::views::ViewMarketWithLenderSharesArgs {
+            view_expected_supply_assets(view_market_ctx, ViewMarketWithLenderSharesArgs {
                 owner: manager_config.key(),
             })?;
 
