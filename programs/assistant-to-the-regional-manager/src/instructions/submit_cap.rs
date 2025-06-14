@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 use pathfinder::{
-    cpi::view_expected_supply_assets,
-    state::{Market, LenderShares, Config},
+    cpi::{view_expected_supply_assets, init_lender_shares},
+    state::{Market, Config},
     program::Pathfinder,
-    instructions::views::supply_balances::ViewMarketWithLenderSharesArgs,
+    instructions::{views::supply_balances::ViewMarketWithLenderSharesArgs, init_lender_shares::InitLenderSharesArgs},
 };
 
 use crate::error::*;
@@ -63,6 +63,7 @@ pub struct SubmitCap<'info> {
     )]
     pub market: Account<'info, Market>,
     /// CHECK: could be unintialized checked in Pathfinder::expected_supply_assets
+    #[account(mut)]
     pub lender_shares: AccountInfo<'info>,
     pub pathfinder_config: Account<'info, Config>,
     pub pathfinder_program: Program<'info, Pathfinder>,
@@ -80,6 +81,7 @@ impl<'info> SubmitCap<'info> {
 
     pub fn handle(ctx: Context<SubmitCap>, args: SubmitCapArgs) -> Result<()> {
         let SubmitCap {
+            user,
             market_config,
             config,
             market,
@@ -87,6 +89,7 @@ impl<'info> SubmitCap<'info> {
             lender_shares,
             pathfinder_config,
             pathfinder_program,
+            system_program,
             ..
         } = ctx.accounts;
 
@@ -109,7 +112,25 @@ impl<'info> SubmitCap<'info> {
             return err!(ManagerError::AlreadySet);
         }
 
-        // If reducing cap, set immediately
+        // assume lender_shares is not initialized
+        if lender_shares.data_is_empty() {
+            let init_lender_shares_ctx = CpiContext::new(
+                pathfinder_program.to_account_info(),
+                pathfinder::cpi::accounts::InitLenderShares {
+                    user: user.to_account_info(),
+                    market: market.to_account_info(),
+                    config: pathfinder_config.to_account_info(),
+                    lender_shares: lender_shares.to_account_info(),
+                    system_program: system_program.to_account_info(),
+                },
+            );
+            // performs seed & ownership validation
+            init_lender_shares(init_lender_shares_ctx, InitLenderSharesArgs {
+                owner: config.key(),
+            })?;
+        }
+
+       // If reducing cap, set immediately
         if args.supply_cap < current_cap {
             market_config.cap = args.supply_cap;
             set_cap(
@@ -166,6 +187,7 @@ pub fn set_cap<'info>(
             );
 
             // Update last total assets without fee
+            // performs seed & ownership validation of lender_shares
             let expected_assets =
                 view_expected_supply_assets(view_market_ctx, ViewMarketWithLenderSharesArgs {
                     owner: manager_config.key(),

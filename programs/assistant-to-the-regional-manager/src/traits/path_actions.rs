@@ -162,10 +162,10 @@ pub trait PathActions<'info, 'c: 'info> {
         system_program: &Program<'info, System>,
         associated_token_program: &Program<'info, AssociatedToken>,
     ) -> Result<u64> {
-        let (supply_assets, _) = Self::_accrued_supply_balance(
+        let supply_assets = Self::_accrued_supply_balance(
             user,
             market,
-            lender_shares,
+            &lender_shares.shares,
             pathfinder_config,
             pathfinder_program,
         )?;
@@ -288,10 +288,10 @@ pub trait PathActions<'info, 'c: 'info> {
     fn _accrued_supply_balance(
         user: &Signer<'info>,
         market: &Account<'info, Market>,
-        lender_shares: &Account<'info, LenderShares>,
+        owned_shares: &u64,
         pathfinder_config: &Account<'info, Config>,
         pathfinder_program: &Program<'info, Pathfinder>,
-    ) -> Result<(u64, u64)> {
+    ) -> Result<u64> {
         // accrue interest for market
         let accrue_ctx = CpiContext::new(
             pathfinder_program.to_account_info(),
@@ -304,9 +304,8 @@ pub trait PathActions<'info, 'c: 'info> {
 
         accrue_interest(accrue_ctx)?;
 
-        let shares = lender_shares.shares;
-        let assets = to_assets_down(shares, market.total_deposits as u64, market.total_shares)?;
+        let assets = to_assets_down(*owned_shares, market.total_deposits as u64, market.total_shares)?;
 
-        Ok((assets, shares))
+        Ok(assets)
     }
 }

@@ -151,7 +151,7 @@ describe("deposit", () => {
     const postManagerVaultDataMeta = await metaMarket
       .get_lender_shares(manager.managerVaultConfigAcc.key)
       .get_data();
-    assert.equal(postManagerVaultDataMeta, undefined);
+    assert.equal(postManagerVaultDataMeta.shares.toNumber(), 0);
   }); 
 
   it("successfully deposits accross two markets", async () => {

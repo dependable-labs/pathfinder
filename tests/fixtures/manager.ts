@@ -1,6 +1,6 @@
 import { ComputeBudgetProgram, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
 import { BankrunProvider } from "anchor-bankrun";
 import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture, MarketFixture} from "./index";
@@ -706,7 +706,6 @@ export class ManagerFixture {
   }): Promise < void> {
 
     let remainingAcc = deriveTripleGroupRemainingAccounts(this.managerVaultConfigAcc.key, markets, this.program.programId);
-    console.log("remainingAcc", remainingAcc);
 
     await this.program.methods
       .deposit({
@@ -731,6 +730,66 @@ export class ManagerFixture {
       .signers([user.key.payer])
       .rpc(COMMITMENT);
   }
+
+
+  async reallocate({
+    user,
+    withdrawAmount,
+    withdrawMarket,
+    supplyMarkets,
+    supplyAmounts,
+    customCU,
+  }: {
+    user: UserFixture;
+    withdrawAmount: anchor.BN;
+    withdrawMarket: MarketFixture;
+    supplyMarkets: MarketFixture[];
+    supplyAmounts: anchor.BN[];
+    customCU: number;
+  }): Promise<void> {
+
+    let remainingAcc = deriveTripleGroupRemainingAccounts(this.managerVaultConfigAcc.key, supplyMarkets, this.program.programId);
+    const budgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+      units: customCU,
+    });
+
+    let tx = await this.program.methods
+      .reallocate({
+        withdrawAmount,
+        supplyAmounts,
+      })
+      .accounts({
+        user: user.key.publicKey,
+        allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
+        managerConfig: this.managerVaultConfigAcc.key,
+        managerMarketConfig: deriveManagerMarketConfigAccount(this.managerVaultConfigAcc.key, withdrawMarket.marketAcc.key, this.program.programId),
+        queue: this.queue.key,
+        quoteMint: this.quoteMint,
+        managerAtaQuote: this.get_ata(this.quoteMint),
+        pathfinderMarket: withdrawMarket.marketAcc.key,
+        lenderShares: withdrawMarket.get_lender_shares(this.managerVaultConfigAcc.key).key,
+        pathfinderConfig: withdrawMarket.get_config().key,
+        pathfinderProgram: PATHFINDER_PROGRAM_ID,
+        vaultAtaQuote: withdrawMarket.quoteAta.key,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        // NOTE: remaining accounts are [market, lender_shares, manager_market_config, ...]
+      })
+      .remainingAccounts(remainingAcc)
+      .signers([user.key.payer])
+      .transaction();
+
+      tx = tx.add(
+        budgetInstruction,
+      )
+      tx.recentBlockhash = (await this.provider.context.banksClient.getLatestBlockhash())[0]
+      tx.sign(user.key.payer);
+      tx.feePayer = user.key.publicKey;
+
+      await this.provider.context.banksClient.processTransaction(tx);
+  }
+
 
   public get_market_config(marketId: PublicKey): AccountFixture {
     return new AccountFixture(

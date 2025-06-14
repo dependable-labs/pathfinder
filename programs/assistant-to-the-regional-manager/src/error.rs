@@ -114,4 +114,13 @@ pub enum ManagerError {
 
     #[msg("Exceeded max withdraw")]
     ExceededMaxWithdraw,
+
+    #[msg("Supply cap exceeded")]
+    SupplyCapExceeded,
+
+    #[msg("Inconsistent reallocation")]
+    InconsistentReallocation,
+
+    #[msg("Reallocate account mismatch")]
+    ReallocateAccountMismatch,
 }

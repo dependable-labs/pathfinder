@@ -47,12 +47,14 @@ impl<'info> ViewMarketWithLenderShares<'info> {
     ) -> Result<u64> {
         let ViewMarketWithLenderShares { market, config, lender_shares } = ctx.accounts;
 
+        validate_lender_shares(&lender_shares, &market.to_account_info(), &args.owner)?;
+
         // If lender shares account is not initialized, lender has no assets
         if lender_shares.data_is_empty() {
             return Ok(0);
         }
 
-        let lender_shares_account = validate_lender_shares(&lender_shares, &market, &args.owner)?;
+        let lender_shares_account = get_lender_shares_data(&lender_shares)?;
 
         let (total_deposits, total_shares, _, _) = expected_market_balances(&market, &config)?;
         to_assets_down(lender_shares_account.shares, total_deposits, total_shares)
@@ -67,14 +69,17 @@ pub fn get_lender_shares_data(lender_shares: &AccountInfo) -> Result<LenderShare
 
 pub fn validate_lender_shares(
   lender_shares: &AccountInfo,
-  pathfinder_market: &Account<Market>,
+  pathfinder_market: &AccountInfo,
   owner: &Pubkey,
-) -> Result<LenderShares> {
+) -> Result<()> {
+
   // 1. Check program ownership
-  require!(
-      lender_shares.owner == &crate::ID,
-      MarketError::InvalidAccountOwner
-  );
+  if !lender_shares.data_is_empty() {
+    require!(
+        lender_shares.owner == &crate::ID,
+        MarketError::InvalidAccountOwner
+    );
+  }
 
   // 2. Validate seed derivation
   let expected_lender_shares = Pubkey::find_program_address(
@@ -85,13 +90,11 @@ pub fn validate_lender_shares(
       ],
       &crate::ID
   ).0;
-  
+ 
   require!(
       lender_shares.key() == expected_lender_shares,
       MarketError::InvalidAccountSeeds
   );
 
-  let lender_shares = get_lender_shares_data(lender_shares)?;
-
-  Ok(lender_shares)
+  Ok(())
 }
