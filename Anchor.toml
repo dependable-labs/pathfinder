@@ -50,3 +50,4 @@ test-manager-roles = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/a
 test-manager-deposit = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/deposit.ts"
 test-manager-fee = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/fee.ts"
 test-manager-withdraw = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/withdraw.ts"
+test-manager-reallocate = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/assistant-to-the-regional-manager/reallocate.ts"

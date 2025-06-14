@@ -144,11 +144,12 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
       Self::initialize_lender_shares(accounts)?;
       lender_shares = get_lender_shares_data(&accounts.lender_shares)?;
     } else {
-      lender_shares = validate_lender_shares(
+      validate_lender_shares(
         &accounts.lender_shares,
-        &accounts.pathfinder_market,
+        &accounts.pathfinder_market.to_account_info(),
         &accounts.config.key(),
       )?;
+      lender_shares = get_lender_shares_data(&accounts.lender_shares)?;
     }
 
     Ok(lender_shares.shares)

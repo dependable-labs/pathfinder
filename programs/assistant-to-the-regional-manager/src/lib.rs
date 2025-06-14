@@ -156,6 +156,14 @@ pub mod assistant_to_the_regional_manager {
     ) -> Result<()> {
         Withdraw::handle(ctx, args)
     }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn reallocate<'c: 'info, 'info>(
+        ctx: Context<'_, '_, 'c, 'info, Reallocate<'info>>,
+        args: ReallocateArgs,
+    ) -> Result<()> {
+        Reallocate::handle(ctx, args)
+    }
 }
 
 #[derive(Accounts)]

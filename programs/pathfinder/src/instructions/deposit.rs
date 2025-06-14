@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::*;
 
 use crate::error::MarketError;
