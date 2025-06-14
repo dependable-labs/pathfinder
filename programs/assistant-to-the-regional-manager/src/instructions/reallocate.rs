@@ -96,7 +96,10 @@ pub struct Reallocate<'info> {
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    //remaining accounts
+
+    // NOTE: remaining accounts are pathfinder market, lender shares, and manager market config accounts.
+    // These are not specified here but are passed in the context
+    // the accounts are ordered in threes [market, lender_shares, manager_market_config, ...] but are not ordered by a queue
 }
 
 impl<'info> AllocatorProtection<'info> for Reallocate<'info> {}

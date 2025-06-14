@@ -1,6 +1,6 @@
-import { ComputeBudgetProgram, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
+import { ComputeBudgetProgram, PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { BN, Program } from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import { AssistantToTheRegionalManager } from "../../target/types/assistant_to_the_regional_manager";
 import { BankrunProvider } from "anchor-bankrun";
 import { UserFixture, AccountFixture, splAccountFixture, queueAccountFixture, MarketFixture} from "./index";
