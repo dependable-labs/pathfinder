@@ -32,7 +32,7 @@ pub struct RevokePendingCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
+    pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 }
 
 impl<'info> CuratorOrGuardianProtection<'info> for RevokePendingCap<'info> {}
@@ -46,12 +46,12 @@ impl<'info> RevokePendingCap<'info> {
 
     pub fn handle(ctx: Context<RevokePendingCap>, args: RevokePendingCapArgs) -> Result<()> {
         let RevokePendingCap {
-            market_config,
+            manager_market_config,
             ..
         } = ctx.accounts;
 
-        market_config.pending_cap.value = 0;
-        market_config.pending_cap.valid_at = 0;
+        manager_market_config.pending_cap.value = 0;
+        manager_market_config.pending_cap.valid_at = 0;
 
         Ok(())
     }

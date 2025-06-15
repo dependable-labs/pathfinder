@@ -60,7 +60,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfig.pendingCap.value.toNumber(), "1000000000000000");
     assert.equal(marketConfig.pendingCap.validAt.toNumber(), await test.getTimePlusTimelock());
 
@@ -88,7 +88,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostSubmit = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostSubmit = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostSubmit.pendingCap.value.toNumber(), "1000000000000000");
     assert.equal(marketConfigPostSubmit.pendingCap.validAt.toNumber(), await test.getTimePlusTimelock());
 
@@ -101,7 +101,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostAccept = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostAccept = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostAccept.pendingCap.value.toNumber(), 0);
     assert.equal(marketConfigPostAccept.pendingCap.validAt.toNumber(), 0);
     assert.equal(marketConfigPostAccept.cap.toNumber(), "1000000000000000");
@@ -115,7 +115,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostSubmit = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostSubmit = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostSubmit.pendingCap.value.toNumber(), "1000000000000000");
     assert.equal(marketConfigPostSubmit.pendingCap.validAt.toNumber(), await test.getTimePlusTimelock());
     assert.equal(marketConfigPostSubmit.cap.toNumber(), "0");
@@ -129,7 +129,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostAccept = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostAccept = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostAccept.pendingCap.value.toNumber(), 0);
     assert.equal(marketConfigPostAccept.pendingCap.validAt.toNumber(), 0);
     assert.equal(marketConfigPostAccept.cap.toNumber(), "1000000000000000");
@@ -141,7 +141,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostSubmit2 = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostSubmit2 = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostSubmit2.pendingCap.value.toNumber(), 0);
     assert.equal(marketConfigPostSubmit2.pendingCap.validAt.toNumber(), 0);
     assert.equal(marketConfigPostSubmit2.cap.toNumber(), "500000000000000");
@@ -196,7 +196,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostSubmit = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostSubmit = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostSubmit.pendingCap.value.toNumber(), "1000000000000000");
     assert.equal(marketConfigPostSubmit.pendingCap.validAt.toNumber(), await test.getTimePlusTimelock());
     assert.equal(marketConfigPostSubmit.cap.toNumber(), "0");
@@ -210,7 +210,7 @@ describe("submit_cap", () => {
     });
 
     // assert market config pending cap is set / increased
-    const marketConfigPostAccept = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfigPostAccept = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfigPostAccept.pendingCap.value.toNumber(), 0);
     assert.equal(marketConfigPostAccept.pendingCap.validAt.toNumber(), 0);
     assert.equal(marketConfigPostAccept.cap.toNumber(), "1000000000000000");
@@ -341,7 +341,7 @@ describe("submit_cap", () => {
     });
 
     // Verify market config state
-    const marketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
 
     assert.equal(marketConfig.cap.toString(), "0");
     assert.equal(marketConfig.removableAt.toString(), (await test.getTimePlusTimelock()).toString());

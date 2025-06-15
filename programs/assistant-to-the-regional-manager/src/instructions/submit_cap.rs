@@ -55,7 +55,7 @@ pub struct SubmitCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
+    pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 
     // pathfinder accounts
     #[account(
@@ -82,7 +82,7 @@ impl<'info> SubmitCap<'info> {
     pub fn handle(ctx: Context<SubmitCap>, args: SubmitCapArgs) -> Result<()> {
         let SubmitCap {
             user,
-            market_config,
+            manager_market_config,
             config,
             market,
             queue,
@@ -96,16 +96,16 @@ impl<'info> SubmitCap<'info> {
         let market_id: Pubkey = market.key();
 
         // Check if there's already a pending cap change
-        if market_config.pending_cap.valid_at != 0 {
+        if manager_market_config.pending_cap.valid_at != 0 {
             return err!(ManagerError::AlreadyPending);
         }
 
         // Check if market is pending removal
-        if market_config.removable_at != 0 {
+        if manager_market_config.removable_at != 0 {
             return err!(ManagerError::PendingRemoval);
         }
 
-        let current_cap = market_config.cap;
+        let current_cap = manager_market_config.cap;
 
         // Check if new cap is same as current
         if args.supply_cap == current_cap {
@@ -132,12 +132,12 @@ impl<'info> SubmitCap<'info> {
 
        // If reducing cap, set immediately
         if args.supply_cap < current_cap {
-            market_config.cap = args.supply_cap;
+            manager_market_config.cap = args.supply_cap;
             set_cap(
                 args.supply_cap,
                 market_id,
                 queue,
-                market_config,
+                manager_market_config,
                 config,
                 market,
                 lender_shares,
@@ -146,7 +146,7 @@ impl<'info> SubmitCap<'info> {
             )?;
         } else {
             // Otherwise set as pending cap
-            market_config
+            manager_market_config
                 .pending_cap
                 .update(args.supply_cap, config.timelock)?;
         }
@@ -159,7 +159,7 @@ pub fn set_cap<'info>(
     new_cap: u64,
     market_id: Pubkey,
     queue: &mut QueueState,
-    market_config: &mut Account<'info, ManagerMarketConfig>,
+    manager_market_config: &mut Account<'info, ManagerMarketConfig>,
     manager_config: &mut Account<'info, ManagerVaultConfig>,
     market: &Account<'info, Market>,
     lender_shares: &AccountInfo<'info>,
@@ -168,14 +168,14 @@ pub fn set_cap<'info>(
 ) -> Result<()> {
 
     if new_cap > 0 {
-        if !market_config.enabled {
+        if !manager_market_config.enabled {
             queue.withdraw_queue.push(market_id);
 
             if queue.withdraw_queue.len() > MAX_QUEUE_LENGTH {
                 return err!(ManagerError::MaxQueueLengthExceeded);
             }
 
-            market_config.enabled = true;
+            manager_market_config.enabled = true;
 
             let view_market_ctx = CpiContext::new(
                 pathfinder_program.to_account_info(),
@@ -199,11 +199,11 @@ pub fn set_cap<'info>(
                 .ok_or(ManagerError::MathOverflow)?;
         }
 
-        market_config.removable_at = 0;
+        manager_market_config.removable_at = 0;
     }
 
-    market_config.cap = new_cap;
-    market_config.pending_cap = PendingU64 {
+    manager_market_config.cap = new_cap;
+    manager_market_config.pending_cap = PendingU64 {
         value: 0,
         valid_at: 0,
     };

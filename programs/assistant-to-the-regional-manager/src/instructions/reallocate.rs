@@ -119,10 +119,10 @@ impl<'info, 'c: 'info> Reallocate<'info> {
 
         // Step 2: Process deposits to target markets
         Self::process_deposits(
-            &accounts,
-            ctx.remaining_accounts,
             &args.supply_amounts,
             total_withdrawn,
+            &accounts,
+            ctx.remaining_accounts,
         )?;
 
         Ok(())
@@ -132,7 +132,7 @@ impl<'info, 'c: 'info> Reallocate<'info> {
         let supply_assets = Self::_accrued_supply_balance(
             &accounts.user,
             &accounts.pathfinder_market,
-            &accounts.lender_shares.shares,
+            accounts.lender_shares.shares,
             &accounts.pathfinder_config,
             &accounts.pathfinder_program,
         )?;
@@ -165,10 +165,10 @@ impl<'info, 'c: 'info> Reallocate<'info> {
     }
 
     fn process_deposits(
-        accounts: &Reallocate<'info>,
-        remaining_accounts: &'info [AccountInfo<'info>],
         supply_amounts: &[u64],
         mut total_withdrawn: u64,
+        accounts: &Reallocate<'info>,
+        remaining_accounts: &'info [AccountInfo<'info>],
     ) -> Result<()> {
         require!(
             remaining_accounts.len() / 3 == supply_amounts.len(),
@@ -223,7 +223,7 @@ impl<'info, 'c: 'info> Reallocate<'info> {
         let supply_assets = Self::_accrued_supply_balance(
             &accounts.user,
             &accounts.pathfinder_market,
-            &shares,
+            shares,
             &accounts.pathfinder_config,
             &accounts.pathfinder_program,
         )?;

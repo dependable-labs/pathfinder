@@ -44,26 +44,26 @@ pub struct SubmitMarketRemoval<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
+    pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 
     pub system_program: Program<'info, System>,
 }
 
 impl<'info> SubmitMarketRemoval<'info> {
     pub fn validate(&self, args: &SubmitMarketRemovalArgs) -> Result<()> {
-        let SubmitMarketRemoval { market_config, .. } = self;
+        let SubmitMarketRemoval { manager_market_config, .. } = self;
 
         require!(
-            market_config.removable_at == 0,
+            manager_market_config.removable_at == 0,
             ManagerError::AlreadyPending
         );
 
-        require!(market_config.cap == 0, ManagerError::NonZeroCap);
+        require!(manager_market_config.cap == 0, ManagerError::NonZeroCap);
 
-        require!(market_config.enabled, ManagerError::MarketNotEnabled);
+        require!(manager_market_config.enabled, ManagerError::MarketNotEnabled);
 
         require!(
-            market_config.pending_cap.valid_at == 0,
+            manager_market_config.pending_cap.valid_at == 0,
             ManagerError::PendingCap
         );
 
@@ -72,14 +72,14 @@ impl<'info> SubmitMarketRemoval<'info> {
 
     pub fn handle(ctx: Context<SubmitMarketRemoval>, args: SubmitMarketRemovalArgs) -> Result<()> {
         let SubmitMarketRemoval {
-            market_config,
+            manager_market_config,
             config,
             ..
         } = ctx.accounts;
 
         // Set the removableAt
         let current_timestamp = Clock::get()?.unix_timestamp as u64;
-        market_config.removable_at = current_timestamp
+        manager_market_config.removable_at = current_timestamp
             .checked_add(config.timelock)
             .ok_or(ManagerError::MathOverflow)?;
 
