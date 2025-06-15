@@ -60,7 +60,7 @@ pub struct RemoveFromWithdrawQueue<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
+    pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 
     // queue are the market accounts from the pathfinder program
     #[account(
@@ -105,18 +105,18 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
     let market_index = Self::find_market_in_queue(&accounts.queue, &args.market_id)?;
     
     // Validate market removal conditions
-    Self::validate_market_removal_conditions(&accounts.market_config)?;
+    Self::validate_market_removal_conditions(&accounts.manager_market_config)?;
     
     // Get lender shares (initialize if needed)
     let shares: u64 = Self::get_initialize_lender_shares(&accounts)?;
     
     // Validate position removal conditions
-    Self::validate_position_removal_conditions(&accounts.market_config, shares)?;
+    Self::validate_position_removal_conditions(&accounts.manager_market_config, shares)?;
 
     // remove from queue 
-    accounts.market_config.cap = 0; 
-    accounts.market_config.removable_at = 0;
-    accounts.market_config.enabled = false;
+    accounts.manager_market_config.cap = 0; 
+    accounts.manager_market_config.removable_at = 0;
+    accounts.manager_market_config.enabled = false;
     accounts.queue.withdraw_queue.remove(market_index);
     
     Ok(())
@@ -174,15 +174,15 @@ impl<'info> RemoveFromWithdrawQueue<'info> {
 
 
   fn validate_position_removal_conditions(
-    market_config: &ManagerMarketConfig, 
+    manager_market_config: &ManagerMarketConfig, 
     shares: u64
   ) -> Result<()> {
     if shares != 0 {
-      require!(market_config.removable_at != 0, ManagerError::InvalidMarketRemovalNonZeroSupply);
+      require!(manager_market_config.removable_at != 0, ManagerError::InvalidMarketRemovalNonZeroSupply);
       
       let current_time = Clock::get()?.unix_timestamp as u64;
       require!(
-        current_time >= market_config.removable_at, 
+        current_time >= manager_market_config.removable_at, 
         ManagerError::InvalidMarketRemovalTimelockNotElapsed
       );
     }

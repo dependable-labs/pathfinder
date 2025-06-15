@@ -63,6 +63,7 @@ pub trait VaultAccounting<'info, 'c: 'info> {
         }
         Ok(())
     }
+
     #[inline(never)]
     fn total_assets(
         manager_config: &Account<'info, ManagerVaultConfig>,

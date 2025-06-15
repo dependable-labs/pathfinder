@@ -229,7 +229,7 @@ describe("reallocate", () => {
         assert.strictEqual(err.code, "GenericFailure")
         return true;
       }
-    );  
+    ); 
   });
 
   it("fails to reallocate when supplyAmounts exceeds supplyCap", async () => {
@@ -563,7 +563,7 @@ describe("reallocate", () => {
     });
 
     // verify wbtc market cap is zero
-    const wbtcMarketCap = await manager.get_market_config(wbtcMarket.marketAcc.key).get_data();
+    const wbtcMarketCap = await manager.get_manager_market_config(wbtcMarket.marketAcc.key).get_data();
     assert.equal(Number(wbtcMarketCap.cap), 0);
 
 

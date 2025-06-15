@@ -219,7 +219,7 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         market: this.get_market(marketId).marketAcc.key,
-        marketConfig: this.get_market_config(marketId).key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
         queue: this.queue.key,
         lenderShares: this.get_market(marketId).get_lender_shares(this.managerVaultConfigAcc.key).key,
         pathfinderConfig: this.get_market(marketId).get_config().key,
@@ -251,7 +251,7 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         market: market,
-        marketConfig: this.get_market_config(marketId).key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
         queue: this.queue.key,
         lenderShares: deriveLenderShares(marketId, user.key.publicKey, this.program.programId),
         pathfinderConfig: deriveMarketConfig(this.program.programId),
@@ -277,7 +277,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        marketConfig: this.get_market_config(marketId).key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
         queue: this.queue.key,
         market: this.get_market(marketId).marketAcc.key,
         lenderShares: this.get_market(marketId).get_lender_shares(this.managerVaultConfigAcc.key).key,
@@ -304,7 +304,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        marketConfig: this.get_market_config(marketId).key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -325,7 +325,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
-        marketConfig: this.get_market_config(marketId).key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -398,7 +398,7 @@ export class ManagerFixture {
         user: user.key.publicKey,
         config: this.managerVaultConfigAcc.key,
         allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
-        marketConfig: this.get_market_config(market.marketAcc.key).key,
+        managerMarketConfig: this.get_manager_market_config(market.marketAcc.key).key,
         quoteMint: this.quoteMint,
         queue: this.queue.key,
         pathfinderMarket: market.marketAcc.key,
@@ -791,7 +791,7 @@ export class ManagerFixture {
   }
 
 
-  public get_market_config(marketId: PublicKey): AccountFixture {
+  public get_manager_market_config(marketId: PublicKey): AccountFixture {
     return new AccountFixture(
       "managerMarketConfig",
       deriveManagerMarketConfigAccount(

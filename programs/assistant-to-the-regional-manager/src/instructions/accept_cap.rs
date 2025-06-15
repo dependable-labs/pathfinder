@@ -49,7 +49,7 @@ pub struct AcceptCap<'info> {
         ],
         bump,
     )]
-    pub market_config: Box<Account<'info, ManagerMarketConfig>>,
+    pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 
     // pathfinder accounts
     pub market: Account<'info, Market>,
@@ -64,7 +64,7 @@ pub struct AcceptCap<'info> {
 impl<'info> AcceptCap<'info> {
     pub fn handle(ctx: Context<AcceptCap>, args: AcceptCapArgs) -> Result<()> {
         let AcceptCap {
-            market_config,
+            manager_market_config,
             queue,
             config,
             market,
@@ -74,15 +74,15 @@ impl<'info> AcceptCap<'info> {
             ..
         } = ctx.accounts;
 
-        after_timelock(market_config.pending_cap.valid_at)?;
+        after_timelock(manager_market_config.pending_cap.valid_at)?;
 
         // Set the new cap
-        let pending_cap = market_config.pending_cap.value;
+        let pending_cap = manager_market_config.pending_cap.value;
         set_cap(
             pending_cap,
             args.market_id,
             queue,
-            market_config,
+            manager_market_config,
             config,
             &market,
             &lender_shares,

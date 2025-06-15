@@ -244,7 +244,7 @@ it("should reject setting supply queue with unauthorized market", async () => {[
   await test.moveTimeForward(60 * 60 * 25);
 
   // Verify market is no longer authorized
-  const marketConfig = manager.get_market_config(market.marketAcc.key);
+  const marketConfig = manager.get_manager_market_config(market.marketAcc.key);
   const marketConfigData = await marketConfig.get_data();
   assert.equal(marketConfigData.cap.toNumber(), 0, "Market should be disabled");
 
@@ -493,7 +493,7 @@ it("should reject setting supply queue with unauthorized market", async () => {[
     });
 
     // verify removable_at is 0 before market removal submission
-    const preRemovalMarketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
+    const preRemovalMarketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(preRemovalMarketConfig.removableAt.toNumber(), 0);
 
     await manager.submitMarketRemoval({
@@ -502,7 +502,7 @@ it("should reject setting supply queue with unauthorized market", async () => {[
     });
 
     // verify removable_at is set correctly
-    const postRemovalMarketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
+    const postRemovalMarketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(postRemovalMarketConfig.removableAt.toNumber(), await test.getTimePlusTimelock());
 
     // Try to remove market before timelock elapses
@@ -533,7 +533,7 @@ it("should reject setting supply queue with unauthorized market", async () => {[
     });
 
     // verify market is removed
-    const marketConfig = manager.get_market_config(market.marketAcc.key);
+    const marketConfig = manager.get_manager_market_config(market.marketAcc.key);
     const marketConfigData = await marketConfig.get_data();
     assert.equal(marketConfigData.cap.toNumber(), 0, "Market should be disabled");
 

@@ -186,7 +186,7 @@ describe("guardian", () => {
     });
 
     // Verify market config state after revoke
-    const marketConfig = await manager.get_market_config(market.marketAcc.key).get_data();
+    const marketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
     assert.equal(marketConfig.cap.toNumber(), 0); // Original cap
     assert.equal(marketConfig.enabled, false);
     assert.equal(marketConfig.removableAt.toNumber(), 0);
