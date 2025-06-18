@@ -60,25 +60,3 @@ pub fn validate_pathfinder_market<'info>(
     );
     Ok(())
 }
-
-// Validates that a MarketConfig PDA matches expected values
-pub fn validate_pathfinder_lender_shares(
-    market_info: &Pubkey,
-    manager_config_info: &Pubkey,
-    lender_shares_info: &Pubkey,
-) -> Result<()> {
-    let (expected_pda, _) = Pubkey::find_program_address(
-        &[
-            pathfinder::state::MARKET_SHARES_SEED_PREFIX,
-            market_info.key().as_ref(),
-            manager_config_info.key().as_ref(),
-        ],
-        &PATHFINDER_PROGRAM_ID,
-    );
-
-    require!(
-        lender_shares_info.key() == expected_pda,
-        ManagerError::InvalidLenderShares
-    );
-    Ok(())
-}

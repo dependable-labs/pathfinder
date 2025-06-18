@@ -5,7 +5,7 @@ use crate::{
     state::{ManagerVaultConfig, SupplyShares},
 };
 
-use crate::utils::accounts::{validate_pathfinder_lender_shares, validate_pathfinder_market};
+use crate::utils::accounts::{validate_pathfinder_market};
 use pathfinder::{
     cpi::view_expected_supply_assets,
     instructions::views::supply_balances::{
