@@ -23,7 +23,7 @@ use crate::{
         MANAGER_MARKET_CONFIG_SEED_PREFIX, MANAGER_QUEUE_SEED_PREFIX,
     },
     traits::{allocator::AllocatorProtection, path_actions::PathActions},
-    utils::accounts::validate_manager_market_config_pda,
+    utils::accounts::{validate_manager_market_config, validate_pathfinder_market},
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -227,8 +227,8 @@ impl<'info, 'c: 'info> Reallocate<'info> {
 
     fn process_single_deposit(
         accounts: &Reallocate<'info>,
-        market_info: &AccountInfo<'info>,
-        lender_shares_info: &AccountInfo<'info>,
+        market_info: &'info AccountInfo<'info>,
+        lender_shares_info: &'info AccountInfo<'info>,
         manager_market_config_info: &'info AccountInfo<'info>,
         supply_amount: u64,
         total_withdrawn: u64,
@@ -273,27 +273,25 @@ impl<'info, 'c: 'info> Reallocate<'info> {
     }
 
     fn validate_deposit_accounts(
-        lender_shares_info: &AccountInfo<'info>,
-        market_info: &AccountInfo<'info>,
+        lender_shares_info: &'info AccountInfo<'info>,
+        market_info: &'info AccountInfo<'info>,
         manager_market_config_info: &'info AccountInfo<'info>,
         manager_config: &Account<'info, ManagerVaultConfig>,
     ) -> Result<(u64, u64)> {
+        let pathfinder_market_account = Account::<Market>::try_from(&market_info)?;
+        validate_pathfinder_market(&market_info, &pathfinder_market_account)?;
+
         validate_lender_shares(lender_shares_info, market_info, &manager_config.key())?;
+        let shares = get_lender_shares_data(lender_shares_info)?.shares;
 
-        let shares = if lender_shares_info.data_is_empty() {
-            0
-        } else {
-            get_lender_shares_data(lender_shares_info)?.shares
-        };
-
-        let manager_market_config_account =
-            Account::<ManagerMarketConfig>::try_from(&manager_market_config_info)?;
-
-        validate_manager_market_config_pda(
-            &manager_market_config_info.key(),
+        validate_manager_market_config(
+            &manager_market_config_info,
             &market_info.key(),
             &manager_config.key(),
         )?;
+
+        let manager_market_config_account =
+            Account::<ManagerMarketConfig>::try_from(&manager_market_config_info)?;
 
         let supply_cap = manager_market_config_account.cap;
         require!(supply_cap > 0, ManagerError::UnauthorizedMarket);

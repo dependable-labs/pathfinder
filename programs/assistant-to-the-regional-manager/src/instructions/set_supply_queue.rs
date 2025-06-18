@@ -3,7 +3,7 @@ use anchor_spl::token::*;
 
 use crate::error::*;
 use crate::state::*;
-use crate::utils::accounts::validate_manager_market_config_pda;
+use crate::utils::accounts::validate_manager_market_config;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetSupplyQueueArgs {
@@ -68,8 +68,8 @@ impl<'info, 'c: 'info> SetSupplyQueue<'info> {
             let manager_market_config_account =
                 Account::<ManagerMarketConfig>::try_from(&market_config_info)?;
 
-            validate_manager_market_config_pda(
-                &market_config_info.key(),
+            validate_manager_market_config(
+                &market_config_info,
                 &path_market_pubkey,
                 &manager_config.key(),
             )?;

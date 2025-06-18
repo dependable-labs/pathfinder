@@ -7,7 +7,7 @@ use crate::{
 };
 
 use crate::utils::accounts::{
-    validate_pathfinder_lender_shares_pda, validate_pathfinder_market_pda,
+    validate_pathfinder_lender_shares, validate_pathfinder_market,
 };
 use pathfinder::{
     cpi::view_expected_supply_assets,
@@ -129,10 +129,10 @@ pub trait VaultAccounting<'info, 'c: 'info> {
     ) -> Result<u64> {
         // 1. Validate market account
         let market_account = Account::<Market>::try_from(market_info)?;
-        validate_pathfinder_market_pda(&market_info.key(), &market_account)?;
+        validate_pathfinder_market(&market_info, &market_account)?;
 
         // 2. Validate lender shares account
-        validate_pathfinder_lender_shares_pda(
+        validate_pathfinder_lender_shares(
             &market_info.key(),
             &manager_config.key(),
             &lender_shares_info.key(),

@@ -1,6 +1,6 @@
 use crate::{
     error::ManagerError, generate_manager_config_seeds, state::*,
-    utils::accounts::validate_manager_market_config_pda,
+    utils::accounts::validate_manager_market_config,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
@@ -63,8 +63,8 @@ pub trait PathActions<'info, 'c: 'info> {
             // validate manager market config account
             let manager_market_config_account =
                 Account::<ManagerMarketConfig>::try_from(&manager_market_config_info)?;
-            validate_manager_market_config_pda(
-                &manager_market_config_info.key(),
+            validate_manager_market_config(
+                &manager_market_config_info,
                 &market_info.key(),
                 &manager_config.key(),
             )?;
