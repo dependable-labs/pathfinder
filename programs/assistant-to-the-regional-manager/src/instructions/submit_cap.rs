@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use pathfinder::{
     cpi::{view_expected_supply_assets, init_lender_shares},
-    state::{Market, Config},
+    state::{Market, Config, LenderShares, MARKET_SEED_PREFIX},
     program::Pathfinder,
     instructions::{views::supply_balances::ViewMarketWithLenderSharesArgs, init_lender_shares::InitLenderSharesArgs},
 };
@@ -26,19 +26,19 @@ pub struct SubmitCap<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     #[account(
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
         bump = queue.bump,
     )]
@@ -50,7 +50,7 @@ pub struct SubmitCap<'info> {
         space = 8 + std::mem::size_of::<ManagerMarketConfig>(),
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
             args.market_id.as_ref(),
         ],
         bump,
@@ -59,9 +59,18 @@ pub struct SubmitCap<'info> {
 
     // pathfinder accounts
     #[account(
-        owner = PATHFINDER_PROGRAM_ID,
+      mut,
+      seeds = [
+        MARKET_SEED_PREFIX,
+        &pathfinder_market.quote_mint.key().as_ref(),
+        &pathfinder_market.collateral_mint.key().as_ref(),
+        &pathfinder_market.ltv_factor.to_le_bytes(),
+        &pathfinder_market.oracle.id.to_bytes(),
+      ],
+      bump = pathfinder_market.bump,
+      seeds::program = pathfinder_program.key(),
     )]
-    pub market: Account<'info, Market>,
+    pub pathfinder_market: Account<'info, Market>,
     /// CHECK: could be unintialized checked in Pathfinder::expected_supply_assets
     #[account(mut)]
     pub lender_shares: AccountInfo<'info>,
@@ -75,7 +84,7 @@ impl<'info> CuratorProtection<'info> for SubmitCap<'info> {}
 
 impl<'info> SubmitCap<'info> {
     pub fn validate(&self, args: &SubmitCapArgs) -> Result<()> {
-        self.is_curator(&self.user, &self.config)?;
+        self.is_curator(&self.user, &self.manager_config)?;
         Ok(())
     }
 
@@ -83,8 +92,8 @@ impl<'info> SubmitCap<'info> {
         let SubmitCap {
             user,
             manager_market_config,
-            config,
-            market,
+            manager_config,
+            pathfinder_market,
             queue,
             lender_shares,
             pathfinder_config,
@@ -93,7 +102,7 @@ impl<'info> SubmitCap<'info> {
             ..
         } = ctx.accounts;
 
-        let market_id: Pubkey = market.key();
+        let market_id: Pubkey = pathfinder_market.key();
 
         // Check if there's already a pending cap change
         if manager_market_config.pending_cap.valid_at != 0 {
@@ -118,7 +127,7 @@ impl<'info> SubmitCap<'info> {
                 pathfinder_program.to_account_info(),
                 pathfinder::cpi::accounts::InitLenderShares {
                     user: user.to_account_info(),
-                    market: market.to_account_info(),
+                    market: pathfinder_market.to_account_info(),
                     config: pathfinder_config.to_account_info(),
                     lender_shares: lender_shares.to_account_info(),
                     system_program: system_program.to_account_info(),
@@ -126,7 +135,7 @@ impl<'info> SubmitCap<'info> {
             );
             // performs seed & ownership validation
             init_lender_shares(init_lender_shares_ctx, InitLenderSharesArgs {
-                owner: config.key(),
+                owner: manager_config.key(),
             })?;
         }
 
@@ -138,9 +147,9 @@ impl<'info> SubmitCap<'info> {
                 market_id,
                 queue,
                 manager_market_config,
-                config,
-                market,
-                lender_shares,
+                manager_config,
+                &pathfinder_market,
+                &lender_shares.to_account_info(),
                 pathfinder_config,
                 pathfinder_program,
             )?;
@@ -148,7 +157,7 @@ impl<'info> SubmitCap<'info> {
             // Otherwise set as pending cap
             manager_market_config
                 .pending_cap
-                .update(args.supply_cap, config.timelock)?;
+                .update(args.supply_cap, manager_config.timelock)?;
         }
 
         Ok(())
@@ -161,7 +170,7 @@ pub fn set_cap<'info>(
     queue: &mut QueueState,
     manager_market_config: &mut Account<'info, ManagerMarketConfig>,
     manager_config: &mut Account<'info, ManagerVaultConfig>,
-    market: &Account<'info, Market>,
+    pathfinder_market: &Account<'info, Market>,
     lender_shares: &AccountInfo<'info>,
     pathfinder_config: &Account<'info, Config>,
     pathfinder_program: &Program<'info, Pathfinder>,
@@ -180,7 +189,7 @@ pub fn set_cap<'info>(
             let view_market_ctx = CpiContext::new(
                 pathfinder_program.to_account_info(),
                 pathfinder::cpi::accounts::ViewMarketWithLenderShares {
-                    market: market.to_account_info(),
+                    market: pathfinder_market.to_account_info(),
                     config: pathfinder_config.to_account_info(),
                     lender_shares: lender_shares.to_account_info(),
                 },

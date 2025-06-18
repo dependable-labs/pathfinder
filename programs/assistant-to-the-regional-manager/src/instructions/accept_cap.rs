@@ -5,6 +5,7 @@ use anchor_lang::prelude::*;
 use pathfinder::{
     state::{Market, LenderShares, Config},
     program::Pathfinder,
+    state::{MARKET_SEED_PREFIX, MARKET_SHARES_SEED_PREFIX},
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -22,21 +23,21 @@ pub struct AcceptCap<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     #[account(
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
-        bump,
+        bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
 
@@ -44,18 +45,40 @@ pub struct AcceptCap<'info> {
         mut,
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
-            config.key().as_ref(),
-            args.market_id.as_ref(),
+            &manager_config.key().as_ref(),
+            &args.market_id.as_ref(),
         ],
         bump,
     )]
     pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 
     // pathfinder accounts
-    pub market: Account<'info, Market>,
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SHARES_SEED_PREFIX,
+        &pathfinder_market.key().as_ref(),
+        &manager_config.key().as_ref(),
+      ],
+      bump,
+      seeds::program = pathfinder_program.key(),
+    )]
+    pub lender_shares: Box<Account<'info, LenderShares>>,
+
+    #[account(
+        mut,
+        seeds = [
+            MARKET_SEED_PREFIX,
+            &pathfinder_market.quote_mint.key().as_ref(),
+            &pathfinder_market.collateral_mint.key().as_ref(),
+            &pathfinder_market.ltv_factor.to_le_bytes(),
+            &pathfinder_market.oracle.id.to_bytes(),
+        ],
+        bump = pathfinder_market.bump,
+        seeds::program = pathfinder_program.key(),
+    )]
+    pub pathfinder_market: Account<'info, Market>,
     pub pathfinder_config: Account<'info, Config>,
-    /// CHECK: could be unintialized checked in Pathfinder::expected_supply_assets
-    pub lender_shares: AccountInfo<'info>,
     pub pathfinder_program: Program<'info, Pathfinder>,
 
     pub system_program: Program<'info, System>,
@@ -66,8 +89,8 @@ impl<'info> AcceptCap<'info> {
         let AcceptCap {
             manager_market_config,
             queue,
-            config,
-            market,
+            manager_config,
+            pathfinder_market,
             lender_shares,
             pathfinder_config,
             pathfinder_program,
@@ -83,9 +106,9 @@ impl<'info> AcceptCap<'info> {
             args.market_id,
             queue,
             manager_market_config,
-            config,
-            &market,
-            &lender_shares,
+            manager_config,
+            &pathfinder_market,
+            &lender_shares.to_account_info(),
             &pathfinder_config,
             &pathfinder_program,
         )?;

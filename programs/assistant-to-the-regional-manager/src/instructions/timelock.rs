@@ -11,29 +11,29 @@ pub struct RevokePendingTimelock<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> GuardianProtection<'info> for RevokePendingTimelock<'info> {}
 
 impl<'info> RevokePendingTimelock<'info> {
     pub fn validate(&self) -> Result<()> {
-        self.is_guardian(&self.user, &self.config)?;
+        self.is_guardian(&self.user, &self.manager_config)?;
 
         Ok(())
     }
 
     pub fn handle(ctx: Context<RevokePendingTimelock>) -> Result<()> {
-        let config = &mut ctx.accounts.config;
+        let manager_config = &mut ctx.accounts.manager_config;
 
-        config.pending_timelock.value = 0;
-        config.pending_timelock.valid_at = 0;
+        manager_config.pending_timelock.value = 0;
+        manager_config.pending_timelock.valid_at = 0;
 
         Ok(())
     }
@@ -54,23 +54,23 @@ pub struct SubmitTimelock<'info> {
       mut,
       seeds = [
           MANAGER_CONFIG_SEED_PREFIX,
-          config.quote_mint.as_ref(),
-          config.symbol.as_bytes(),
-          config.name.as_bytes(),
+          &manager_config.quote_mint.as_ref(),
+          &manager_config.symbol.as_bytes(),
+          &manager_config.name.as_bytes(),
       ],
-      bump = config.bump,
+      bump = manager_config.bump,
   )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> OwnerProtection<'info> for SubmitTimelock<'info> {}
 
 impl<'info> SubmitTimelock<'info> {
     pub fn validate(&self, args: &SubmitTimelockArgs) -> Result<()> {
-        self.is_owner(&self.user, &self.config)?;
+        self.is_owner(&self.user, &self.manager_config)?;
 
         require!(
-            args.new_timelock != self.config.timelock,
+            args.new_timelock != self.manager_config.timelock,
             ManagerError::AlreadySet
         );
 
@@ -78,11 +78,11 @@ impl<'info> SubmitTimelock<'info> {
     }
 
     pub fn handle(ctx: Context<SubmitTimelock>, args: SubmitTimelockArgs) -> Result<()> {
-        let SubmitTimelock { config, .. } = ctx.accounts;
+        let SubmitTimelock { manager_config, .. } = ctx.accounts;
 
-        let current_timelock = config.timelock;
+        let current_timelock = manager_config.timelock;
 
-        if config.pending_timelock.valid_at != 0 {
+        if manager_config.pending_timelock.valid_at != 0 {
             return err!(ManagerError::AlreadyPending);
         }
 
@@ -90,9 +90,9 @@ impl<'info> SubmitTimelock<'info> {
 
         // If increasing timelock, apply immediately
         if args.new_timelock > current_timelock {
-            set_timelock(config, args.new_timelock)?;
+            set_timelock(manager_config, args.new_timelock)?;
         } else {
-            config
+            manager_config
                 .pending_timelock
                 .update(args.new_timelock, current_timelock)?;
         }
@@ -108,20 +108,25 @@ pub struct AcceptTimelock<'info> {
 
     #[account(
       mut,
-      seeds = [MANAGER_CONFIG_SEED_PREFIX, config.quote_mint.as_ref(), config.symbol.as_bytes(), config.name.as_bytes()],
-      bump = config.bump,
+      seeds = [
+        MANAGER_CONFIG_SEED_PREFIX,
+        &manager_config.quote_mint.as_ref(),
+        &manager_config.symbol.as_bytes(),
+        &manager_config.name.as_bytes(),
+      ],
+      bump = manager_config.bump,
   )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> AcceptTimelock<'info> {
     pub fn handle(ctx: Context<AcceptTimelock>) -> Result<()> {
-        let config = &mut ctx.accounts.config;
-        let pending_timelock = config.pending_timelock.value;
+        let manager_config = &mut ctx.accounts.manager_config;
+        let pending_timelock = manager_config.pending_timelock.value;
 
-        after_timelock(config.pending_timelock.valid_at)?;
+        after_timelock(manager_config.pending_timelock.valid_at)?;
 
-        set_timelock(config, pending_timelock)?;
+        set_timelock(manager_config, pending_timelock)?;
 
         Ok(())
     }

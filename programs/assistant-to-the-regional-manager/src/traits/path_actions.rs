@@ -19,7 +19,7 @@ pub trait PathActions<'info, 'c: 'info> {
     fn _supply_path(
         assets: u64,
         user: &Signer<'info>,
-        config: &Account<'info, ManagerVaultConfig>,
+        manager_config: &Account<'info, ManagerVaultConfig>,
         supply_queue: &Vec<Pubkey>,
         vault_ata_quote: &Account<'info, TokenAccount>,
         user_ata_quote: &Account<'info, TokenAccount>,
@@ -66,7 +66,7 @@ pub trait PathActions<'info, 'c: 'info> {
             validate_manager_market_config_pda(
                 &manager_market_config_info.key(),
                 &market_info.key(),
-                &config.key(),
+                &manager_config.key(),
             )?;
 
             // check supply cap, if 0, skip
@@ -118,7 +118,7 @@ pub trait PathActions<'info, 'c: 'info> {
                 let deposit_args = pathfinder::instructions::DepositArgs {
                     amount: to_supply,
                     shares: 0,
-                    owner: config.key(),
+                    owner: manager_config.key(),
                 };
 
                 // Skip markets that fail by catching any errors

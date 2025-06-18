@@ -125,7 +125,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
         queue: this.queue.key,
         managerAtaQuote: this.quoteAta.key,
@@ -155,7 +155,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: this.queue.key,
         feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
         newFeeRecipientShares: deriveSupplyShares(new_fee_recipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
@@ -187,7 +187,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: this.queue.key,
         feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
         pathfinderConfig: markets[0].get_config().key,
@@ -217,10 +217,10 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
-        market: this.get_market(marketId).marketAcc.key,
-        managerMarketConfig: this.get_manager_market_config(marketId).key,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: this.queue.key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
+        pathfinderMarket: this.get_market(marketId).marketAcc.key,
         lenderShares: this.get_market(marketId).get_lender_shares(this.managerVaultConfigAcc.key).key,
         pathfinderConfig: this.get_market(marketId).get_config().key,
         pathfinderProgram: PATHFINDER_PROGRAM_ID,
@@ -249,8 +249,8 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
-        market: market,
+        managerConfig: this.managerVaultConfigAcc.key,
+        pathfinderMarket: market,
         managerMarketConfig: this.get_manager_market_config(marketId).key,
         queue: this.queue.key,
         lenderShares: deriveLenderShares(marketId, user.key.publicKey, this.program.programId),
@@ -276,11 +276,11 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
-        managerMarketConfig: this.get_manager_market_config(marketId).key,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: this.queue.key,
-        market: this.get_market(marketId).marketAcc.key,
+        managerMarketConfig: this.get_manager_market_config(marketId).key,
         lenderShares: this.get_market(marketId).get_lender_shares(this.managerVaultConfigAcc.key).key,
+        pathfinderMarket: this.get_market(marketId).marketAcc.key,
         pathfinderConfig: this.get_market(marketId).get_config().key,
         pathfinderProgram: PATHFINDER_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -303,7 +303,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         managerMarketConfig: this.get_manager_market_config(marketId).key,
       })
       .signers([user.key.payer])
@@ -324,7 +324,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         managerMarketConfig: this.get_manager_market_config(marketId).key,
       })
       .signers([user.key.payer])
@@ -345,9 +345,9 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
-        quoteMint: this.quoteMint,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: deriveQueueAccount(this.managerVaultConfigAcc.key, this.program.programId),
+        quoteMint: this.quoteMint,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
         // NOTE: remaining accounts are market configs.
@@ -372,7 +372,7 @@ export class ManagerFixture {
       .accounts({
         user: user.key.publicKey,
         allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         quoteMint: this.quoteMint,
         queue: this.queue.key,
         tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
@@ -396,7 +396,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         allocator: (await this.get_allocator(user.key.publicKey))?.key || null,
         managerMarketConfig: this.get_manager_market_config(market.marketAcc.key).key,
         quoteMint: this.quoteMint,
@@ -426,7 +426,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -442,7 +442,7 @@ export class ManagerFixture {
       .acceptGuardian()
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -457,7 +457,7 @@ export class ManagerFixture {
       .revokePendingGuardian()
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -477,7 +477,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -507,7 +507,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         allocator: this.allocator.key,
       })
       .signers([user.key.payer])
@@ -529,7 +529,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -545,7 +545,7 @@ export class ManagerFixture {
       .acceptTimelock()
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -561,7 +561,7 @@ export class ManagerFixture {
       .revokePendingTimelock()
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
       })
       .signers([user.key.payer])
       .rpc(COMMITMENT);
@@ -594,7 +594,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: this.queue.key,
         feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
         receiverShares: deriveSupplyShares(receiver.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
@@ -670,7 +670,7 @@ export class ManagerFixture {
         pathfinderConfig: markets[withdrawQueueIndex].get_config().key,
         vaultAtaQuote: markets[withdrawQueueIndex].quoteAta.key,
         quoteMint: this.quoteMint,
-        market: markets[withdrawQueueIndex].marketAcc.key,
+        pathfinderMarket: markets[withdrawQueueIndex].marketAcc.key,
         lenderShares: markets[withdrawQueueIndex].get_lender_shares(this.managerVaultConfigAcc.key).key,
         recipientAtaQuote: recipient.quoteAta,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -714,7 +714,7 @@ export class ManagerFixture {
       })
       .accounts({
         user: user.key.publicKey,
-        config: this.managerVaultConfigAcc.key,
+        managerConfig: this.managerVaultConfigAcc.key,
         queue: this.queue.key,
         feeRecipientShares: deriveSupplyShares(this.feeRecipient.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),
         receiverShares: deriveSupplyShares(receiver.key.publicKey, this.managerVaultConfigAcc.key, this.program.programId),

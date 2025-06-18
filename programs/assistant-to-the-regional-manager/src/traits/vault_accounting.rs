@@ -164,7 +164,7 @@ pub trait VaultAccounting<'info, 'c: 'info> {
         Ok(expected_assets.get())
     }
 
-    // Computes and returns the fee shares (`feeShares`) to mint and the new vault's total assets
+    // Computes and returns the fee shares (`feeShares`) to accrue to the fee recipient and the new vault's total assets
     // (`newTotalAssets`).
     fn _accrued_fee_shares(
         manager_config: &Account<'info, ManagerVaultConfig>,

@@ -15,19 +15,19 @@ pub struct RevokePendingCap<'info> {
     #[account(
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
     
     #[account(
         mut,
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
             args.market_id.as_ref(),
         ],
         bump,
@@ -40,7 +40,7 @@ impl<'info> CuratorOrGuardianProtection<'info> for RevokePendingCap<'info> {}
 impl<'info> RevokePendingCap<'info> {
 
     pub fn validate(&self, args: &RevokePendingCapArgs) -> Result<()> {
-        self.is_curator_or_guardian(&self.user, &self.config)?;
+        self.is_curator_or_guardian(&self.user, &self.manager_config)?;
         Ok(())
     }
 

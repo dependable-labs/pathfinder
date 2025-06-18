@@ -17,21 +17,21 @@ pub struct SubmitMarketRemoval<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     #[account(
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
-        bump,
+        bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
 
@@ -39,8 +39,8 @@ pub struct SubmitMarketRemoval<'info> {
         mut,
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
-            config.key().as_ref(),
-            args.market_id.as_ref(),
+            &manager_config.key().as_ref(),
+            &args.market_id.as_ref(),
         ],
         bump,
     )]
@@ -73,14 +73,14 @@ impl<'info> SubmitMarketRemoval<'info> {
     pub fn handle(ctx: Context<SubmitMarketRemoval>, args: SubmitMarketRemovalArgs) -> Result<()> {
         let SubmitMarketRemoval {
             manager_market_config,
-            config,
+            manager_config,
             ..
         } = ctx.accounts;
 
         // Set the removableAt
         let current_timestamp = Clock::get()?.unix_timestamp as u64;
         manager_market_config.removable_at = current_timestamp
-            .checked_add(config.timelock)
+            .checked_add(manager_config.timelock)
             .ok_or(ManagerError::MathOverflow)?;
 
         Ok(())
