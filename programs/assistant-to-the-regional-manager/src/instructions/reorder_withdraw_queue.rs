@@ -20,7 +20,7 @@ pub struct ReorderWithdrawQueue<'info> {
     #[account(
         seeds = [
             MANAGER_ALLOCATOR_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
             user.key().as_ref(),
         ],
         bump,
@@ -31,22 +31,22 @@ pub struct ReorderWithdrawQueue<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            quote_mint.key().as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.key().as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     // queue are the market accounts from the pathfinder program
     #[account(
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
-        bump,
+        bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
 
@@ -61,7 +61,7 @@ impl<'info> AllocatorProtection<'info> for ReorderWithdrawQueue<'info> {}
 
 impl<'info> ReorderWithdrawQueue<'info> {
     pub fn validate(&self) -> Result<()> {
-        self.is_allocator(&self.user, &self.config, self.allocator.as_ref())?;
+        self.is_allocator(&self.user, &self.manager_config, self.allocator.as_ref())?;
 
         Ok(())
     }

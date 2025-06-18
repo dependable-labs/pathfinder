@@ -24,20 +24,20 @@ pub struct SetFeeRecipient<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     #[account(
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            config.key().as_ref(),
-            config.fee_recipient.key().as_ref()
+            &manager_config.key().as_ref(),
+            &manager_config.fee_recipient.key().as_ref()
         ],
         bump = fee_recipient_shares.bump,
     )]
@@ -50,7 +50,7 @@ pub struct SetFeeRecipient<'info> {
         space = 8 + std::mem::size_of::<SupplyShares>(),
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
             args.new_fee_recipient.key().as_ref()
         ],
         bump
@@ -61,7 +61,7 @@ pub struct SetFeeRecipient<'info> {
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
         bump = queue.bump,
     )]
@@ -84,9 +84,9 @@ impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for SetFeeRecipient<'info> {}
 
 impl<'info, 'c: 'info> SetFeeRecipient<'info> {
     pub fn validate(&self, args: &SetFeeRecipientArgs) -> Result<()> {
-        self.is_owner(&self.user, &self.config)?;
+        self.is_owner(&self.user, &self.manager_config)?;
 
-        if args.new_fee_recipient == self.config.fee_recipient {
+        if args.new_fee_recipient == self.manager_config.fee_recipient {
             return err!(ManagerError::AlreadySet);
         }
 
@@ -94,7 +94,7 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
             return err!(ManagerError::ZeroFeeRecipient);
         }
 
-        if self.config.fee != 0 && self.config.fee_recipient == Pubkey::default() {
+        if self.manager_config.fee != 0 && self.manager_config.fee_recipient == Pubkey::default() {
             return err!(ManagerError::ZeroFeeRecipient);
         }
 
@@ -103,7 +103,7 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
 
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: SetFeeRecipientArgs) -> Result<()> {
         let SetFeeRecipient {
-            config,
+            manager_config,
             fee_recipient_shares,
             new_fee_recipient_shares,
             queue,
@@ -113,7 +113,7 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
         } = ctx.accounts;
 
         let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(
-            config,
+            manager_config,
             &queue.withdraw_queue,
             ctx.remaining_accounts,
             pathfinder_config,
@@ -129,7 +129,7 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
         }
 
         // Update last total assets
-        config.last_total_assets = config
+        manager_config.last_total_assets = manager_config
             .last_total_assets
             .checked_add(new_total_assets)
             .ok_or(ManagerError::MathOverflow)?;
@@ -140,7 +140,7 @@ impl<'info, 'c: 'info> SetFeeRecipient<'info> {
             shares: 0,
         });
 
-        config.fee_recipient = args.new_fee_recipient;
+        manager_config.fee_recipient = args.new_fee_recipient;
 
         Ok(())
     }

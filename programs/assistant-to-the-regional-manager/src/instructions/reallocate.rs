@@ -10,7 +10,7 @@ use pathfinder::{
     cpi::deposit,
     instructions::views::supply_balances::{get_lender_shares_data, validate_lender_shares},
     program::Pathfinder,
-    state::{Config, LenderShares, Market},
+    state::{Config, LenderShares, Market, MARKET_SEED_PREFIX, MARKET_SHARES_SEED_PREFIX},
 };
 
 // Local imports
@@ -52,9 +52,9 @@ pub struct Reallocate<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            quote_mint.key().as_ref(),
-            manager_config.symbol.as_bytes(),
-            manager_config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
         bump = manager_config.bump,
     )]
@@ -64,10 +64,10 @@ pub struct Reallocate<'info> {
         mut,
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
-            manager_config.key().as_ref(),
-            pathfinder_market.key().as_ref(),
+            &manager_config.key().as_ref(),
+            &pathfinder_market.key().as_ref(),
         ],
-        bump, // TODO: Should be manager_market_config.bump?
+        bump,
     )]
     pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 
@@ -84,10 +84,32 @@ pub struct Reallocate<'info> {
     pub manager_ata_quote: Box<Account<'info, TokenAccount>>,
 
     // pathfinder accounts
-    #[account(mut)]
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SEED_PREFIX,
+        &pathfinder_market.quote_mint.key().as_ref(),
+        &pathfinder_market.collateral_mint.key().as_ref(),
+        &pathfinder_market.ltv_factor.to_le_bytes(),
+        &pathfinder_market.oracle.id.to_bytes(),
+      ],
+      bump = pathfinder_market.bump,
+      seeds::program = pathfinder_program.key(),
+    )]
     pub pathfinder_market: Account<'info, Market>,
-    #[account(mut)]
-    pub lender_shares: Account<'info, LenderShares>,
+
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SHARES_SEED_PREFIX,
+        &pathfinder_market.key().as_ref(),
+        manager_config.key().as_ref(),
+      ],
+      bump,
+      seeds::program = pathfinder_program.key(),
+    )]
+    pub lender_shares: Box<Account<'info, LenderShares>>,
+
     #[account(mut)]
     pub pathfinder_config: Box<Account<'info, Config>>,
     pub pathfinder_program: Program<'info, Pathfinder>,

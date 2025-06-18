@@ -40,7 +40,7 @@ pub struct CreateManager<'info> {
     ],
     bump,
   )]
-  pub config: Box<Account<'info, ManagerVaultConfig>>,
+  pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
   #[account(
     init,
@@ -48,7 +48,7 @@ pub struct CreateManager<'info> {
     space = 8 + std::mem::size_of::<QueueState>() + (MAX_QUEUE_LENGTH * std::mem::size_of::<Pubkey>() * 2),
     seeds = [
       MANAGER_QUEUE_SEED_PREFIX,
-      config.key().as_ref(),
+      &manager_config.key().as_ref(),
     ],
     bump,
   )]
@@ -60,7 +60,7 @@ pub struct CreateManager<'info> {
       space = 8 + std::mem::size_of::<SupplyShares>(),
       seeds = [
           MANAGER_SHARES_SEED_PREFIX,
-          config.key().as_ref(),
+          &manager_config.key().as_ref(),
           args.fee_recipient.key().as_ref()
       ],
       bump
@@ -80,7 +80,7 @@ impl<'info> CreateManager<'info> {
   pub fn handle(ctx: Context<CreateManager>, args: CreateManagerArgs) -> Result<()> {
 
     let CreateManager {
-      config,
+      manager_config,
       quote_mint,
       queue,
       fee_recipient_shares,
@@ -89,8 +89,8 @@ impl<'info> CreateManager<'info> {
 
     check_timelock_bounds(args.timelock)?;
 
-    config.set_inner(ManagerVaultConfig {
-        bump: ctx.bumps.config,
+    manager_config.set_inner(ManagerVaultConfig {
+        bump: ctx.bumps.manager_config,
         name: args.name,
         symbol: args.symbol,
         quote_mint: quote_mint.key(),

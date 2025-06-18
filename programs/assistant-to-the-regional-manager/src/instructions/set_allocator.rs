@@ -19,7 +19,7 @@ pub struct SetAllocator<'info> {
     space = 8 + std::mem::size_of::<AllocatorState>(),
     seeds = [
         MANAGER_ALLOCATOR_SEED_PREFIX,
-        config.key().as_ref(),
+        &manager_config.key().as_ref(),
         args.allocator.as_ref(),
     ],
     bump,
@@ -31,13 +31,13 @@ pub struct SetAllocator<'info> {
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
-        config.quote_mint.as_ref(),
-        config.symbol.as_bytes(),
-        config.name.as_bytes(),
+        &manager_config.quote_mint.as_ref(),
+        &manager_config.symbol.as_bytes(),
+        &manager_config.name.as_bytes(),
     ],
     bump,
   )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -51,7 +51,7 @@ impl<'info> SetAllocator<'info> {
             ManagerError::AlreadySet
         );
 
-        self.is_owner(&self.user, &self.config)?;
+        self.is_owner(&self.user, &self.manager_config)?;
 
         Ok(())
     }

@@ -20,22 +20,22 @@ pub struct SetSupplyQueue<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            quote_mint.key().as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.key().as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     // queue are the market accounts from the pathfinder program
     #[account(
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
-        bump,
+        bump = queue.bump,
     )]
     pub queue: Box<Account<'info, QueueState>>,
 
@@ -53,7 +53,7 @@ impl<'info, 'c: 'info> SetSupplyQueue<'info> {
         ctx: Context<'_, '_, 'c, 'info, SetSupplyQueue<'info>>,
         args: SetSupplyQueueArgs,
     ) -> Result<()> {
-        let SetSupplyQueue { config, queue, .. } = ctx.accounts;
+        let SetSupplyQueue { manager_config, queue, .. } = ctx.accounts;
 
         // Check queue length doesn't exceed max
         if args.market_ids.len() > MAX_QUEUE_LENGTH {
@@ -71,7 +71,7 @@ impl<'info, 'c: 'info> SetSupplyQueue<'info> {
             validate_manager_market_config_pda(
                 &market_config_info.key(),
                 &path_market_pubkey,
-                &config.key(),
+                &manager_config.key(),
             )?;
 
             if manager_market_config_account.cap == 0 {

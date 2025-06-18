@@ -16,23 +16,23 @@ pub struct SetCurator<'info> {
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
-        config.quote_mint.as_ref(),
-        config.symbol.as_bytes(),
-        config.name.as_bytes(),
+        &manager_config.quote_mint.as_ref(),
+        &manager_config.symbol.as_bytes(),
+        &manager_config.name.as_bytes(),
     ],
-    bump,
+    bump = manager_config.bump,
   )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> OwnerProtection<'info> for SetCurator<'info> {}
 
 impl<'info> SetCurator<'info> {
     pub fn validate(&self, args: &SetCuratorArgs) -> Result<()> {
-        self.is_owner(&self.user, &self.config)?;
+        self.is_owner(&self.user, &self.manager_config)?;
 
         require!(
-            args.curator != self.config.curator,
+            args.curator != self.manager_config.curator,
             ManagerError::AlreadySet
         );
 
@@ -40,9 +40,9 @@ impl<'info> SetCurator<'info> {
     }
 
     pub fn handle(ctx: Context<SetCurator>, args: SetCuratorArgs) -> Result<()> {
-        let SetCurator { config, .. } = ctx.accounts;
+        let SetCurator { manager_config, .. } = ctx.accounts;
 
-        config.curator = args.curator;
+        manager_config.curator = args.curator;
 
         Ok(())
     }

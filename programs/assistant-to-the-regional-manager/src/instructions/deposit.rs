@@ -27,19 +27,19 @@ pub struct Deposit<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     #[account(
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
         bump = queue.bump,
     )]
@@ -49,8 +49,8 @@ pub struct Deposit<'info> {
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            config.key().as_ref(),
-            config.fee_recipient.key().as_ref()
+            &manager_config.key().as_ref(),
+            &manager_config.fee_recipient.key().as_ref()
         ],
         bump = fee_recipient_shares.bump,
     )]
@@ -62,8 +62,8 @@ pub struct Deposit<'info> {
         space = 8 + std::mem::size_of::<SupplyShares>(),
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            config.key().as_ref(),
-            args.receiver.key().as_ref()
+            &manager_config.key().as_ref(),
+            &args.receiver.key().as_ref()
         ],
         bump
     )]
@@ -93,7 +93,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: DepositArgs) -> Result<()> {
         let Deposit {
             user,
-            config,
+            manager_config,
             queue,
             fee_recipient_shares,
             receiver_shares,
@@ -107,7 +107,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
         } = ctx.accounts;
 
         let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(
-            config,
+            manager_config,
             &queue.withdraw_queue,
             ctx.remaining_accounts,
             pathfinder_config,
@@ -124,20 +124,20 @@ impl<'info, 'c: 'info> Deposit<'info> {
 
         // Update `lastTotalAssets` to avoid an inconsistent state in a re-entrant context.
         // It is updated again in `_deposit`.
-        config.last_total_assets = new_total_assets;
+        manager_config.last_total_assets = new_total_assets;
 
         let shares = Self::_convert_to_shares(
             args.assets,
-            config.total_shares,
+            manager_config.total_shares,
             new_total_assets,
-            config.decimals_offset,
+            manager_config.decimals_offset,
             false,
         )?;
 
         Self::_supply_path(
             args.assets,
             &user,
-            &config,
+            &manager_config,
             &queue.supply_queue,
             &vault_ata_quote,
             &user_ata_quote,
@@ -154,7 +154,7 @@ impl<'info, 'c: 'info> Deposit<'info> {
             .ok_or(ManagerError::MathOverflow)?;
 
         // Update last total assets
-        config.last_total_assets = config
+        manager_config.last_total_assets = manager_config
             .last_total_assets
             .checked_add(args.assets)
             .ok_or(ManagerError::MathOverflow)?;

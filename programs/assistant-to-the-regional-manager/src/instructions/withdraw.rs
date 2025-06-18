@@ -3,7 +3,7 @@ use anchor_spl::{associated_token::AssociatedToken, token::*};
 use pathfinder::{
     math::mul_div_up,
     program::Pathfinder,
-    state::{Config, LenderShares, Market},
+    state::{Config, LenderShares, Market, MARKET_SEED_PREFIX, MARKET_SHARES_SEED_PREFIX},
 };
 
 use crate::{
@@ -35,9 +35,9 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            manager_config.quote_mint.as_ref(),
-            manager_config.symbol.as_bytes(),
-            manager_config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
         bump = manager_config.bump,
     )]
@@ -57,8 +57,8 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            manager_config.key().as_ref(),
-            manager_config.fee_recipient.key().as_ref()
+            &manager_config.key().as_ref(),
+            &manager_config.fee_recipient.key().as_ref()
         ],
         bump = fee_recipient_shares.bump,
     )]
@@ -68,8 +68,8 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            manager_config.key().as_ref(),
-            user.key().as_ref()
+            &manager_config.key().as_ref(),
+            &user.key().as_ref()
         ],
         bump,
     )]
@@ -84,15 +84,37 @@ pub struct Withdraw<'info> {
     pub recipient_ata_quote: Account<'info, TokenAccount>,
 
     // pathfinder accounts
-    #[account(mut)]
-    pub market: Account<'info, Market>,
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SEED_PREFIX,
+        &pathfinder_market.quote_mint.key().as_ref(),
+        &pathfinder_market.collateral_mint.key().as_ref(),
+        &pathfinder_market.ltv_factor.to_le_bytes(),
+        &pathfinder_market.oracle.id.to_bytes(),
+      ],
+      bump = pathfinder_market.bump,
+      seeds::program = pathfinder_program.key(),
+    )]
+    pub pathfinder_market: Account<'info, Market>,
+
+    #[account(
+      mut,
+      seeds = [
+        MARKET_SHARES_SEED_PREFIX,
+        &pathfinder_market.key().as_ref(),
+        &manager_config.key().as_ref(),
+      ],
+      bump,
+      seeds::program = pathfinder_program.key(),
+    )]
+    pub lender_shares: Box<Account<'info, LenderShares>>,
+
     pub quote_mint: Box<Account<'info, Mint>>,
     #[account(mut)]
     pub pathfinder_config: Box<Account<'info, Config>>,
     #[account(mut)]
     pub vault_ata_quote: Box<Account<'info, TokenAccount>>,
-    #[account(mut)]
-    pub lender_shares: Account<'info, LenderShares>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -117,7 +139,7 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             user_shares,
             recipient_ata_quote,
             quote_mint,
-            market,
+            pathfinder_market,
             pathfinder_config,
             vault_ata_quote,
             lender_shares,
@@ -181,7 +203,7 @@ impl<'info, 'c: 'info> Withdraw<'info> {
             &quote_mint,
             &vault_ata_quote,
             &recipient_ata_quote,
-            &market,
+            &pathfinder_market,
             &lender_shares,
             &pathfinder_config,
             &pathfinder_program,

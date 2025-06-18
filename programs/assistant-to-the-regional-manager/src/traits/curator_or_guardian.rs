@@ -6,13 +6,13 @@ pub trait CuratorOrGuardianProtection<'info> {
     fn is_curator_or_guardian(
         &self,
         user: &Signer,
-        config: &Account<'info, ManagerVaultConfig>,
+        manager_config: &Account<'info, ManagerVaultConfig>,
     ) -> Result<()> {
-        if config.curator != Pubkey::default() {
+        if manager_config.curator != Pubkey::default() {
             require!(
-                user.key() == config.curator
-                    || user.key() == config.owner
-                    || user.key() == config.guardian,
+                user.key() == manager_config.curator
+                    || user.key() == manager_config.owner
+                    || user.key() == manager_config.guardian,
                 ManagerError::UnauthorizedSigner
             );
         }

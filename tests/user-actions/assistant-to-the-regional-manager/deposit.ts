@@ -81,6 +81,17 @@ describe("deposit", () => {
       supplyCap: new anchor.BN(100_000 * 1e9),
     });
 
+    // Verify pending caps were set correctly
+    const pendingMarketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
+    assert.equal(pendingMarketConfig.pendingCap.value.toNumber(), 100_000 * 1e9);
+    assert.notEqual(pendingMarketConfig.pendingCap.validAt.toNumber(), 0);
+    assert.equal(pendingMarketConfig.cap.toNumber(), 0);
+
+    const pendingMetaMarketConfig = await manager.get_manager_market_config(metaMarket.marketAcc.key).get_data();
+    assert.equal(pendingMetaMarketConfig.pendingCap.value.toNumber(), 100_000 * 1e9);
+    assert.notEqual(pendingMetaMarketConfig.pendingCap.validAt.toNumber(), 0);
+    assert.equal(pendingMetaMarketConfig.cap.toNumber(), 0);
+
     // pass 1 day + 1hr for timelock
     await test.moveTimeForward(60 * 60 * 25);
 
@@ -93,7 +104,14 @@ describe("deposit", () => {
       user: owen,
       marketId: metaMarket.marketAcc.key,
     });
-  
+
+    // Verify market caps were updated correctly
+    const marketConfig = await manager.get_manager_market_config(market.marketAcc.key).get_data();
+    assert.equal(marketConfig.cap.toNumber(), 100_000 * 1e9);
+
+    const metaMarketConfig = await manager.get_manager_market_config(metaMarket.marketAcc.key).get_data();
+    assert.equal(metaMarketConfig.cap.toNumber(), 100_000 * 1e9);
+
     // Create supply queue with two markets
     const supplyQueue = [
       market.marketAcc.key, // Using first market from fixture

@@ -24,20 +24,20 @@ pub struct SetFee<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 
     #[account(
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            config.key().as_ref(),
-            config.fee_recipient.key().as_ref()
+            &manager_config.key().as_ref(),
+            &manager_config.fee_recipient.key().as_ref()
         ],
         bump = fee_recipient_shares.bump,
     )]
@@ -47,7 +47,7 @@ pub struct SetFee<'info> {
         mut,
         seeds = [
             MANAGER_QUEUE_SEED_PREFIX,
-            config.key().as_ref(),
+            &manager_config.key().as_ref(),
         ],
         bump = queue.bump,
     )]
@@ -70,9 +70,9 @@ impl<'info, 'c: 'info> VaultAccounting<'info, 'c> for SetFee<'info> {}
 
 impl<'info, 'c: 'info> SetFee<'info> {
     pub fn validate(&self, args: &SetFeeArgs) -> Result<()> {
-        self.is_owner(&self.user, &self.config)?;
+        self.is_owner(&self.user, &self.manager_config)?;
 
-        if args.fee == self.config.fee {
+        if args.fee == self.manager_config.fee {
             return err!(ManagerError::AlreadySet);
         }
 
@@ -80,7 +80,7 @@ impl<'info, 'c: 'info> SetFee<'info> {
             return err!(ManagerError::MaxFeeExceeded);
         }
 
-        if args.fee != 0 && self.config.fee_recipient == Pubkey::default() {
+        if args.fee != 0 && self.manager_config.fee_recipient == Pubkey::default() {
             return err!(ManagerError::ZeroFeeRecipient);
         }
 
@@ -89,7 +89,7 @@ impl<'info, 'c: 'info> SetFee<'info> {
 
     pub fn handle(ctx: Context<'_, '_, 'c, 'info, Self>, args: SetFeeArgs) -> Result<()> {
         let SetFee {
-            config,
+            manager_config,
             fee_recipient_shares,
             queue,
             pathfinder_config,
@@ -98,7 +98,7 @@ impl<'info, 'c: 'info> SetFee<'info> {
         } = ctx.accounts;
 
         let (fee_shares, new_total_assets) = Self::_accrued_fee_shares(
-            config,
+            manager_config,
             &queue.withdraw_queue,
             ctx.remaining_accounts,
             pathfinder_config,
@@ -114,12 +114,12 @@ impl<'info, 'c: 'info> SetFee<'info> {
         }
 
         // Update last total assets
-        config.last_total_assets = config
+        manager_config.last_total_assets = manager_config
             .last_total_assets
             .checked_add(new_total_assets)
             .ok_or(ManagerError::MathOverflow)?;
 
-        config.fee = args.fee;
+        manager_config.fee = args.fee;
 
         Ok(())
     }

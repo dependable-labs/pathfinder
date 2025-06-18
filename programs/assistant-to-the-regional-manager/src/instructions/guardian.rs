@@ -11,25 +11,25 @@ pub struct RevokePendingGuardian<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            config.quote_mint.as_ref(),
-            config.symbol.as_bytes(),
-            config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
-        bump = config.bump,
+        bump = manager_config.bump,
     )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> GuardianProtection<'info> for RevokePendingGuardian<'info> {}
 
 impl<'info> RevokePendingGuardian<'info> {
     pub fn validate(&self) -> Result<()> {
-        self.is_guardian(&self.user, &self.config)?;
+        self.is_guardian(&self.user, &self.manager_config)?;
         Ok(())
     }
 
     pub fn handle(ctx: Context<RevokePendingGuardian>) -> Result<()> {
-        let config = &mut ctx.accounts.config;
+        let config = &mut ctx.accounts.manager_config;
 
         config.pending_guardian.value = Pubkey::default();
         config.pending_guardian.valid_at = 0;
@@ -53,26 +53,26 @@ pub struct SubmitGuardian<'info> {
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
-        config.quote_mint.as_ref(),
-        config.symbol.as_bytes(),
-        config.name.as_bytes(),
+        &manager_config.quote_mint.as_ref(),
+        &manager_config.symbol.as_bytes(),
+        &manager_config.name.as_bytes(),
     ],
-    bump,
+    bump = manager_config.bump,
   )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> OwnerProtection<'info> for SubmitGuardian<'info> {}
 
 impl<'info> SubmitGuardian<'info> {
     pub fn validate(&self, args: &SubmitGuardianArgs) -> Result<()> {
-        self.is_owner(&self.user, &self.config)?;
+        self.is_owner(&self.user, &self.manager_config)?;
 
         Ok(())
     }
 
     pub fn handle(ctx: Context<SubmitGuardian>, args: SubmitGuardianArgs) -> Result<()> {
-        let config = &mut ctx.accounts.config;
+        let config = &mut ctx.accounts.manager_config;
 
         if args.new_guardian == config.guardian {
             return err!(ManagerError::AlreadySet);
@@ -104,18 +104,18 @@ pub struct AcceptGuardian<'info> {
     mut,
     seeds = [
         MANAGER_CONFIG_SEED_PREFIX,
-        config.quote_mint.as_ref(),
-        config.symbol.as_bytes(),
-        config.name.as_bytes(),
+        &manager_config.quote_mint.as_ref(),
+        &manager_config.symbol.as_bytes(),
+        &manager_config.name.as_bytes(),
     ],
-    bump,
+    bump = manager_config.bump,
   )]
-    pub config: Box<Account<'info, ManagerVaultConfig>>,
+    pub manager_config: Box<Account<'info, ManagerVaultConfig>>,
 }
 
 impl<'info> AcceptGuardian<'info> {
     pub fn handle(ctx: Context<AcceptGuardian>) -> Result<()> {
-        let config = &mut ctx.accounts.config;
+        let config = &mut ctx.accounts.manager_config;
         let pending_guardian = config.pending_guardian.value;
 
         after_timelock(config.pending_guardian.valid_at)?;

@@ -7,11 +7,11 @@ pub trait AllocatorProtection<'info> {
     fn is_allocator(
         &self,
         user: &Signer,
-        config: &Account<'info, ManagerVaultConfig>,
+        manager_config: &Account<'info, ManagerVaultConfig>,
         allocator: Option<&Account<'info, AllocatorState>>,
     ) -> Result<()> {
         // Check if user is an owner or curator (has direct permission)
-        let has_direct_permission = user.key() == config.curator || user.key() == config.owner;
+        let has_direct_permission = user.key() == manager_config.curator || user.key() == manager_config.owner;
 
         // Check if user is operating through a valid allocator account
         let has_allocator_permission = allocator.map(|alloc| alloc.is_allocator).unwrap_or(false);
