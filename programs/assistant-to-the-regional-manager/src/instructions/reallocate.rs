@@ -52,9 +52,9 @@ pub struct Reallocate<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            quote_mint.key().as_ref(),
-            manager_config.symbol.as_bytes(),
-            manager_config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
         bump = manager_config.bump,
     )]
@@ -64,10 +64,10 @@ pub struct Reallocate<'info> {
         mut,
         seeds = [
             MANAGER_MARKET_CONFIG_SEED_PREFIX,
-            manager_config.key().as_ref(),
-            pathfinder_market.key().as_ref(),
+            &manager_config.key().as_ref(),
+            &pathfinder_market.key().as_ref(),
         ],
-        bump, // TODO: Should be manager_market_config.bump?
+        bump,
     )]
     pub manager_market_config: Box<Account<'info, ManagerMarketConfig>>,
 

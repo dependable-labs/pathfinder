@@ -35,9 +35,9 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [
             MANAGER_CONFIG_SEED_PREFIX,
-            manager_config.quote_mint.as_ref(),
-            manager_config.symbol.as_bytes(),
-            manager_config.name.as_bytes(),
+            &manager_config.quote_mint.as_ref(),
+            &manager_config.symbol.as_bytes(),
+            &manager_config.name.as_bytes(),
         ],
         bump = manager_config.bump,
     )]
@@ -57,8 +57,8 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            manager_config.key().as_ref(),
-            manager_config.fee_recipient.key().as_ref()
+            &manager_config.key().as_ref(),
+            &manager_config.fee_recipient.key().as_ref()
         ],
         bump = fee_recipient_shares.bump,
     )]
@@ -68,8 +68,8 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [
             MANAGER_SHARES_SEED_PREFIX,
-            manager_config.key().as_ref(),
-            user.key().as_ref()
+            &manager_config.key().as_ref(),
+            &user.key().as_ref()
         ],
         bump,
     )]
@@ -103,7 +103,7 @@ pub struct Withdraw<'info> {
       seeds = [
         MARKET_SHARES_SEED_PREFIX,
         &pathfinder_market.key().as_ref(),
-        manager_config.key().as_ref(),
+        &manager_config.key().as_ref(),
       ],
       bump,
       seeds::program = pathfinder_program.key(),
