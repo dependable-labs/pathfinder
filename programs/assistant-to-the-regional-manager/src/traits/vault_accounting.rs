@@ -1,20 +1,19 @@
 use anchor_lang::prelude::*;
-use anchor_lang::Bumps;
 
 use crate::{
     error::ManagerError,
     state::{ManagerVaultConfig, SupplyShares},
 };
 
-use crate::utils::accounts::{
-    validate_pathfinder_lender_shares_pda, validate_pathfinder_market_pda,
-};
+use crate::utils::accounts::{validate_pathfinder_market};
 use pathfinder::{
     cpi::view_expected_supply_assets,
+    instructions::views::supply_balances::{
+        validate_lender_shares, ViewMarketWithLenderSharesArgs,
+    },
     math::{mul_div_down, mul_div_up, zero_floor_sub, WAD},
     program::Pathfinder,
     state::{Config, LenderShares, Market},
-    instructions::views::supply_balances::ViewMarketWithLenderSharesArgs,
 };
 use std::collections::HashSet;
 
@@ -91,9 +90,18 @@ pub trait VaultAccounting<'info, 'c: 'info> {
         let mut queue_index = 0;
 
         for i in (0..market_accounts.len()).step_by(step_size) {
+            let market_info = &market_accounts[i];
+            let lender_shares_info = &market_accounts[i + 1];
+
+            let market_account = Account::<Market>::try_from(market_info)?;
+            validate_pathfinder_market(&market_info, &market_account)?;
+
+            validate_lender_shares(lender_shares_info, &market_info, &manager_config.key())?;
+            let lender_shares_account = Account::<LenderShares>::try_from(lender_shares_info)?;
+
             // Validate market order
             Self::validate_market_order(
-                &market_accounts[i],
+                &market_info,
                 withdraw_queue,
                 queue_index,
                 processing_mode,
@@ -102,8 +110,8 @@ pub trait VaultAccounting<'info, 'c: 'info> {
 
             // Get market assets
             let market_assets = Self::get_market_assets(
-                &market_accounts[i],
-                &market_accounts[i + 1],
+                &market_account,
+                &lender_shares_account,
                 manager_config,
                 pathfinder_config,
                 pathfinder_program,
@@ -121,45 +129,27 @@ pub trait VaultAccounting<'info, 'c: 'info> {
 
     // Helper function to process individual market assets
     fn get_market_assets(
-        market_info: &'info AccountInfo<'info>,
-        lender_shares_info: &'info AccountInfo<'info>,
+        market: &Account<'info, Market>,
+        lender_shares: &Account<'info, LenderShares>,
         manager_config: &Account<'info, ManagerVaultConfig>,
         pathfinder_config: &Account<'info, Config>,
         pathfinder_program: &Program<'info, Pathfinder>,
     ) -> Result<u64> {
-        // 1. Validate market account
-        let market_account = Account::<Market>::try_from(market_info)?;
-        validate_pathfinder_market_pda(&market_info.key(), &market_account)?;
-
-        // 2. Validate lender shares account
-        validate_pathfinder_lender_shares_pda(
-            &market_info.key(),
-            &manager_config.key(),
-            &lender_shares_info.key(),
-        )?;
-
-        // 3. Skip if no position in market
-        if lender_shares_info.data_is_empty() {
-            return Ok(0);
-        }
-
-        // 4. Get lender shares
-        let lender_shares_account = Account::<LenderShares>::try_from(lender_shares_info)?;
-
-        // 5. Calculate expected assets
         let view_market_ctx = CpiContext::new(
             pathfinder_program.to_account_info(),
             pathfinder::cpi::accounts::ViewMarketWithLenderShares {
-                market: market_info.to_account_info(),
+                market: market.to_account_info(),
                 config: pathfinder_config.to_account_info(),
-                lender_shares: lender_shares_info.to_account_info(),
+                lender_shares: lender_shares.to_account_info(),
             },
         );
 
-        let expected_assets =
-            view_expected_supply_assets(view_market_ctx, ViewMarketWithLenderSharesArgs {
+        let expected_assets = view_expected_supply_assets(
+            view_market_ctx,
+            ViewMarketWithLenderSharesArgs {
                 owner: manager_config.key(),
-            })?;
+            },
+        )?;
 
         Ok(expected_assets.get())
     }

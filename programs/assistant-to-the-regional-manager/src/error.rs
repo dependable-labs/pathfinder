@@ -123,4 +123,7 @@ pub enum ManagerError {
 
     #[msg("Reallocate account mismatch")]
     ReallocateAccountMismatch,
+
+    #[msg("Invalid account owner")]
+    InvalidAccountOwner,
 }
